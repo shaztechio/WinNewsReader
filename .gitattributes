@@ -1,0 +1,3 @@
+* text=auto
+# Feed fixtures are compared byte-for-byte; never convert their line endings.
+tests/**/Resources/** -text

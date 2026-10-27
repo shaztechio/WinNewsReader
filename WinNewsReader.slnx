@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Cli/">
+    <Project Path="src/Cli/WinNewsReader.Cli.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/WinNewsReader.Core.csproj" />
+  </Folder>
+  <Folder Name="/src/Parser/">
+    <Project Path="src/Parser/WinNewsReader.Parser.csproj" />
+  </Folder>
+  <Folder Name="/src/Store/">
+    <Project Path="src/Store/WinNewsReader.Store.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Parser.Tests/">
+    <Project Path="tests/Parser.Tests/WinNewsReader.Parser.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Store.Tests/">
+    <Project Path="tests/Store.Tests/WinNewsReader.Store.Tests.csproj" />
+  </Folder>
+</Solution>

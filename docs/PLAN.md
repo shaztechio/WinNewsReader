@@ -133,4 +133,4 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 - [ ] Pick the app's name
 - [ ] Email Brent Simmons about the port
 - [x] Phase 0: extract menus, preferences, Inspector and shortcuts from `Mac/` into the [parity matrix](parity-matrix.md)
-- [ ] Copy NNW test fixtures into `Parser.Tests` and get the first parser passing
+- [x] Copy NNW test fixtures into `Parser.Tests` and get the first parser passing
