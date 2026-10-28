@@ -41,6 +41,8 @@ public sealed partial class MainViewModel : ObservableObject
 		ReaderView = ReaderViewState.Off;
 		Settings = settings;
 		_settingsPath = settingsPath;
+		SidebarItem.CountDisplay = settings.UnreadCounts;
+		BrowserPath = settings.BrowserPath;
 		_expandedKeys = settings.ExpandedSidebarKeys is { } keys
 			? [.. keys]
 			: [nameof(SidebarItemKind.SmartFeedsGroup), nameof(SidebarItemKind.AccountGroup)];
@@ -330,7 +332,30 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>NetNewsWire's <c>todayCutoffDate</c>: 24 hours ago, so Today doesn't empty out at midnight.</summary>
 	private static DateTimeOffset TodayCutoff => DateTimeOffset.Now.AddHours(-24);
 
-	public IReadOnlyList<IAccount> Accounts => _accounts.Accounts;
+	/// <summary>The accounts the reader has on: the sidebar, search, refresh and notifications leave the others alone.</summary>
+	public IReadOnlyList<IAccount> Accounts => [.. _accounts.Accounts.Where(account => !Settings.DisabledAccountIds.Contains(account.AccountId))];
+
+	/// <summary>Every account, on or off, for the Accounts preferences.</summary>
+	public IReadOnlyList<IAccount> AllAccounts => _accounts.Accounts;
+
+	public bool IsAccountOn(IAccount account) => !Settings.DisabledAccountIds.Contains(account.AccountId);
+
+	/// <summary>NetNewsWire's account Active setting: an account that's off disappears from the sidebar and isn't refreshed.</summary>
+	public void SetAccountOn(IAccount account, bool on)
+	{
+		if (on ? !Settings.DisabledAccountIds.Remove(account.AccountId) : !Settings.DisabledAccountIds.Add(account.AccountId))
+		{
+			return;
+		}
+		SaveSettings();
+		AccountsChanged?.Invoke(this, EventArgs.Empty);
+		LoadSidebar();
+		LoadArticles(keepSelection: false);
+		if (on)
+		{
+			_ = RefreshAsync();
+		}
+	}
 
 	private LocalAccount LocalAccount => _accounts.LocalAccount;
 
@@ -610,19 +635,22 @@ public sealed partial class MainViewModel : ObservableObject
 	public async Task AddFreshRssAccountAsync(string serverUrl, string username, string password)
 	{
 		var account = await _accounts.AddFreshRssAccountAsync(serverUrl, username, password);
-		AccountAdded?.Invoke(this, EventArgs.Empty);
+		AccountsChanged?.Invoke(this, EventArgs.Empty);
 		_expandedKeys.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "", [], account).Key);
 		LoadSidebar();
 		_ = RefreshAsync();
 	}
 
-	/// <summary>Raised when a sync account is added, before its first refresh.</summary>
-	public event EventHandler? AccountAdded;
+	/// <summary>Raised when an account is added, removed, or turned on or off.</summary>
+	public event EventHandler? AccountsChanged;
 
 	/// <summary>Removes a sync account and its local copy; nothing changes on the server.</summary>
 	public void RemoveAccount(IAccount account)
 	{
 		_accounts.RemoveAccount(account);
+		Settings.DisabledAccountIds.Remove(account.AccountId);
+		SaveSettings();
+		AccountsChanged?.Invoke(this, EventArgs.Empty);
 		LoadSidebar();
 	}
 
@@ -1083,12 +1111,74 @@ public sealed partial class MainViewModel : ObservableObject
 		SelectedArticle = forward ? Articles.FirstOrDefault(article => !article.IsRead) : Articles.LastOrDefault(article => !article.IsRead);
 	}
 
+	/// <summary>The browser the reader picked, or null for Windows' default.</summary>
+	public static string? BrowserPath { get; set; }
+
 	public static void OpenInBrowser(string? url)
 	{
-		if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+		if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
 		{
-			Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+			return;
 		}
+		if (BrowserPath is { } path && File.Exists(path))
+		{
+			try
+			{
+				Process.Start(new ProcessStartInfo(path) { ArgumentList = { uri.AbsoluteUri } });
+				return;
+			}
+			catch (System.ComponentModel.Win32Exception)
+			{
+				// The picked browser won't start; Windows' default will.
+			}
+		}
+		Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+	}
+
+	// The General preferences, as NetNewsWire's General pane has them.
+
+	public void SetAppearance(AppAppearance appearance)
+	{
+		Settings.Appearance = appearance;
+		SaveSettings();
+		AppearanceChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>Raised when the reader picks Light, Dark or System.</summary>
+	public event EventHandler? AppearanceChanged;
+
+	public void SetUnreadCountDisplay(UnreadCountDisplay display)
+	{
+		Settings.UnreadCounts = display;
+		SidebarItem.CountDisplay = display;
+		SaveSettings();
+		foreach (var item in AllSidebarItems())
+		{
+			item.RefreshCountText();
+		}
+	}
+
+	public void SetBrowser(string? path)
+	{
+		Settings.BrowserPath = path;
+		BrowserPath = path;
+		SaveSettings();
+	}
+
+	public void SetRefreshInterval(int minutes)
+	{
+		Settings.RefreshIntervalMinutes = RefreshIntervals.Normalized(minutes);
+		SaveSettings();
+		RefreshIntervalChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>Raised when the reader picks how often to refresh.</summary>
+	public event EventHandler? RefreshIntervalChanged;
+
+	public void OpenThemesFolder()
+	{
+		Directory.CreateDirectory(Themes.UserThemesDirectory);
+		Process.Start(new ProcessStartInfo(Themes.UserThemesDirectory) { UseShellExecute = true });
 	}
 
 	public static StoredFeed? FeedFor(ArticleItem article) => article.Account.Store.GetFeed(article.Article.FeedId);

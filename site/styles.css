@@ -413,6 +413,31 @@ footer {
 	border-radius: 4px;
 }
 
+.doc figure.shot {
+	margin: 24px 0;
+}
+
+.doc figure.shot img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	box-shadow: var(--shadow);
+}
+
+.doc figure.shot.narrow img {
+	width: auto;
+	max-width: 100%;
+}
+
+.doc figure.shot figcaption {
+	margin-top: 10px;
+	font-size: 0.85rem;
+	color: var(--muted);
+	text-align: center;
+}
+
 .toc {
 	background: var(--surface);
 	border: 1px solid var(--line);

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WinNewsReader.Core;
 using WinNewsReader.Store;
 
 namespace WinNewsReader.App.ViewModels;
@@ -61,7 +62,17 @@ public sealed partial class SidebarItem : ObservableObject
 
 	public bool ShowsGlyph => !IsGroup && Icon is null;
 
-	public string UnreadCountText => UnreadCount > 0 ? UnreadCount.ToString("N0") : "";
+	/// <summary>NetNewsWire's "Unread Counts" preference, for every row.</summary>
+	public static UnreadCountDisplay CountDisplay { get; set; }
+
+	public string UnreadCountText => UnreadCount == 0 ? "" : CountDisplay switch
+	{
+		UnreadCountDisplay.Show => UnreadCount.ToString("N0"),
+		UnreadCountDisplay.Dot => "●",
+		_ => "",
+	};
+
+	public void RefreshCountText() => OnPropertyChanged(nameof(UnreadCountText));
 
 	public bool IsGroup => Kind is SidebarItemKind.SmartFeedsGroup or SidebarItemKind.AccountGroup;
 

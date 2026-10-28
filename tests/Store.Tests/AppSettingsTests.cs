@@ -44,6 +44,34 @@ public sealed class AppSettingsTests : IDisposable
 	}
 
 	[Fact]
+	public void PreferencesRoundTripAndDefaultToNetNewsWires()
+	{
+		var defaults = new AppSettings();
+		Assert.Equal(AppAppearance.System, defaults.Appearance);
+		Assert.Equal(60, defaults.RefreshIntervalMinutes);
+		Assert.Equal(UnreadCountDisplay.Show, defaults.UnreadCounts);
+		Assert.Null(defaults.BrowserPath);
+		Assert.Empty(defaults.DisabledAccountIds);
+
+		new AppSettings
+		{
+			Appearance = AppAppearance.Dark,
+			RefreshIntervalMinutes = 0,
+			UnreadCounts = UnreadCountDisplay.Dot,
+			BrowserPath = @"C:\Browsers\browser.exe",
+			DisabledAccountIds = ["OnThisPC"],
+		}.Save(SettingsPath);
+
+		Assert.Contains("\"Dark\"", File.ReadAllText(SettingsPath));
+		var loaded = AppSettings.Load(SettingsPath);
+		Assert.Equal(AppAppearance.Dark, loaded.Appearance);
+		Assert.Equal(0, loaded.RefreshIntervalMinutes);
+		Assert.Equal(UnreadCountDisplay.Dot, loaded.UnreadCounts);
+		Assert.Equal(@"C:\Browsers\browser.exe", loaded.BrowserPath);
+		Assert.Equal(["OnThisPC"], loaded.DisabledAccountIds);
+	}
+
+	[Fact]
 	public void MissingFileGivesDefaults()
 	{
 		var settings = AppSettings.Load(SettingsPath);

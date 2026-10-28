@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WinNewsReader.App.PreferencesWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Preferences">
+
+    <Grid x:Name="Root">
+        <!-- NetNewsWire's Preferences: General and Accounts. Changes apply as they're made. -->
+        <NavigationView x:Name="Tabs" PaneDisplayMode="Top" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
+                        SelectionChanged="OnTabChanged" Background="Transparent">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="General" Tag="General" Icon="Setting" />
+                <NavigationViewItem Content="Accounts" Tag="Accounts" Icon="People" />
+            </NavigationView.MenuItems>
+
+            <Grid>
+                <ScrollViewer x:Name="GeneralPanel" VerticalScrollBarVisibility="Auto">
+                    <Grid Padding="32,24,32,24" RowSpacing="18" ColumnSpacing="16" MaxWidth="640">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="Appearance:" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <ComboBox x:Name="AppearanceBox" Grid.Row="0" Grid.Column="1" MinWidth="220" AutomationProperties.Name="Appearance"
+                                  SelectionChanged="OnAppearanceChanged" />
+
+                        <TextBlock Grid.Row="1" Text="Unread Counts:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0" />
+                        <RadioButtons x:Name="CountsButtons" Grid.Row="1" Grid.Column="1" MaxColumns="3" AutomationProperties.Name="Unread Counts"
+                                      SelectionChanged="OnCountsChanged">
+                            <x:String>Show</x:String>
+                            <x:String>Show dot</x:String>
+                            <x:String>Hide</x:String>
+                        </RadioButtons>
+
+                        <TextBlock Grid.Row="2" Text="Article Text Size:" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <ComboBox x:Name="TextSizeBox" Grid.Row="2" Grid.Column="1" MinWidth="220" AutomationProperties.Name="Article Text Size"
+                                  SelectionChanged="OnTextSizeChanged" />
+
+                        <TextBlock Grid.Row="3" Text="Article Theme:" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                            <ComboBox x:Name="ThemeBox" MinWidth="220" AutomationProperties.Name="Article Theme" SelectionChanged="OnThemeChanged" />
+                            <Button Content="Open Themes Folder" Click="OnOpenThemesFolder" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="4" Text="Article Content:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0" />
+                        <StackPanel Grid.Row="4" Grid.Column="1" Spacing="4">
+                            <CheckBox x:Name="JavaScriptBox" Content="Enable JavaScript" Click="OnJavaScriptChanged" />
+                            <TextBlock Text="Some content, such as videos and embedded social media posts, may require JavaScript to work correctly."
+                                       Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="5" Text="Browser:" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <ComboBox x:Name="BrowserBox" Grid.Row="5" Grid.Column="1" MinWidth="220" AutomationProperties.Name="Browser"
+                                  SelectionChanged="OnBrowserChanged" />
+
+                        <TextBlock Grid.Row="6" Text="Refresh Feeds:" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <ComboBox x:Name="RefreshBox" Grid.Row="6" Grid.Column="1" MinWidth="220" AutomationProperties.Name="Refresh Feeds"
+                                  SelectionChanged="OnRefreshChanged" />
+                    </Grid>
+                </ScrollViewer>
+
+                <Grid x:Name="AccountsPanel" Visibility="Collapsed" Padding="32,24,32,24" RowSpacing="12" MaxWidth="640">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="An account that’s turned off disappears from the sidebar and isn’t refreshed."
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <ListView x:Name="AccountsList" Grid.Row="1" SelectionMode="Single" AutomationProperties.Name="Accounts"
+                              SelectionChanged="OnAccountSelected" BorderThickness="1"
+                              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" CornerRadius="8" />
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                        <Button Content="Add FreshRSS Account…" Click="OnAddAccount" />
+                        <Button x:Name="RemoveButton" Content="Remove Account…" Click="OnRemoveAccount" IsEnabled="False" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

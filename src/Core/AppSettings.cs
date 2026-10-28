@@ -19,6 +19,23 @@ public sealed class AppSettings
 
 	public bool HideReadFeeds { get; set; }
 
+	/// <summary>Light, Dark or System, for the whole app, articles included.</summary>
+	[JsonConverter(typeof(JsonStringEnumConverter))]
+	public AppAppearance Appearance { get; set; }
+
+	/// <summary>NetNewsWire's "Refresh Feeds" preference, in minutes; 0 means manually. Hourly by default.</summary>
+	public int RefreshIntervalMinutes { get; set; } = RefreshIntervals.DefaultMinutes;
+
+	/// <summary>NetNewsWire's "Unread Counts" preference.</summary>
+	[JsonConverter(typeof(JsonStringEnumConverter))]
+	public UnreadCountDisplay UnreadCounts { get; set; }
+
+	/// <summary>The browser that opens links, or null for Windows' default.</summary>
+	public string? BrowserPath { get; set; }
+
+	/// <summary>Accounts the reader has turned off: hidden from the sidebar and skipped when refreshing.</summary>
+	public HashSet<string> DisabledAccountIds { get; set; } = [];
+
 	/// <summary>NetNewsWire's Toggle Sidebar state.</summary>
 	public bool SidebarHidden { get; set; }
 

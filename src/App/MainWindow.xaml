@@ -103,6 +103,7 @@
                                 <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
                                                       Click="OnToggleArticleJavaScript" />
                                 <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Preferences…" Click="OnPreferences" KeyboardAcceleratorTextOverride="Ctrl+," />
                                 <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
                                 <MenuFlyoutSubItem Text="Help">
                                     <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />

@@ -71,7 +71,7 @@ public partial class App : Application
 				window.BringToFront();
 			}
 		};
-		viewModel.AccountAdded += (_, _) => notifications.WatchAccounts();
+		viewModel.AccountsChanged += (_, _) => notifications.WatchAccounts();
 		try
 		{
 			notifications.Start();

@@ -26,8 +26,7 @@ namespace WinNewsReader.App;
 
 public sealed partial class MainWindow : Window
 {
-	/// <summary>NetNewsWire's default refresh interval.</summary>
-	private static readonly TimeSpan RefreshInterval = TimeSpan.FromHours(1);
+	private PreferencesWindow? _preferences;
 
 	private readonly DispatcherQueueTimer _refreshTimer;
 	private bool _syncingSelection;
@@ -94,14 +93,27 @@ public sealed partial class MainWindow : Window
 		AddShortcuts();
 		_ = InitializeArticleViewAsync();
 
-		// Refresh at launch and then every hour, as NetNewsWire does by default.
+		// Refresh at launch, then as often as the reader's Refresh Feeds preference says (hourly, as in NetNewsWire, by default).
 		_refreshTimer = DispatcherQueue.CreateTimer();
-		_refreshTimer.Interval = RefreshInterval;
 		_refreshTimer.Tick += (_, _) => _ = ViewModel.RefreshAsync();
-		_refreshTimer.Start();
+		ApplyRefreshInterval();
+		ViewModel.RefreshIntervalChanged += (_, _) => ApplyRefreshInterval();
 		_ = ViewModel.PrepareSearchAsync();
 		_ = ViewModel.RefreshAsync();
-		Closed += (_, _) => _refreshTimer.Stop();
+
+		WindowAppearance.Track(this, Root);
+		WindowAppearance.Apply(this, Root, ViewModel.Settings.Appearance);
+		ViewModel.AppearanceChanged += (_, _) =>
+		{
+			WindowAppearance.Apply(this, Root, ViewModel.Settings.Appearance);
+			ApplyWebColorScheme();
+		};
+		Closed += (_, _) =>
+		{
+			_refreshTimer.Stop();
+			// The app ends with its last window, so Preferences goes with the main one.
+			_preferences?.Close();
+		};
 	}
 
 	public MainViewModel ViewModel { get; }
@@ -353,6 +365,7 @@ public sealed partial class MainWindow : Window
 		// The page has keyboard focus while reading, so it passes the app's shortcuts back (see ArticleKeysScript).
 		// Browser shortcuts such as Ctrl+R (reload) and Ctrl+P (print) are off; copy and select all still work.
 		core.Settings.AreBrowserAcceleratorKeysEnabled = false;
+		core.Profile.PreferredColorScheme = WindowAppearance.WebColorSchemeFor(ViewModel.Settings.Appearance);
 		await core.AddScriptToExecuteOnDocumentCreatedAsync(ArticleKeysScript.Replace("[[token]]", ArticleKeysToken));
 		// NetNewsWire's page scripts tidy up article content. Its Mac script reports scrolling and link hovers to the app
 		// through WebKit message handlers; WebView2 shows hovered links itself, so those messages go nowhere.
@@ -543,11 +556,7 @@ public sealed partial class MainWindow : Window
 		menu.Items.Add(new MenuFlyoutSeparator());
 		menu.Items.Add(MenuItem("Install Theme…", async () => await InstallThemeFromFileAsync()));
 		menu.Items.Add(MenuItem("Install Theme from URL…", async () => await InstallThemeFromUrlAsync()));
-		menu.Items.Add(MenuItem("Open Themes Folder", () =>
-		{
-			Directory.CreateDirectory(ViewModel.Themes.UserThemesDirectory);
-			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ViewModel.Themes.UserThemesDirectory) { UseShellExecute = true });
-		}));
+		menu.Items.Add(MenuItem("Open Themes Folder", ViewModel.OpenThemesFolder));
 	}
 
 	/// <summary>A zipped theme, or the Info.plist in a .nnwtheme folder: the file picker can't pick folders.</summary>
@@ -606,7 +615,7 @@ public sealed partial class MainWindow : Window
 				{
 					Text = "This theme runs scripts in every article you read with it. Install it only if you trust where it came from.",
 					TextWrapping = TextWrapping.Wrap,
-					Foreground = ThemeBrush("SystemFillColorCautionBrush"),
+					Style = (Style)Application.Current.Resources["CautionTextStyle"],
 				});
 			}
 			if (await ShowDialogAsync(Dialog($"Install theme “{theme.Name}” by {theme.CreatorName}?", "Install Theme", details)) != ContentDialogResult.Primary)
@@ -651,6 +660,38 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnToggleRead(object sender, RoutedEventArgs e) => ViewModel.ToggleRead();
+
+	private void ApplyRefreshInterval()
+	{
+		_refreshTimer.Stop();
+		if (RefreshIntervals.ToTimeSpan(ViewModel.Settings.RefreshIntervalMinutes) is { } interval)
+		{
+			_refreshTimer.Interval = interval;
+			_refreshTimer.Start();
+		}
+	}
+
+	/// <summary>Articles see the app's Light or Dark choice as <c>prefers-color-scheme</c>, so a theme's dark styles go with it.</summary>
+	private void ApplyWebColorScheme()
+	{
+		if (_articleViewReady)
+		{
+			ArticleView.CoreWebView2.Profile.PreferredColorScheme = WindowAppearance.WebColorSchemeFor(ViewModel.Settings.Appearance);
+		}
+	}
+
+	private void OnPreferences(object sender, RoutedEventArgs e) => OpenPreferences();
+
+	/// <summary>NetNewsWire's Preferences (Cmd+,): one window, brought forward if it's already open.</summary>
+	public void OpenPreferences()
+	{
+		if (_preferences is null)
+		{
+			_preferences = new PreferencesWindow(ViewModel);
+			_preferences.Closed += (_, _) => _preferences = null;
+		}
+		_preferences.Activate();
+	}
 
 	private void OnToggleSidebar(object sender, RoutedEventArgs e) => ToggleSidebar();
 
@@ -983,7 +1024,7 @@ public sealed partial class MainWindow : Window
 		ShowFolders(ViewModel.DefaultFolderForNewFeed);
 		accountBox.SelectionChanged += (_, _) => ShowFolders(null);
 		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
-		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Foreground = ThemeBrush("SystemFillColorCriticalBrush") };
+		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Style = (Style)Application.Current.Resources["ErrorTextStyle"] };
 		var dialog = Dialog("New Feed", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { url, accountBox, folderBox, progress, error } });
 		dialog.IsPrimaryButtonEnabled = url.Text.Length > 0;
 		url.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = url.Text.Trim().Length > 0;
@@ -1148,62 +1189,25 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	/// <summary>NetNewsWire's FreshRSS account sheet: server address, username and API password, checked before saving.</summary>
-	private async Task ShowAddFreshRssAccountDialogAsync()
-	{
-		var server = new TextBox { Header = "Server", PlaceholderText = "https://freshrss.example.com" };
-		var username = new TextBox { Header = "Username" };
-		var password = new PasswordBox { Header = "API password" };
-		var help = new TextBlock
-		{
-			Text = "Use the API password from FreshRSS’s Settings → Profile, with “Allow API access” turned on in its authentication settings.",
-			TextWrapping = TextWrapping.Wrap,
-			Foreground = ThemeBrush("TextFillColorSecondaryBrush"),
-		};
-		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
-		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Foreground = ThemeBrush("SystemFillColorCriticalBrush") };
-		var dialog = Dialog("Add FreshRSS Account", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { server, username, password, help, progress, error } });
-		void UpdateEnabled() => dialog.IsPrimaryButtonEnabled = server.Text.Trim().Length > 0 && username.Text.Trim().Length > 0 && password.Password.Length > 0;
-		UpdateEnabled();
-		server.TextChanged += (_, _) => UpdateEnabled();
-		username.TextChanged += (_, _) => UpdateEnabled();
-		password.PasswordChanged += (_, _) => UpdateEnabled();
-		dialog.PrimaryButtonClick += async (_, args) =>
-		{
-			var deferral = args.GetDeferral();
-			progress.Visibility = Visibility.Visible;
-			error.Visibility = Visibility.Collapsed;
-			dialog.IsPrimaryButtonEnabled = false;
-			try
-			{
-				await ViewModel.AddFreshRssAccountAsync(server.Text.Trim(), username.Text.Trim(), password.Password);
-			}
-			catch (Exception ex)
-			{
-				error.Text = ex.Message;
-				error.Visibility = Visibility.Visible;
-				args.Cancel = true;
-			}
-			finally
-			{
-				progress.Visibility = Visibility.Collapsed;
-				UpdateEnabled();
-				deferral.Complete();
-			}
-		};
-		await ShowDialogAsync(dialog);
-	}
+	private Task ShowAddFreshRssAccountDialogAsync() => ShowSharedDialogAsync(() => AccountDialogs.ShowAddFreshRssAsync(Content.XamlRoot, ViewModel));
 
-	private async Task ConfirmRemoveAccountAsync(IAccount account)
+	private Task ConfirmRemoveAccountAsync(IAccount account) => ShowSharedDialogAsync(() => AccountDialogs.ConfirmRemoveAsync(Content.XamlRoot, ViewModel, account));
+
+	/// <summary>Only one dialog can be open at a time; one of the shared account dialogs, like the others, waits its turn.</summary>
+	private async Task ShowSharedDialogAsync(Func<Task> show)
 	{
-		var dialog = Dialog("Remove Account", "Remove", new TextBlock
+		if (_dialogOpen)
 		{
-			Text = $"Remove the “{account.Name}” account? Its feeds and articles stay on the server; only this PC’s copy goes.",
-			TextWrapping = TextWrapping.Wrap,
-		});
-		if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
+			return;
+		}
+		_dialogOpen = true;
+		try
 		{
-			ViewModel.RemoveAccount(account);
+			await show();
+		}
+		finally
+		{
+			_dialogOpen = false;
 		}
 	}
 
@@ -1251,6 +1255,8 @@ public sealed partial class MainWindow : Window
 		_dialogOpen = true;
 		try
 		{
+			// A dialog doesn't take the window's Light or Dark on its own; it follows Windows'.
+			dialog.RequestedTheme = Root.ActualTheme;
 			return await dialog.ShowAsync();
 		}
 		finally
@@ -1278,8 +1284,6 @@ public sealed partial class MainWindow : Window
 		}
 		return null;
 	}
-
-	private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];
 
 	// Import and export
 
@@ -1410,6 +1414,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.F, CtrlAlt, null, () => SearchBox.Focus(FocusState.Keyboard));
 		Add(VirtualKey.S, CtrlAlt, null, ToggleSidebar);
 		Add(VirtualKey.F1, None, null, () => MainViewModel.OpenInBrowser(HelpUrl));
+		Add(Comma, Ctrl, null, OpenPreferences);
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));

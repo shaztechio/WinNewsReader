@@ -205,7 +205,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | PR-03 | General | Article theme + Open Themes Folder | Port | See AV-02, AV-05 |
 | PR-04 | General | Enable JavaScript | Port | See AV-07 |
 | PR-05 | General | Browser picker | Port | List installed browsers from registry. UI: choice used |
-| PR-06 | General | Open web pages in background | Port | UI: Shift does the opposite |
+| PR-06 | General | Open web pages in background | Drop | Windows browsers give no way to open a tab in the background from another app |
 | PR-07 | General | Safari extension: open feeds in NNW / default reader | Drop | Safari only. Windows uses `feed:` handler registration (OT-04) |
 | PR-08 | General | Refresh interval: manual, 30 min, 1/2/4/8 h | Port | Unit: scheduler fires at interval |
 | PR-09 | Accounts | Add, remove, enable, edit credentials per account | Port | UI |
