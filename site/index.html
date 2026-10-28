@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WinNewsReader — a feed reader for Windows</title>
+	<meta name="description" content="A native RSS, Atom and JSON Feed reader for Windows 10 and 11, built in the spirit of NetNewsWire. In development.">
+	<meta name="color-scheme" content="light dark">
+	<meta property="og:title" content="WinNewsReader">
+	<meta property="og:description" content="A native feed reader for Windows, built in the spirit of NetNewsWire.">
+	<meta property="og:image" content="https://winnewsreader.com/icon.png">
+	<meta property="og:url" content="https://winnewsreader.com/">
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="icon" href="icon.png" type="image/png">
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<header class="top">
+		<a class="brand" href="/">
+			<img src="icon.png" alt="" width="32" height="32">
+			<span>WinNewsReader</span>
+		</a>
+		<span class="status">In development</span>
+	</header>
+
+	<main>
+		<section class="hero">
+			<img class="hero-icon" src="icon.png" alt="WinNewsReader icon" width="128" height="128">
+			<h1>Your news, on your PC.</h1>
+			<p class="lede">
+				WinNewsReader is a native feed reader for Windows 10 and 11. Follow the sites you care about
+				through RSS, Atom and JSON Feed, and read them in a clean three-pane window. It’s built in the
+				spirit of <a href="https://netnewswire.com/">NetNewsWire</a>, the much-loved Mac reader.
+			</p>
+			<p class="note">Not available to download yet: it’s being built one phase at a time.</p>
+		</section>
+
+		<!-- An illustration of the app's window, not a screenshot. -->
+		<figure class="window" aria-label="Illustration of the WinNewsReader window: a sidebar of feeds, a list of articles, and an article">
+			<div class="titlebar">
+				<img src="icon.png" alt="" width="16" height="16">
+				<span>WinNewsReader</span>
+				<span class="controls" aria-hidden="true"><i></i><i></i><i></i></span>
+			</div>
+			<div class="panes">
+				<div class="sidebar">
+					<p class="group">Smart Feeds</p>
+					<p class="row"><b class="glyph"></b>Today<em>12</em></p>
+					<p class="row selected"><b class="glyph"></b>All Unread<em>48</em></p>
+					<p class="row"><b class="glyph"></b>Starred</p>
+					<p class="group">On This PC</p>
+					<p class="row"><b class="dot blue"></b>Example Blog<em>9</em></p>
+					<p class="row"><b class="dot orange"></b>Morning Notes<em>4</em></p>
+					<p class="row"><b class="folder"></b>Technology<em>35</em></p>
+				</div>
+				<div class="timeline">
+					<div class="item active">
+						<p class="title">Welcome to WinNewsReader</p>
+						<p class="line"></p><p class="line short"></p>
+						<p class="meta">Morning Notes · 9:41 AM</p>
+					</div>
+					<div class="item unread">
+						<p class="title">Reading the web, the calm way</p>
+						<p class="line"></p><p class="line short"></p>
+						<p class="meta">Example Blog · 8:15 AM</p>
+					</div>
+					<div class="item unread">
+						<p class="title">Folders, smart feeds and shortcuts</p>
+						<p class="line"></p><p class="line short"></p>
+						<p class="meta">Technology · Yesterday</p>
+					</div>
+				</div>
+				<div class="article">
+					<p class="headline">Welcome to WinNewsReader</p>
+					<p class="meta">Morning Notes · Wednesday, 9:41 AM</p>
+					<p class="line"></p><p class="line"></p><p class="line"></p><p class="line short"></p>
+					<p class="block"></p>
+					<p class="line"></p><p class="line"></p><p class="line shorter"></p>
+				</div>
+			</div>
+		</figure>
+
+		<section class="features">
+			<h2>What it does today</h2>
+			<ul class="grid">
+				<li>
+					<h3>Every common feed format</h3>
+					<p>RSS, RSS 1.0, Atom, JSON Feed and RSS-in-JSON, using NetNewsWire’s parsers ported to C#, so the same feed reads the same way.</p>
+				</li>
+				<li>
+					<h3>Finds the feed for you</h3>
+					<p>Type a site’s address and it finds the site’s feed, the way NetNewsWire does.</p>
+				</li>
+				<li>
+					<h3>Folders and OPML</h3>
+					<p>Organise feeds into folders, and bring your subscriptions in or take them out as OPML.</p>
+				</li>
+				<li>
+					<h3>Smart feeds</h3>
+					<p>Today, All Unread and Starred gather articles from every feed. Hide what you’ve read, per feed or across the sidebar.</p>
+				</li>
+				<li>
+					<h3>Made for the keyboard</h3>
+					<p>NetNewsWire’s shortcuts, with Ctrl for Cmd: Space to page through and on to the next unread, <kbd>n</kbd>, <kbd>s</kbd>, <kbd>k</kbd> and the rest.</p>
+				</li>
+				<li>
+					<h3>At home on Windows</h3>
+					<p>A native WinUI 3 app with Mica, dark mode and resizable panes. Your feeds stay on your PC.</p>
+				</li>
+			</ul>
+		</section>
+
+		<section class="roadmap">
+			<h2>On the way</h2>
+			<ul>
+				<li>Article themes and Reader View</li>
+				<li>Sync with FreshRSS, Feedbin, Inoreader, NewsBlur, The Old Reader and BazQux</li>
+				<li>Search, notifications, preferences and the rest of NetNewsWire’s features</li>
+				<li>A signed installer with automatic updates</li>
+			</ul>
+		</section>
+	</main>
+
+	<footer>
+		<p>
+			WinNewsReader is a Windows port of <a href="https://github.com/Ranchero-Software/NetNewsWire">NetNewsWire</a>
+			by Brent Simmons and contributors, used under the MIT license. It isn’t affiliated with or endorsed by NetNewsWire.
+		</p>
+	</footer>
+</body>
+</html>
