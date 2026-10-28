@@ -415,11 +415,81 @@ public sealed partial class MainWindow : Window
 			}
 		}
 		menu.Items.Add(new MenuFlyoutSeparator());
+		menu.Items.Add(MenuItem("Install Theme…", async () => await InstallThemeFromFileAsync()));
+		menu.Items.Add(MenuItem("Install Theme from URL…", async () => await InstallThemeFromUrlAsync()));
 		menu.Items.Add(MenuItem("Open Themes Folder", () =>
 		{
 			Directory.CreateDirectory(ViewModel.Themes.UserThemesDirectory);
 			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ViewModel.Themes.UserThemesDirectory) { UseShellExecute = true });
 		}));
+	}
+
+	/// <summary>A zipped theme, or the Info.plist in a .nnwtheme folder: the file picker can't pick folders.</summary>
+	private async Task InstallThemeFromFileAsync()
+	{
+		var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.Downloads };
+		picker.FileTypeFilter.Add(".zip");
+		picker.FileTypeFilter.Add(".plist");
+		WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
+		if (await picker.PickSingleFileAsync() is { } file)
+		{
+			await InstallThemeAsync(() => Task.FromResult(ViewModel.ThemeInstaller.Open(file.Path)));
+		}
+	}
+
+	private async Task InstallThemeFromUrlAsync()
+	{
+		if (await PromptAsync("Install Theme from URL", "Download", "URL of a zipped NetNewsWire theme", await ClipboardUrlAsync() ?? "") is { } url)
+		{
+			await InstallThemeAsync(() => ViewModel.ThemeInstaller.DownloadAsync(url));
+		}
+	}
+
+	/// <summary>NetNewsWire's <c>importTheme(url:)</c>: confirm with the theme's author, ask before overwriting, then confirm it's in.</summary>
+	private async Task InstallThemeAsync(Func<Task<ArticleThemePackage>> open)
+	{
+		ArticleThemePackage package;
+		try
+		{
+			package = await open();
+		}
+		catch (Exception ex) when (ex is ArticleThemeInstallException or IOException or UnauthorizedAccessException or HttpRequestException)
+		{
+			await ShowMessageAsync("Couldn’t Install Theme", ex.Message);
+			return;
+		}
+		using (package)
+		{
+			var theme = package.Theme;
+			var website = new StackPanel();
+			if (theme.CreatorHomePage is { Length: > 0 } homePage)
+			{
+				website.Children.Add(new TextBlock { Text = "Author’s website:" });
+				website.Children.Add(Uri.TryCreate(homePage, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"
+					? new HyperlinkButton { Content = homePage, NavigateUri = uri, Padding = new Thickness(0) }
+					: new TextBlock { Text = homePage });
+			}
+			if (await ShowDialogAsync(Dialog($"Install theme “{theme.Name}” by {theme.CreatorName}?", "Install Theme", website)) != ContentDialogResult.Primary)
+			{
+				return;
+			}
+			if (ViewModel.ThemeInstaller.Exists(package)
+				&& await ShowDialogAsync(Dialog($"The theme “{theme.Name}” already exists. Overwrite it?", "Overwrite", "")) != ContentDialogResult.Primary)
+			{
+				return;
+			}
+			try
+			{
+				ViewModel.ThemeInstaller.Install(package);
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+			{
+				await ShowMessageAsync("Couldn’t Install Theme", ex.Message);
+				return;
+			}
+			ViewModel.ReloadThemes();
+			await ShowMessageAsync("Theme installed", $"The theme “{theme.Name}” has been installed.");
+		}
 	}
 
 	private void OnTextSizeMenuOpening(object? sender, object e)

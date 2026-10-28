@@ -94,7 +94,7 @@ public sealed class ArticleTheme
 	private static string? ReadIfExists(string path) => File.Exists(path) ? File.ReadAllText(path) : null;
 
 	/// <summary>The top-level string and integer values of an XML property list.</summary>
-	private static Dictionary<string, string> ReadPlist(string path)
+	internal static Dictionary<string, string> ReadPlist(string path)
 	{
 		var values = new Dictionary<string, string>();
 		var dict = XDocument.Load(path).Root?.Element("dict") ?? throw new InvalidDataException($"{path} has no dictionary.");
@@ -131,6 +131,9 @@ public sealed class ArticleThemes
 		Default = ArticleTheme.LoadDefault(resourcesDirectory);
 		Reload();
 	}
+
+	/// <summary>The app's rendering resources: <c>core.css</c>, the default theme and the built-in ones.</summary>
+	public string ResourcesDirectory => _resourcesDirectory;
 
 	/// <summary>Where the reader's themes go: each a <c>.nnwtheme</c> folder.</summary>
 	public string UserThemesDirectory => _userThemesDirectory;

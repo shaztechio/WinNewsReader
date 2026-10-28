@@ -150,7 +150,8 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 - [ ] Phase 3: article view
   - [x] NetNewsWire's template, core and stylesheet CSS, page scripts and special cases (AV-01), its eight bundled themes (AV-02), Open Themes Folder (AV-05), article text size; feed icons in the article header
   - [x] Reader View (AV-08, TB-09): SmartReader extracts the article from its page, on demand (Ctrl+Shift+R) or always for a feed set to Always Use Reader View
-  - [ ] Theme import by opening a `.nnwtheme` (AV-03) and download from a URL (AV-04); turning off content JavaScript per site
+  - [x] Theme import (AV-03) and download from a URL (AV-04): **Install Theme…** takes a zip or a theme's `Info.plist`, since a `.nnwtheme` is a folder on Windows and can't be double-clicked; **Install Theme from URL…** downloads a zip. Same checks and prompts as NetNewsWire. The `netnewswire://theme/add?url=` link waits for a URL scheme registration
+  - [ ] Turning off content JavaScript per site
 - [ ] Phase 4, started early: FreshRSS
   - [x] Account layer (several accounts, one store each), sync status queue, Credential Manager
   - [x] Reader API client and account: feeds, folders, articles and statuses both ways; subscribe, unsubscribe, rename and delete folders

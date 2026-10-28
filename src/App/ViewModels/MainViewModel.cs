@@ -31,11 +31,12 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool _rebuildingSidebar;
 	private bool _restoringSelection;
 
-	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, ArticleExtractor extractor, AppSettings settings, string settingsPath)
+	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, ArticleThemeInstaller themeInstaller, ArticleExtractor extractor, AppSettings settings, string settingsPath)
 	{
 		_accounts = accounts;
 		_favicons = favicons;
 		Themes = themes;
+		ThemeInstaller = themeInstaller;
 		_extractor = extractor;
 		ReaderView = ReaderViewState.Off;
 		Settings = settings;
@@ -80,6 +81,8 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	/// <summary>Picks up themes added to or removed from the themes folder.</summary>
+	public ArticleThemeInstaller ThemeInstaller { get; }
+
 	public void ReloadThemes()
 	{
 		Themes.Reload();
