@@ -24,8 +24,8 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 	private const int StatusesPerRequest = 1000;
 	private const string LastArticleFetchKey = "lastArticleFetchStartTime";
 
-	private readonly AccountRecord _record;
-	private readonly ReaderApiCaller _caller;
+	private AccountRecord _record;
+	private ReaderApiCaller _caller;
 	private readonly FeedFinder _finder;
 	private readonly SemaphoreSlim _syncGate = new(1, 1);
 	private readonly Lock _sendLock = new();
@@ -46,6 +46,33 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 	public AccountKind Kind => _record.Kind;
 
 	public string Name => _record.Name;
+
+	/// <summary>The account's saved settings: its name, server address and username.</summary>
+	public AccountRecord Record => _record;
+
+	/// <summary>
+	/// NetNewsWire's account sheet, applied: a new name, server address, username or password. Waits for a sync in
+	/// progress to finish, so none is cut off halfway, then uses the new login from the next request.
+	/// </summary>
+	public async Task ReconfigureAsync(AccountRecord record, ReaderApiCaller caller, CancellationToken cancellationToken = default)
+	{
+		if (record.AccountId != _record.AccountId)
+		{
+			throw new ArgumentException("An account keeps its ID.", nameof(record));
+		}
+		await _syncGate.WaitAsync(cancellationToken);
+		try
+		{
+			var old = _caller;
+			_record = record;
+			_caller = caller;
+			old.Dispose();
+		}
+		finally
+		{
+			_syncGate.Release();
+		}
+	}
 
 	public ArticlesStore Store { get; }
 

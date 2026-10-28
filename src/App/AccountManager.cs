@@ -47,6 +47,32 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 		return account;
 	}
 
+	/// <summary>
+	/// NetNewsWire's credentials sheet: checks the login if the server, username or password changed (a blank password
+	/// keeps the saved one), then saves the new name, server, username and password. The account keeps its data.
+	/// </summary>
+	public async Task UpdateFreshRssAccountAsync(
+		ReaderApiAccount account, string name, string serverUrl, string username, string password, CancellationToken cancellationToken = default)
+	{
+		var endpoint = ReaderApiCaller.NormalizedEndpoint(serverUrl);
+		var target = CredentialTarget(account.AccountId);
+		var current = account.Record;
+		var secret = password.Length > 0 ? password : credentials.GetSecret(target) ?? "";
+		var loginChanged = password.Length > 0 || endpoint != current.Endpoint || username != current.Username;
+		if (loginChanged)
+		{
+			using var check = new ReaderApiCaller(endpoint, username, secret);
+			await check.LoginAsync(cancellationToken);
+		}
+		var record = current with { Name = name, Endpoint = endpoint, Username = username };
+		if (loginChanged)
+		{
+			credentials.SetSecret(target, username, secret);
+		}
+		AccountsFile.Save(AccountsPath, AccountsFile.Load(AccountsPath).Select(saved => saved.AccountId == record.AccountId ? record : saved));
+		await account.ReconfigureAsync(record, new ReaderApiCaller(endpoint, username, secret), cancellationToken);
+	}
+
 	/// <summary>Removes a sync account and its local copy of the data. Nothing changes on the server.</summary>
 	public void RemoveAccount(IAccount account)
 	{

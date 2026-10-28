@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using WinNewsReader.App.ViewModels;
 using WinNewsReader.Core;
 using WinNewsReader.Core.ArticleRendering;
+using WinNewsReader.Sync.GoogleReader;
 using Windows.Graphics;
 using WinRT.Interop;
 
@@ -226,12 +227,7 @@ public sealed partial class PreferencesWindow : Window
 			text.Children.Add(new TextBlock { Text = account.Name });
 			text.Children.Add(new TextBlock
 			{
-				Text = account.Kind switch
-				{
-					AccountKind.Local => "Stored on this PC",
-					AccountKind.FreshRss => "Syncs with a FreshRSS server",
-					_ => "Syncs with a server",
-				},
+				Text = account is ReaderApiAccount sync ? $"{sync.Record.Username} on {ServerName(sync.Record.Endpoint)}" : "Stored on this PC",
 				Style = (Style)Application.Current.Resources["SecondaryCaptionStyle"],
 			});
 			var row = new Grid { ColumnSpacing = 12, Padding = new Thickness(4, 6, 4, 6) };
@@ -250,11 +246,27 @@ public sealed partial class PreferencesWindow : Window
 				AccountsList.SelectedItem = item;
 			}
 		}
-		RemoveButton.IsEnabled = AccountsList.SelectedItem is ListViewItem { Tag: IAccount { Kind: not AccountKind.Local } };
+		UpdateAccountButtons();
 	}
 
-	private void OnAccountSelected(object sender, SelectionChangedEventArgs e) =>
-		RemoveButton.IsEnabled = AccountsList.SelectedItem is ListViewItem { Tag: IAccount { Kind: not AccountKind.Local } };
+	private static string ServerName(string endpoint) => Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) ? uri.Host : endpoint;
+
+	private void OnAccountSelected(object sender, SelectionChangedEventArgs e) => UpdateAccountButtons();
+
+	private void UpdateAccountButtons()
+	{
+		var sync = AccountsList.SelectedItem is ListViewItem { Tag: ReaderApiAccount };
+		EditButton.IsEnabled = sync;
+		RemoveButton.IsEnabled = sync;
+	}
+
+	private async void OnEditAccount(object sender, RoutedEventArgs e)
+	{
+		if (AccountsList.SelectedItem is ListViewItem { Tag: ReaderApiAccount account })
+		{
+			await AccountDialogs.ShowEditFreshRssAsync(Content.XamlRoot, _viewModel, account);
+		}
+	}
 
 	private async void OnAddAccount(object sender, RoutedEventArgs e) => await AccountDialogs.ShowAddFreshRssAsync(Content.XamlRoot, _viewModel);
 

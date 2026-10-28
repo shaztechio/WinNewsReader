@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using WinNewsReader.Core;
 using WinNewsReader.Core.ArticleRendering;
 using WinNewsReader.Store;
+using WinNewsReader.Sync.GoogleReader;
 
 namespace WinNewsReader.App.ViewModels;
 
@@ -639,6 +640,21 @@ public sealed partial class MainViewModel : ObservableObject
 		_expandedKeys.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "", [], account).Key);
 		LoadSidebar();
 		_ = RefreshAsync();
+	}
+
+	/// <summary>Saves the changes to a sync account's name, server, username or password, then syncs it with them.</summary>
+	public async Task EditFreshRssAccountAsync(ReaderApiAccount account, string name, string serverUrl, string username, string password)
+	{
+		var before = account.Record;
+		await _accounts.UpdateFreshRssAccountAsync(account, name, serverUrl, username, password);
+		AccountsChanged?.Invoke(this, EventArgs.Empty);
+		// The sidebar names the account.
+		LoadSidebar();
+		var after = account.Record;
+		if (password.Length > 0 || after.Endpoint != before.Endpoint || after.Username != before.Username)
+		{
+			_ = RefreshAsync();
+		}
 	}
 
 	/// <summary>Raised when an account is added, removed, or turned on or off.</summary>

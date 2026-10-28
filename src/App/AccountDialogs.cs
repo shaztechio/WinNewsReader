@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinNewsReader.App.ViewModels;
 using WinNewsReader.Core;
+using WinNewsReader.Sync.GoogleReader;
 
 namespace WinNewsReader.App;
 
@@ -9,11 +10,30 @@ namespace WinNewsReader.App;
 public static class AccountDialogs
 {
 	/// <summary>NetNewsWire's FreshRSS account sheet: server address, username and API password, checked before saving.</summary>
-	public static async Task ShowAddFreshRssAsync(XamlRoot xamlRoot, MainViewModel viewModel)
+	public static Task ShowAddFreshRssAsync(XamlRoot xamlRoot, MainViewModel viewModel) => ShowFreshRssFormAsync(
+		xamlRoot, "Add FreshRSS Account", "Add", name: null, server: "", username: "", passwordIsRequired: true,
+		(_, server, username, password) => viewModel.AddFreshRssAccountAsync(server, username, password));
+
+	/// <summary>
+	/// NetNewsWire's credentials sheet for an account that exists: its name, server, username and password, checked
+	/// before saving. The password can stay blank to keep the saved one.
+	/// </summary>
+	public static Task ShowEditFreshRssAsync(XamlRoot xamlRoot, MainViewModel viewModel, ReaderApiAccount account) => ShowFreshRssFormAsync(
+		xamlRoot, "Edit Account", "Save", account.Name, account.Record.Endpoint, account.Record.Username, passwordIsRequired: false,
+		(name, server, username, password) => viewModel.EditFreshRssAccountAsync(account, name, server, username, password));
+
+	private static async Task ShowFreshRssFormAsync(
+		XamlRoot xamlRoot, string title, string primaryText, string? name, string server, string username, bool passwordIsRequired,
+		Func<string, string, string, string, Task> save)
 	{
-		var server = new TextBox { Header = "Server", PlaceholderText = "https://freshrss.example.com" };
-		var username = new TextBox { Header = "Username" };
-		var password = new PasswordBox { Header = "API password" };
+		var nameBox = new TextBox { Header = "Name", Text = name ?? "", Visibility = name is null ? Visibility.Collapsed : Visibility.Visible };
+		var serverBox = new TextBox { Header = "Server", PlaceholderText = "https://freshrss.example.com", Text = server };
+		var usernameBox = new TextBox { Header = "Username", Text = username };
+		var passwordBox = new PasswordBox
+		{
+			Header = "API password",
+			PlaceholderText = passwordIsRequired ? "" : "Leave blank to keep the saved password",
+		};
 		var help = new TextBlock
 		{
 			Text = "Use the API password from FreshRSS’s Settings → Profile, with “Allow API access” turned on in its authentication settings.",
@@ -22,12 +42,15 @@ public static class AccountDialogs
 		};
 		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
 		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Style = Style("ErrorTextStyle") };
-		var dialog = Dialog(xamlRoot, "Add FreshRSS Account", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { server, username, password, help, progress, error } });
-		void UpdateEnabled() => dialog.IsPrimaryButtonEnabled = server.Text.Trim().Length > 0 && username.Text.Trim().Length > 0 && password.Password.Length > 0;
+		var dialog = Dialog(xamlRoot, title, primaryText, new StackPanel { Spacing = 12, Width = 420, Children = { nameBox, serverBox, usernameBox, passwordBox, help, progress, error } });
+		void UpdateEnabled() => dialog.IsPrimaryButtonEnabled =
+			(name is null || nameBox.Text.Trim().Length > 0) && serverBox.Text.Trim().Length > 0 && usernameBox.Text.Trim().Length > 0
+			&& (!passwordIsRequired || passwordBox.Password.Length > 0);
 		UpdateEnabled();
-		server.TextChanged += (_, _) => UpdateEnabled();
-		username.TextChanged += (_, _) => UpdateEnabled();
-		password.PasswordChanged += (_, _) => UpdateEnabled();
+		nameBox.TextChanged += (_, _) => UpdateEnabled();
+		serverBox.TextChanged += (_, _) => UpdateEnabled();
+		usernameBox.TextChanged += (_, _) => UpdateEnabled();
+		passwordBox.PasswordChanged += (_, _) => UpdateEnabled();
 		dialog.PrimaryButtonClick += async (_, args) =>
 		{
 			var deferral = args.GetDeferral();
@@ -36,7 +59,7 @@ public static class AccountDialogs
 			dialog.IsPrimaryButtonEnabled = false;
 			try
 			{
-				await viewModel.AddFreshRssAccountAsync(server.Text.Trim(), username.Text.Trim(), password.Password);
+				await save(nameBox.Text.Trim(), serverBox.Text.Trim(), usernameBox.Text.Trim(), passwordBox.Password);
 			}
 			catch (Exception ex)
 			{

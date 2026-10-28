@@ -249,6 +249,36 @@ public sealed class ReaderApiAccountTests : IDisposable
 	}
 
 	[Fact]
+	public async Task ReconfiguredAccountKeepsItsDataAndUsesTheNewLogin()
+	{
+		_server.AddFeed("Feed", "https://a.example/feed", "Folder");
+		await _account.RefreshAllAsync();
+		Assert.Equal("FreshRSS", _account.Name);
+
+		// A wrong password: the account takes it, and its next refresh reports the login failure.
+		var wrong = new AccountRecord("fresh", AccountKind.FreshRss, "Work", FakeReaderServer.Endpoint, FakeReaderServer.Username);
+		await _account.ReconfigureAsync(wrong, new ReaderApiCaller(FakeReaderServer.Endpoint, FakeReaderServer.Username, "wrong", _server));
+		Assert.Equal("Work", _account.Name);
+		Assert.Equal("Work", _account.Record.Name);
+		Assert.NotNull((await _account.RefreshAllAsync()).Error);
+		Assert.Single(_store.GetFeeds());
+
+		// The right one again: it syncs, and the data it had is still there.
+		var right = wrong with { Name = "Home" };
+		await _account.ReconfigureAsync(right, NewCaller());
+		Assert.Equal("Home", _account.Name);
+		Assert.Null((await _account.RefreshAllAsync()).Error);
+		Assert.Single(_store.GetFeeds());
+	}
+
+	[Fact]
+	public async Task ReconfiguringCannotChangeTheAccountId()
+	{
+		var other = new AccountRecord("other", AccountKind.FreshRss, "FreshRSS", FakeReaderServer.Endpoint, FakeReaderServer.Username);
+		await Assert.ThrowsAsync<ArgumentException>(() => _account.ReconfigureAsync(other, NewCaller()));
+	}
+
+	[Fact]
 	public async Task WrongPasswordIsReported()
 	{
 		using var caller = new ReaderApiCaller(FakeReaderServer.Endpoint, FakeReaderServer.Username, "wrong", _server);
