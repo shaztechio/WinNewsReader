@@ -985,6 +985,12 @@ public sealed partial class MainViewModel : ObservableObject
 		return last < 0 ? [] : [.. Articles.Skip(last + 1).Where(article => !article.IsRead)];
 	}
 
+	/// <summary>NetNewsWire's Mark Above as Read (Ctrl+Alt+K): the unread articles above the first selected one.</summary>
+	public void MarkAboveRead() => MarkRead(UnreadAbove(SelectedArticles));
+
+	/// <summary>NetNewsWire's Mark Below as Read (Ctrl+Shift+K): the unread articles below the last selected one.</summary>
+	public void MarkBelowRead() => MarkRead(UnreadBelow(SelectedArticles));
+
 	public void MarkRead(IReadOnlyList<ArticleItem> articles)
 	{
 		if (articles.Count > 0)

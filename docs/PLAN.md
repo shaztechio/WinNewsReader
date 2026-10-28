@@ -128,7 +128,7 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 
 ## Next steps
 
-The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 134 done, 24 partial, 51 open, 1 unchecked, 6 waiting for the installer, 2 waiting for service keys, and 19 dropped.
+The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 136 done, 18 partial, 42 open, 14 unchecked (built, but the shortcuts, double-click and right-click menu have not been tried with a real keyboard and mouse), 6 waiting for the installer, 2 waiting for service keys, and 19 dropped.
 
 - [ ] Start the code-signing route (Trusted Signing eligibility or OV certificate)
 - [ ] Apply for Feedly API access
@@ -157,6 +157,7 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
   - [x] Preferences window (+▾ → Preferences…, Ctrl+,): General (PR-01 unread counts, PR-02 to PR-05 text size, theme, JavaScript, browser picker, PR-08 refresh interval) and Accounts (PR-09 turn on or off, add, remove), plus Light/Dark/System appearance for the whole app, articles included (NetNewsWire only follows the system). Account name, server, username and password can be edited (a blank password keeps the saved one); names are kept unique, and the same server and username can't be two accounts (NetNewsWire's `duplicateServiceAccount`). Not yet: Advanced (updates and crash logs need the installer), and PR-06 open in background, which Windows browsers don't allow from outside
   - [x] App badge count (NT-04, NetNewsWire's Dock badge): the unread total on the taskbar icon, drawn as an overlay since Windows' badge API needs a packaged app; follows the Unread Counts preference (number, 99+, dot or none)
   - [x] Empty timeline: with no feed (or a group heading) selected, the middle column says "No Feed Selected", as the article pane says "No Article Selected"
+  - [x] Find in Article (Ctrl+F, F3, Shift+F3, Esc) with a match count, Full Screen (F11), Mark Above/Below as Read, Copy Article/External URL, Ctrl+W, Ctrl+0 and Ctrl+Right to open in the browser. Double-clicking a feed opens its home page, and right-clicking empty sidebar space offers New Feed and New Folder. The find bar and Full Screen were driven in the running app; the keystrokes, double-click and right-click were not (no real input available), so those matrix rows read Unchecked.
   - [x] Screenshots on the help page, taken from a clean demo data folder with NetNewsWire's starter feeds, so no personal feeds show
   - [ ] Dragging URLs and folders, inline rename, undo, multiple windows
 - [x] Phase 3: article view

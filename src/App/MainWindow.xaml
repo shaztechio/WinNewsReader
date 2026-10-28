@@ -103,6 +103,9 @@
                                 <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
                                                       Click="OnToggleArticleJavaScript" />
                                 <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Find in Article…" Click="OnFindInArticle" KeyboardAcceleratorTextOverride="Ctrl+F" />
+                                <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
+                                <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="Preferences…" Click="OnPreferences" KeyboardAcceleratorTextOverride="Ctrl+," />
                                 <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
                                 <MenuFlyoutSubItem Text="Help">
@@ -173,7 +176,7 @@
                          TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
             </Grid>
 
-            <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"
+            <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}" DoubleTapped="OnSidebarDoubleTapped"
                       SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="True"
                       DragItemsStarting="OnSidebarDragItemsStarting" DragItemsCompleted="OnSidebarDragItemsCompleted"
                       SelectionChanged="OnSidebarSelectionChanged"
@@ -270,6 +273,29 @@
 
             <Grid Grid.Row="1" Grid.Column="4" Background="{ThemeResource LayerFillColorDefaultBrush}">
                 <WebView2 x:Name="ArticleView" AutomationProperties.Name="Article" />
+                <!-- NetNewsWire's Find in Article (Ctrl+F), as a bar over the article. -->
+                <Border x:Name="FindBar" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,28,0"
+                        Padding="8,6" CornerRadius="8" BorderThickness="1"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBox x:Name="FindBox" Width="200" PlaceholderText="Find in article" AutomationProperties.Name="Find in article"
+                                 TextChanged="OnFindTextChanged" KeyDown="OnFindKeyDown" />
+                        <TextBlock x:Name="FindCount" VerticalAlignment="Center" MinWidth="64" Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.Name="Matches" />
+                        <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnFindPrevious" ToolTipService.ToolTip="Previous Match (Shift+F3)"
+                                AutomationProperties.Name="Previous Match">
+                            <FontIcon Glyph="&#xE70E;" FontSize="14" />
+                        </Button>
+                        <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnFindNext" ToolTipService.ToolTip="Next Match (F3)"
+                                AutomationProperties.Name="Next Match">
+                            <FontIcon Glyph="&#xE70D;" FontSize="14" />
+                        </Button>
+                        <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnCloseFind" ToolTipService.ToolTip="Close (Esc)"
+                                AutomationProperties.Name="Close Find">
+                            <FontIcon Glyph="&#xE711;" FontSize="14" />
+                        </Button>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Grid>
 

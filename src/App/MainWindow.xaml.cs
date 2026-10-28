@@ -80,6 +80,7 @@ public sealed partial class MainWindow : Window
 		};
 		AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 		SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop();
+		Sidebar.ContextFlyout = SidebarEmptySpaceMenu();
 		SidebarSplitter.Column = SidebarColumn;
 		TimelineSplitter.Column = TimelineColumn;
 		Timeline.ItemsSource = ViewModel.Articles;
@@ -407,6 +408,16 @@ public sealed partial class MainWindow : Window
 				MainViewModel.OpenInBrowser(args.Uri);
 			}
 		};
+		// Matches are counted by the page, and a new article starts the search over.
+		core.Find.MatchCountChanged += (find, _) => UpdateFindCount(find);
+		core.Find.ActiveMatchIndexChanged += (find, _) => UpdateFindCount(find);
+		core.NavigationCompleted += (_, _) =>
+		{
+			if (FindBar.Visibility == Visibility.Visible && FindBox.Text.Length > 0)
+			{
+				_ = StartFindAsync();
+			}
+		};
 		core.NewWindowRequested += (_, args) =>
 		{
 			args.Handled = true;
@@ -670,6 +681,141 @@ public sealed partial class MainWindow : Window
 
 	private void OnToggleRead(object sender, RoutedEventArgs e) => ViewModel.ToggleRead();
 
+	// Find in Article: Ctrl+F opens the bar, F3 and Shift+F3 move between matches, Esc closes it.
+
+	private void ShowFindBar()
+	{
+		FindBar.Visibility = Visibility.Visible;
+		FindBox.Focus(FocusState.Keyboard);
+		FindBox.SelectAll();
+		if (FindBox.Text.Length > 0)
+		{
+			_ = StartFindAsync();
+		}
+	}
+
+	private void HideFindBar()
+	{
+		FindBar.Visibility = Visibility.Collapsed;
+		if (_articleViewReady)
+		{
+			ArticleView.CoreWebView2.Find.Stop();
+		}
+		FocusPane(Pane.Timeline);
+	}
+
+	private async Task StartFindAsync()
+	{
+		if (!_articleViewReady)
+		{
+			return;
+		}
+		var find = ArticleView.CoreWebView2.Find;
+		if (FindBox.Text.Length == 0)
+		{
+			find.Stop();
+			FindCount.Text = "";
+			return;
+		}
+		var options = ArticleView.CoreWebView2.Environment.CreateFindOptions();
+		options.FindTerm = FindBox.Text;
+		options.ShouldHighlightAllMatches = true;
+		options.SuppressDefaultFindDialog = true;
+		await find.StartAsync(options);
+		UpdateFindCount(find);
+	}
+
+	/// <summary>The page reports which match is active a moment after it moves, so the count is read again once it has.</summary>
+	private void RefreshFindCountSoon()
+	{
+		_findCountTimer ??= DispatcherQueue.CreateTimer();
+		_findCountTimer.Interval = TimeSpan.FromMilliseconds(120);
+		_findCountTimer.IsRepeating = false;
+		_findCountTimer.Tick -= OnFindCountTimer;
+		_findCountTimer.Tick += OnFindCountTimer;
+		_findCountTimer.Stop();
+		_findCountTimer.Start();
+	}
+
+	private void OnFindCountTimer(DispatcherQueueTimer sender, object args)
+	{
+		if (_articleViewReady)
+		{
+			UpdateFindCount(ArticleView.CoreWebView2.Find);
+		}
+	}
+
+	private DispatcherQueueTimer? _findCountTimer;
+
+	private void UpdateFindCount(CoreWebView2Find find)
+	{
+		FindCount.Text = FindBox.Text.Length == 0 ? "" : find.MatchCount == 0 ? "No matches" : $"{find.ActiveMatchIndex} of {find.MatchCount}";
+	}
+
+	private void FindNext()
+	{
+		if (FindBar.Visibility != Visibility.Visible || FindBox.Text.Length == 0)
+		{
+			ShowFindBar();
+		}
+		else if (_articleViewReady)
+		{
+			ArticleView.CoreWebView2.Find.FindNext();
+			RefreshFindCountSoon();
+		}
+	}
+
+	private void FindPrevious()
+	{
+		if (FindBar.Visibility != Visibility.Visible || FindBox.Text.Length == 0)
+		{
+			ShowFindBar();
+		}
+		else if (_articleViewReady)
+		{
+			ArticleView.CoreWebView2.Find.FindPrevious();
+			RefreshFindCountSoon();
+		}
+	}
+
+	private void OnFindTextChanged(object sender, TextChangedEventArgs e) => _ = StartFindAsync();
+
+	private void OnFindKeyDown(object sender, KeyRoutedEventArgs e)
+	{
+		switch (e.Key)
+		{
+			case VirtualKey.Escape:
+				HideFindBar();
+				e.Handled = true;
+				break;
+			case VirtualKey.Enter when CurrentModifiers() == VirtualKeyModifiers.Shift:
+			case VirtualKey.F3 when CurrentModifiers() == VirtualKeyModifiers.Shift:
+				FindPrevious();
+				e.Handled = true;
+				break;
+			case VirtualKey.Enter:
+			case VirtualKey.F3:
+				FindNext();
+				e.Handled = true;
+				break;
+		}
+	}
+
+	private void OnFindInArticle(object sender, RoutedEventArgs e) => ShowFindBar();
+
+	private void OnFullScreen(object sender, RoutedEventArgs e) => ToggleFullScreen();
+
+	private void OnFindNext(object sender, RoutedEventArgs e) => FindNext();
+
+	private void OnFindPrevious(object sender, RoutedEventArgs e) => FindPrevious();
+
+	private void OnCloseFind(object sender, RoutedEventArgs e) => HideFindBar();
+
+	/// <summary>NetNewsWire's Full Screen (F11).</summary>
+	private void ToggleFullScreen() => AppWindow.SetPresenter(AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen
+		? AppWindowPresenterKind.Overlapped
+		: AppWindowPresenterKind.FullScreen);
+
 	private void ApplyRefreshInterval()
 	{
 		_refreshTimer.Stop();
@@ -700,6 +846,25 @@ public sealed partial class MainWindow : Window
 			_preferences.Closed += (_, _) => _preferences = null;
 		}
 		_preferences.Activate();
+	}
+
+	/// <summary>NetNewsWire's double-click on a feed: its home page opens in the browser.</summary>
+	private void OnSidebarDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+	{
+		if ((e.OriginalSource as FrameworkElement)?.DataContext is SidebarItem { Feed: { HomePageUrl: { } homePage } })
+		{
+			MainViewModel.OpenInBrowser(homePage);
+			e.Handled = true;
+		}
+	}
+
+	/// <summary>NetNewsWire's menu for right-clicking nothing in the sidebar: New Feed and New Folder.</summary>
+	private MenuFlyout SidebarEmptySpaceMenu()
+	{
+		var menu = new MenuFlyout();
+		menu.Items.Add(MenuItem("New Feed…", () => _ = ShowNewFeedDialogAsync()));
+		menu.Items.Add(MenuItem("New Folder…", () => _ = ShowNewFolderDialogAsync()));
+		return menu;
 	}
 
 	private void OnToggleSidebar(object sender, RoutedEventArgs e) => ToggleSidebar();
@@ -1367,11 +1532,11 @@ public sealed partial class MainWindow : Window
 			const t = e.target;
 			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
 			const key = e.key;
-			if (e.ctrlKey && !e.altKey && ['a', 'c', 'f', 'v', 'x', 'y', 'z', 'Insert'].includes(key.length === 1 ? key.toLowerCase() : key)) return;
-			if (['ArrowUp', 'ArrowDown', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Tab'].includes(key)) return;
+			if (e.ctrlKey && !e.altKey && !e.shiftKey && ['a', 'c', 'v', 'x', 'y', 'z', 'Insert'].includes(key.length === 1 ? key.toLowerCase() : key)) return;
+			if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', 'Tab'].includes(key) || (key === 'ArrowRight' && !e.ctrlKey)) return;
 			if (key === ' ' && !e.ctrlKey && !e.altKey && (e.shiftKey || innerHeight + scrollY < document.documentElement.scrollHeight - 4)) return;
 			if (key === 'Enter' && t && t.closest && t.closest('a, button')) return;
-			if (!e.ctrlKey && !e.altKey && key.length !== 1 && !['Enter', 'ArrowLeft', 'F1', 'F5'].includes(key)) return;
+			if (!e.ctrlKey && !e.altKey && key.length !== 1 && !['Enter', 'ArrowLeft', 'F1', 'F3', 'F5', 'F11'].includes(key)) return;
 			e.preventDefault();
 			post({ token: '[[token]]', keyCode: e.keyCode, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey });
 		}, true);
@@ -1424,6 +1589,19 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.S, CtrlAlt, null, ToggleSidebar);
 		Add(VirtualKey.F1, None, null, () => MainViewModel.OpenInBrowser(HelpUrl));
 		Add(Comma, Ctrl, null, OpenPreferences);
+		Add(VirtualKey.K, CtrlAlt, null, ViewModel.MarkAboveRead);
+		Add(VirtualKey.K, CtrlShift, null, ViewModel.MarkBelowRead);
+		Add(VirtualKey.C, CtrlShift, null, () => CopyToClipboard(ViewModel.SelectedArticle?.LinkUrl));
+		Add(VirtualKey.C, CtrlAlt, null, () => CopyToClipboard(ViewModel.SelectedArticle is { } article && article.Article.ExternalUrl is { } external && external != article.LinkUrl ? external : null));
+		Add(VirtualKey.W, Ctrl, null, Close);
+		Add(VirtualKey.F11, None, null, ToggleFullScreen);
+		Add(VirtualKey.F, Ctrl, null, ShowFindBar);
+		Add(VirtualKey.F3, None, null, FindNext);
+		Add(VirtualKey.F3, Shift, null, FindPrevious);
+		Add(VirtualKey.Number0, Ctrl, null, Activate);
+		// Ctrl+Right opens the article only with the article focused, since elsewhere it expands rows and moves by words.
+		Add(VirtualKey.Right, Ctrl, Pane.Article, () => MainViewModel.OpenInBrowser(ViewModel.SelectedArticle?.LinkUrl));
+		Add(VirtualKey.Right, CtrlShift, Pane.Article, () => MainViewModel.OpenInBrowser(ViewModel.SelectedArticle?.LinkUrl));
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));

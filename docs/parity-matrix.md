@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 134 |
-| Partial | 24 |
-| Open | 51 |
-| Unchecked | 1 |
+| Done | 136 |
+| Partial | 18 |
+| Open | 42 |
+| Unchecked | 14 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -40,12 +40,12 @@ By section:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 13 |  | 1 |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
-| Main window and layout | 3 | 2 | 6 |  |  |  | 1 |
+| Main window and layout | 4 | 2 | 5 |  |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
-| Sidebar | 13 | 3 | 4 |  |  |  |  |
+| Sidebar | 13 | 3 | 2 | 2 |  |  |  |
 | Smart feeds and timeline | 8 | 1 | 6 |  |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
-| Article view | 10 | 1 | 2 | 1 |  |  |  |
+| Article view | 11 | 1 | 1 | 1 |  |  |  |
 | Feed management and import/export | 1 | 3 | 3 |  |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
@@ -55,7 +55,7 @@ By section:
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
-| Menu shortcuts | 22 | 7 | 13 |  |  |  |  |
+| Menu shortcuts | 22 | 1 | 8 | 11 |  |  |  |
 
 ## Findings that change the plan
 
@@ -113,7 +113,7 @@ By section:
 | MW-07 | Multiple main windows | `newMainWindow:` | Port | Open: one main window | UI: second window has independent selection |
 | MW-08 | Window state restore (panes, selection, layout) | `*WindowState.swift` | Port | Done | UI: restart restores layout and selected feed |
 | MW-09 | Sidebar/timeline/article font sizes (hidden defaults) | `sidebarFontSize` etc. | Port | Open: font sizes are fixed | Unit: setting is applied on launch |
-| MW-10 | Full screen | `toggleFullScreen:` | Port | Open: no F11 | F11. UI: toggles full screen |
+| MW-10 | Full screen | `toggleFullScreen:` | Port | Done | F11. UI: toggles full screen |
 | MW-11 | Show/hide toolbar | `toggleToolbarShown:` | Port | Open: toolbar always shown | UI: toolbar hides and shows |
 | MW-12 | Toolbar customization palette | `runToolbarCustomizationPalette:` | Drop | Dropped | No native WinUI equivalent; default toolbar ships fixed. Revisit after 1.0 |
 
@@ -150,8 +150,8 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SB-06 | Inline rename | `Sidebar/Renaming` | Port | Partial: Rename… dialog, not in place | UI: F2 / Rename edits in place |
 | SB-07 | Delete with confirmation, undo | `SidebarDeleteItemsAlert.swift` | Port | Partial: asks first; no undo | UI: delete asks; Ctrl+Z restores |
 | SB-08 | Hide read feeds | `toggleReadFeedsFilter:` | Port | Done | UI: feeds with no unread hide |
-| SB-09 | Double-click feed opens home page; hidden pref marks all read instead | `GruberFeedDoubleClickMarkAsRead` | Port | Open: no double-click action | UI: both behaviors |
-| SB-10 | Context menu, nothing selected: New Feed, New Folder | `menuForNoSelection()` | Port | Open: no menu on empty space | UI: items present |
+| SB-09 | Double-click feed opens home page; hidden pref marks all read instead | `GruberFeedDoubleClickMarkAsRead` | Port | Unchecked: double-click needs a mouse; not tested | UI: both behaviors |
+| SB-10 | Context menu, nothing selected: New Feed, New Folder | `menuForNoSelection()` | Port | Unchecked: right-click needs a mouse; not tested | UI: items present |
 | SB-11 | Context menu, feed: Mark All as Read, Open Home Page, Copy Feed URL, Copy Home Page URL, Show Notifications, Always Use Reader View, Rename, Delete | `menuForFeed(_:)` | Port | Done | UI: items present in this order, check states correct |
 | SB-12 | Context menu, folder: Mark All as Read, Rename, Delete | `menuForFolder(_:)` | Port | Done | UI: items present |
 | SB-13 | Context menu, smart feed: Mark All as Read | `menuForSmartFeed(_:)` | Port | Done | UI: item present |
@@ -204,7 +204,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | AV-08 | Reader View (on demand and per feed always on) | `Shared/Article Extractor` | Port | Done | Local Readability port. Unit: extraction on `DaringFireball.html` |
 | AV-09 | Footnotes popover | `newsfoot.js` | Port | Unchecked: newsfoot.js runs in the page; the popover isn't tested | UI: footnote opens popover |
 | AV-10 | Link hover shows URL in status bar | `DetailLinkOverlayView.swift` | Port | Done: WebView2 shows the hovered link itself | UI |
-| AV-11 | Find in article (find, next, previous) | Edit > Find | Port | Open: no find in article | UI: Ctrl+F, F3, Shift+F3 |
+| AV-11 | Find in article (find, next, previous) | Edit > Find | Port | Done | UI: Ctrl+F, F3, Shift+F3 |
 | AV-12 | Feed icons in article header via custom scheme | `DetailIconSchemeHandler.swift` | Port | Done | WebView2 resource handler. UI: icon renders |
 | AV-13 | Special-case rendering rules | `ArticleRenderingSpecialCases.swift` | Port | Done | Golden: same HTML output for affected fixtures |
 | AV-14 | Web Inspector (debug) | `toggleWebInspectorEnabled:` | Port | Open: no debug menu | WebView2 DevTools behind debug menu |
@@ -366,32 +366,32 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | File | Refresh | Cmd+R | Ctrl+R and F5 | Done |
 | File | Import Subscriptions | none | none | Done |
 | File | Export Subscriptions | Opt+Cmd+E | Ctrl+Alt+E | Done |
-| File | Close Window | Cmd+W | Ctrl+W | Open: no Ctrl+W |
+| File | Close Window | Cmd+W | Ctrl+W | Unchecked: Ctrl+W built, not pressed |
 | Edit | Undo / Redo | Cmd+Z / Shift+Cmd+Z | Ctrl+Z / Ctrl+Y and Ctrl+Shift+Z | Open: no undo |
 | Edit | Cut / Copy / Paste / Select All | Cmd+X/C/V/A | Ctrl+X/C/V/A | Done |
-| Edit | Copy Article URL | Shift+Cmd+C | Ctrl+Shift+C | Partial: in the article menu; no shortcut |
-| Edit | Copy External URL | Ctrl+Cmd+C | Ctrl+Alt+C | Partial: in the article menu; no shortcut |
+| Edit | Copy Article URL | Shift+Cmd+C | Ctrl+Shift+C | Unchecked: Ctrl+Shift+C built, not pressed |
+| Edit | Copy External URL | Ctrl+Cmd+C | Ctrl+Alt+C | Unchecked: Ctrl+Alt+C built, not pressed |
 | Edit | Article Search | Opt+Cmd+F | Ctrl+Alt+F | Done |
-| Edit | Find in Article | Cmd+F | Ctrl+F | Open: no find in article |
-| Edit | Find Next / Previous | Cmd+G / Shift+Cmd+G | F3 / Shift+F3 | Open: no find in article |
+| Edit | Find in Article | Cmd+F | Ctrl+F | Unchecked: Ctrl+F built; the find bar works from the +▾ menu |
+| Edit | Find Next / Previous | Cmd+G / Shift+Cmd+G | F3 / Shift+F3 | Unchecked: F3 built; the buttons work |
 | View | Clean Up Articles | Cmd+' | Ctrl+' | Done |
 | View | Hide Read Articles | Shift+Cmd+H | Ctrl+Shift+H | Done |
 | View | Hide Read Feeds | Shift+Cmd+F | Ctrl+Shift+F | Done |
 | View | Show Sidebar | Ctrl+Cmd+S | Ctrl+Alt+S | Done |
 | View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Open: toolbar always shown |
-| View | Full Screen | Ctrl+Cmd+F | F11 | Open: no F11 |
+| View | Full Screen | Ctrl+Cmd+F | F11 | Unchecked: F11 built; the +▾ menu item works |
 | View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Partial: sort by date only |
 | Go | Next Unread | Cmd+/ | Ctrl+/ | Done |
 | Go | Today / All Unread / Starred | Cmd+1 / 2 / 3 | Ctrl+1 / 2 / 3 | Done |
 | Article | Mark as Read | Shift+Cmd+U | Ctrl+Shift+U | Done |
 | Article | Mark All as Read | Cmd+K | Ctrl+K | Done |
-| Article | Mark Above as Read | Ctrl+Cmd+K | Ctrl+Alt+K | Partial: in the article menu; no shortcut |
-| Article | Mark Below as Read | Shift+Cmd+K | Ctrl+Shift+K | Partial: in the article menu; no shortcut |
+| Article | Mark Above as Read | Ctrl+Cmd+K | Ctrl+Alt+K | Unchecked: Ctrl+Alt+K built, not pressed |
+| Article | Mark Below as Read | Shift+Cmd+K | Ctrl+Shift+K | Unchecked: Ctrl+Shift+K built, not pressed |
 | Article | Mark as Starred | Shift+Cmd+L | Ctrl+Shift+L | Done |
 | Article | Show Reader View | Shift+Cmd+R | Ctrl+Shift+R | Done |
-| Article | Open in Browser | Cmd+Right | Ctrl+Right (article focus only) | Partial: B and Enter work; no Ctrl+Right |
-| Article | Open in Browser Inverted | Shift+Cmd+Right | Ctrl+Shift+Right | Partial: B and Enter work |
-| Window | Main Window | Cmd+0 | Ctrl+0 | Open: one main window |
+| Article | Open in Browser | Cmd+Right | Ctrl+Right (article focus only) | Unchecked: Ctrl+Right (article focus) built, not pressed |
+| Article | Open in Browser Inverted | Shift+Cmd+Right | Ctrl+Shift+Right | Unchecked: Ctrl+Shift+Right built, not pressed |
+| Window | Main Window | Cmd+0 | Ctrl+0 | Unchecked: Ctrl+0 built, not pressed |
 | Window | Info (Inspector) | Cmd+I | Ctrl+I | Done |
 | Window | Dinosaurs | Cmd+6 | Ctrl+6 | Open: no window |
 | Window | Current Activity | Cmd+7 | Ctrl+7 | Open: no window |
