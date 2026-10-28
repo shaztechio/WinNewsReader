@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace WinNewsReader.Core.ArticleRendering;
@@ -46,7 +47,7 @@ public sealed class ArticleTheme
 	/// <summary>The default theme, from the app's rendering resources.</summary>
 	public static ArticleTheme LoadDefault(string resourcesDirectory) => new(
 		DefaultName,
-		CoreCss(resourcesDirectory) + "\n" + File.ReadAllText(Path.Combine(resourcesDirectory, "stylesheet.css")),
+		WithWindowsFonts(CoreCss(resourcesDirectory) + "\n" + File.ReadAllText(Path.Combine(resourcesDirectory, "stylesheet.css"))),
 		File.ReadAllText(Path.Combine(resourcesDirectory, "template.html")),
 		isAppTheme: true, "Ranchero Software", "https://netnewswire.com/", 1, folder: null);
 
@@ -58,7 +59,7 @@ public sealed class ArticleTheme
 		var template = ReadIfExists(Path.Combine(folder, "template.html"));
 		return new ArticleTheme(
 			NameForFolder(folder),
-			stylesheet is null ? defaultTheme.Css : CoreCss(resourcesDirectory) + "\n" + stylesheet,
+			stylesheet is null ? defaultTheme.Css : WithWindowsFonts(CoreCss(resourcesDirectory) + "\n" + stylesheet),
 			template ?? defaultTheme.Template,
 			isAppTheme,
 			info.GetValueOrDefault("CreatorName"),
@@ -71,6 +72,21 @@ public sealed class ArticleTheme
 	{
 		var name = Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 		return name.EndsWith(FolderSuffix, StringComparison.OrdinalIgnoreCase) ? name[..^FolderSuffix.Length] : name;
+	}
+
+	private const string WindowsSystemFont = "\"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif";
+
+	/// <summary>
+	/// Themes name Apple's fonts: <c>-apple-system</c> (San Francisco), Menlo and <c>ui-serif</c> mean nothing to WebView2,
+	/// which would fall back to Times New Roman. Each gets the Windows font that plays the same part.
+	/// </summary>
+	internal static string WithWindowsFonts(string css)
+	{
+		// The shorthand with a system font keyword has no size, so it can only become a family.
+		css = Regex.Replace(css, @"\bfont:\s*-apple-system(-[a-z]+)?\b", "font-family: " + WindowsSystemFont);
+		css = Regex.Replace(css, @"-apple-system(-[a-z]+)?\b", WindowsSystemFont);
+		css = Regex.Replace(css, @"\bMenlo\b", "Menlo, \"Cascadia Mono\", Consolas");
+		return Regex.Replace(css, @"\bui-serif\b", "Georgia, serif");
 	}
 
 	private static string CoreCss(string resourcesDirectory) => File.ReadAllText(Path.Combine(resourcesDirectory, "core.css"));

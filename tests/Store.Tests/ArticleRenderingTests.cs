@@ -262,6 +262,17 @@ public class ArticleRendererTests
 	}
 
 	[Fact]
+	public void AppleFontsBecomeWindowsFonts()
+	{
+		Assert.All(Themes.All, theme => Assert.DoesNotContain("-apple-system", theme.Css));
+		Assert.Contains("font-family: \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;", Themes.Default.Css);
+		Assert.Equal(
+			"a { font-family: \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; font-size: 12px; } "
+				+ "pre { font-family: \"SF Mono\", Menlo, \"Cascadia Mono\", Consolas, monospace; } h1 { font-family: Charter, Georgia, serif; }",
+			ArticleTheme.WithWindowsFonts("a { font: -apple-system-body; font-size: 12px; } pre { font-family: \"SF Mono\", Menlo, monospace; } h1 { font-family: Charter, ui-serif; }"));
+	}
+
+	[Fact]
 	public void UserThemeReplacesBuiltInOfSameName()
 	{
 		var userDirectory = Path.Combine(Path.GetTempPath(), "wnr-themes-" + Guid.NewGuid().ToString("N"));
