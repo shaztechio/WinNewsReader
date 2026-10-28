@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WinNewsReader.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:WinNewsReader.App"
+    xmlns:vm="using:WinNewsReader.App.ViewModels"
+    Title="WinNewsReader">
+
+    <Grid x:Name="Root" KeyboardAcceleratorPlacementMode="Hidden">
+        <Grid.Resources>
+            <MenuFlyout x:Key="SidebarMenu" Opening="OnSidebarMenuOpening" />
+            <MenuFlyout x:Key="ArticleMenu" Opening="OnArticleMenuOpening" />
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- NetNewsWire's toolbar order: Refresh, New | Mark All as Read | Mark Read, Star, Next Unread, Open in Browser. -->
+        <CommandBar Grid.Row="0" HorizontalAlignment="Left" DefaultLabelPosition="Collapsed" Background="Transparent">
+            <AppBarButton Label="Refresh" ToolTipService.ToolTip="Refresh (Ctrl+R)" Icon="Refresh" Click="OnRefresh"
+                          IsEnabled="{x:Bind ViewModel.IsNotRefreshing, Mode=OneWay}" />
+            <AppBarButton Label="New" ToolTipService.ToolTip="New Feed or Folder" Icon="Add">
+                <AppBarButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                        <!-- The shortcuts themselves are registered on the window, so they work with the menu closed. -->
+                        <MenuFlyoutItem Text="New Feed…" Click="OnNewFeed" KeyboardAcceleratorTextOverride="Ctrl+N" />
+                        <MenuFlyoutItem Text="New Folder…" Click="OnNewFolder" KeyboardAcceleratorTextOverride="Ctrl+Shift+N" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
+                        <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
+                    </MenuFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarSeparator />
+            <AppBarButton Label="Mark All as Read" ToolTipService.ToolTip="Mark All as Read (Ctrl+K)" Icon="Accept" Click="OnMarkAllRead" />
+            <AppBarSeparator />
+            <AppBarButton Label="{x:Bind ViewModel.ReadToggleLabel, Mode=OneWay}" Icon="Read" Click="OnToggleRead"
+                          ToolTipService.ToolTip="{x:Bind ViewModel.ReadToggleLabel, Mode=OneWay}"
+                          IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}" />
+            <AppBarButton Label="{x:Bind ViewModel.StarToggleLabel, Mode=OneWay}" Icon="Favorite" Click="OnToggleStarred"
+                          ToolTipService.ToolTip="{x:Bind ViewModel.StarToggleLabel, Mode=OneWay}"
+                          IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}" />
+            <AppBarButton Label="Next Unread" ToolTipService.ToolTip="Next Unread (Ctrl+/)" Click="OnNextUnread">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE70D;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+            <AppBarButton Label="Open in Browser" ToolTipService.ToolTip="Open in Browser" Click="OnOpenInBrowser"
+                          IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE8A7;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+        </CommandBar>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="250" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition x:Name="TimelineColumn" Width="380" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" MinWidth="300" />
+            </Grid.ColumnDefinitions>
+
+            <TreeView x:Name="Sidebar" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"
+                      SelectionMode="Single" CanDragItems="False" CanReorderItems="False" AllowDrop="False"
+                      SelectionChanged="OnSidebarSelectionChanged" KeyDown="OnSidebarKeyDown"
+                      AutomationProperties.Name="Sidebar">
+                <TreeView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SidebarItem">
+                        <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                                      ContextFlyout="{StaticResource SidebarMenu}"
+                                      AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Visibility="{x:Bind HasGlyph}" />
+                                <TextBlock Grid.Column="1" Text="{x:Bind Title, Mode=OneWay}" FontWeight="{x:Bind TitleWeight}"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{x:Bind UnreadCountText, Mode=OneWay}" VerticalAlignment="Center"
+                                           Margin="0,0,8,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </TreeViewItem>
+                    </DataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+
+            <local:PaneSplitter x:Name="SidebarSplitter" Grid.Column="1">
+                <Rectangle Width="1" HorizontalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+            </local:PaneSplitter>
+
+            <ListView x:Name="Timeline" Grid.Column="2" SelectionMode="Single" SelectionChanged="OnTimelineSelectionChanged"
+                      Background="{ThemeResource LayerFillColorDefaultBrush}" AutomationProperties.Name="Timeline">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ArticleItem">
+                        <Grid Padding="0,10" ColumnSpacing="8" ContextFlyout="{StaticResource ArticleMenu}"
+                              AutomationProperties.Name="{x:Bind Title}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="6" Margin="0,6,0,0">
+                                <Ellipse Width="8" Height="8" Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                         Visibility="{x:Bind IsUnread, Mode=OneWay}" />
+                                <FontIcon Glyph="&#xE735;" FontSize="10" Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                          Visibility="{x:Bind IsStarred, Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{x:Bind SummaryBelowTitle}" Visibility="{x:Bind HasSummaryBelowTitle}"
+                                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Bind FeedName}" TextTrimming="CharacterEllipsis"
+                                               Style="{ThemeResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind DateText}" Style="{ThemeResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <local:PaneSplitter x:Name="TimelineSplitter" Grid.Column="3">
+                <Rectangle Width="1" HorizontalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+            </local:PaneSplitter>
+
+            <Grid Grid.Column="4" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <WebView2 x:Name="ArticleView" AutomationProperties.Name="Article" />
+            </Grid>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Padding="12,4">
+            <ProgressRing Width="14" Height="14" IsActive="{x:Bind ViewModel.IsRefreshing, Mode=OneWay}" />
+            <TextBlock Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Window>

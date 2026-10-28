@@ -273,6 +273,67 @@ public sealed class ArticlesStore : IDisposable
 		}
 	}
 
+	/// <summary>Articles in any of <paramref name="feedIds"/>, newest first.</summary>
+	public IReadOnlyList<StoredArticle> GetArticles(IEnumerable<string> feedIds)
+	{
+		lock (_lock)
+		{
+			return QueryArticles("WHERE a.feedID IN (SELECT value FROM json_each($feedIDs))", ("$feedIDs", JsonSerializer.Serialize(feedIds)));
+		}
+	}
+
+	public IReadOnlyList<StoredArticle> GetStarredArticles()
+	{
+		lock (_lock)
+		{
+			return QueryArticles("WHERE s.starred = 1");
+		}
+	}
+
+	/// <summary>
+	/// The Today smart feed, as NetNewsWire's <c>fetchArticlesSince</c>: published after <paramref name="cutoff"/>,
+	/// or arrived after it when there's no publish date.
+	/// </summary>
+	public IReadOnlyList<StoredArticle> GetArticlesSince(DateTimeOffset cutoff)
+	{
+		lock (_lock)
+		{
+			return QueryArticles($"WHERE {SinceCondition}", ("$cutoff", ToDb(cutoff)));
+		}
+	}
+
+	/// <summary>Unread counts by feed ID. Feeds with no unread articles are left out.</summary>
+	public IReadOnlyDictionary<string, int> UnreadCounts()
+	{
+		lock (_lock)
+		{
+			using var command = Command("SELECT a.feedID, COUNT(*) FROM articles a JOIN statuses s ON s.articleID = a.articleID WHERE s.read = 0 GROUP BY a.feedID");
+			using var reader = command.ExecuteReader();
+			var counts = new Dictionary<string, int>();
+			while (reader.Read())
+			{
+				counts[reader.GetString(0)] = reader.GetInt32(1);
+			}
+			return counts;
+		}
+	}
+
+	public int UnreadCountSince(DateTimeOffset cutoff)
+	{
+		lock (_lock)
+		{
+			return CountUnread($" AND {SinceCondition}", ("$cutoff", ToDb(cutoff)));
+		}
+	}
+
+	public int StarredUnreadCount()
+	{
+		lock (_lock)
+		{
+			return CountUnread(" AND s.starred = 1");
+		}
+	}
+
 	public StoredArticle? GetArticle(string articleId)
 	{
 		lock (_lock)
@@ -301,10 +362,7 @@ public sealed class ArticlesStore : IDisposable
 	{
 		lock (_lock)
 		{
-			using var command = Command(
-				"SELECT COUNT(*) FROM articles a JOIN statuses s ON s.articleID = a.articleID WHERE s.read = 0" + (feedId is null ? "" : " AND a.feedID = $feedID"),
-				("$feedID", feedId));
-			return Convert.ToInt32(command.ExecuteScalar());
+			return CountUnread(feedId is null ? "" : " AND a.feedID = $feedID", ("$feedID", feedId));
 		}
 	}
 
@@ -349,6 +407,14 @@ public sealed class ArticlesStore : IDisposable
 		Execute($"DELETE FROM statuses WHERE articleID IN (SELECT articleID FROM articles WHERE feedID IN ({feedIds}))", parameters);
 		Execute($"DELETE FROM articles WHERE feedID IN ({feedIds})", parameters);
 		return Execute($"DELETE FROM feeds WHERE {condition}", parameters);
+	}
+
+	private const string SinceCondition = "(a.datePublished > $cutoff OR (a.datePublished IS NULL AND s.dateArrived > $cutoff))";
+
+	private int CountUnread(string andCondition, params (string Name, object? Value)[] parameters)
+	{
+		using var command = Command("SELECT COUNT(*) FROM articles a JOIN statuses s ON s.articleID = a.articleID WHERE s.read = 0" + andCondition, parameters);
+		return Convert.ToInt32(command.ExecuteScalar());
 	}
 
 	private void DeleteUnparentedFeeds() => DeleteFeedsWhere("topLevel = 0 AND feedID NOT IN (SELECT feedID FROM folderFeeds)");

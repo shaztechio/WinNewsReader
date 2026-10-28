@@ -136,3 +136,7 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 - [x] Copy NNW test fixtures into `Parser.Tests` and get the first parser passing
 - [x] Phase 1: parsers, feed finder, store with folders, OPML import/export and the `wnr` CLI; all NNW parser tests pass
 - [ ] Phase 2: WinUI 3 shell over the local account
+  - [x] Three-pane window: sidebar (smart feeds, folders, feeds, unread counts), timeline, WebView2 article view; resizable panes
+  - [x] Add feed and folder, rename and delete, OPML import and export, refresh at launch and hourly, mark read/starred, first shortcuts
+  - [x] App icon (`tools/make-icon.ps1`)
+  - [ ] Favicons, hide read articles and feeds, sort order, search, drag and drop, inline rename, undo, Inspector, preferences, multiple windows
