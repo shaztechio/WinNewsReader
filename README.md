@@ -35,7 +35,15 @@ Run the app:
 dotnet run --project src/App
 ```
 
-It refreshes at launch and every hour. Add feeds with **New** (or Ctrl+N), or import an OPML file from the same menu. The shortcuts follow NetNewsWire's, with Ctrl for Cmd: Ctrl+R refresh, Ctrl+K mark all as read, Ctrl+Shift+U mark read or unread, Ctrl+Shift+L star, Ctrl+/ next unread, Ctrl+1, 2 and 3 for the smart feeds. Pass `-- --db <path>` to open a different database.
+It refreshes at launch and every hour. Add feeds with **New** (or Ctrl+N), or import an OPML file from the same menu. The keyboard follows NetNewsWire's, with Ctrl for Cmd, and works from any pane, including while reading an article:
+
+- Space pages through the article, then goes to the next unread one. `n` is next unread, `-` previous unread.
+- `r` toggles read, `s` toggles star, `k` marks all as read, `m` marks unread and moves on, `l` marks all read and moves on, `o` marks older articles read.
+- `b` or Enter opens the article in the browser. `a` and `z` move to the previous and next feed.
+- Left and Right move between the sidebar, the timeline and the article. In the sidebar, `,` and `.` collapse and expand a folder, and `;` and `'` collapse and expand all.
+- Ctrl+R refresh, Ctrl+N new feed, Ctrl+K mark all as read, Ctrl+Shift+U and Ctrl+Shift+L toggle read and star, Ctrl+1, 2 and 3 for the smart feeds.
+
+Feeds show their site's favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`. Pass `-- --db <path>` to open a different database.
 
 Or use the command-line tool:
 

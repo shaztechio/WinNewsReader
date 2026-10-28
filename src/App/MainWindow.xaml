@@ -7,7 +7,7 @@
     xmlns:vm="using:WinNewsReader.App.ViewModels"
     Title="WinNewsReader">
 
-    <Grid x:Name="Root" KeyboardAcceleratorPlacementMode="Hidden">
+    <Grid x:Name="Root" PreviewKeyDown="OnPreviewKeyDown">
         <Grid.Resources>
             <MenuFlyout x:Key="SidebarMenu" Opening="OnSidebarMenuOpening" />
             <MenuFlyout x:Key="ArticleMenu" Opening="OnArticleMenuOpening" />
@@ -67,7 +67,7 @@
 
             <TreeView x:Name="Sidebar" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"
                       SelectionMode="Single" CanDragItems="False" CanReorderItems="False" AllowDrop="False"
-                      SelectionChanged="OnSidebarSelectionChanged" KeyDown="OnSidebarKeyDown"
+                      SelectionChanged="OnSidebarSelectionChanged"
                       AutomationProperties.Name="Sidebar">
                 <TreeView.ItemTemplate>
                     <DataTemplate x:DataType="vm:SidebarItem">
@@ -80,7 +80,8 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Visibility="{x:Bind HasGlyph}" />
+                                <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Visibility="{x:Bind ShowsGlyph, Mode=OneWay}" />
+                                <Image Source="{x:Bind Icon, Mode=OneWay}" Width="16" Height="16" Visibility="{x:Bind HasIcon, Mode=OneWay}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind Title, Mode=OneWay}" FontWeight="{x:Bind TitleWeight}"
                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="2" Text="{x:Bind UnreadCountText, Mode=OneWay}" VerticalAlignment="Center"
@@ -103,15 +104,21 @@
                               AutomationProperties.Name="{x:Bind Title}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="20" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="1" Width="20" Height="20" VerticalAlignment="Top" Margin="0,1,0,0">
+                                <Image Source="{x:Bind Icon, Mode=OneWay}" Visibility="{x:Bind HasIcon, Mode=OneWay}" />
+                                <FontIcon Glyph="&#xE774;" FontSize="16" Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                          Visibility="{x:Bind LacksIcon, Mode=OneWay}" />
+                            </Grid>
                             <StackPanel Spacing="6" Margin="0,6,0,0">
                                 <Ellipse Width="8" Height="8" Fill="{ThemeResource AccentFillColorDefaultBrush}"
                                          Visibility="{x:Bind IsUnread, Mode=OneWay}" />
                                 <FontIcon Glyph="&#xE735;" FontSize="10" Foreground="{ThemeResource SystemFillColorCautionBrush}"
                                           Visibility="{x:Bind IsStarred, Mode=OneWay}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Spacing="2">
+                            <StackPanel Grid.Column="2" Spacing="2">
                                 <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2"
                                            TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{x:Bind SummaryBelowTitle}" Visibility="{x:Bind HasSummaryBelowTitle}"

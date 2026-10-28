@@ -49,6 +49,15 @@ public sealed partial class SidebarItem : ObservableObject
 	[ObservableProperty]
 	public partial bool IsExpanded { get; set; }
 
+	/// <summary>The feed's favicon, once downloaded; until then, and for other rows, <see cref="Glyph"/> shows instead.</summary>
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(HasIcon), nameof(ShowsGlyph))]
+	public partial Microsoft.UI.Xaml.Media.ImageSource? Icon { get; set; }
+
+	public bool HasIcon => Icon is not null;
+
+	public bool ShowsGlyph => !IsGroup && Icon is null;
+
 	public string UnreadCountText => UnreadCount > 0 ? UnreadCount.ToString("N0") : "";
 
 	public bool IsGroup => Kind is SidebarItemKind.SmartFeedsGroup or SidebarItemKind.AccountGroup;
@@ -65,8 +74,6 @@ public sealed partial class SidebarItem : ObservableObject
 		SidebarItemKind.Feed => "",
 		_ => "",
 	};
-
-	public bool HasGlyph => !IsGroup;
 
 	public Windows.UI.Text.FontWeight TitleWeight => IsGroup ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
 

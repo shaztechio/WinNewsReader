@@ -12,13 +12,23 @@ public sealed partial class ArticleItem : ObservableObject
 
 	private string? _summary;
 
-	public ArticleItem(StoredArticle article, string feedName)
+	public ArticleItem(StoredArticle article, string feedName, Microsoft.UI.Xaml.Media.ImageSource? icon)
 	{
 		Article = article;
 		FeedName = feedName;
 		IsRead = article.Read;
 		IsStarred = article.Starred;
+		Icon = icon;
 	}
+
+	/// <summary>The feed's favicon, or null to show a placeholder.</summary>
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(HasIcon), nameof(LacksIcon))]
+	public partial Microsoft.UI.Xaml.Media.ImageSource? Icon { get; set; }
+
+	public bool HasIcon => Icon is not null;
+
+	public bool LacksIcon => Icon is null;
 
 	public StoredArticle Article { get; }
 

@@ -34,7 +34,8 @@ public partial class App : Application
 	{
 		var store = new ArticlesStore(DatabasePath());
 		var downloader = new FeedDownloader();
-		_window = new MainWindow(new MainViewModel(new LocalAccount(store, downloader)));
+		var favicons = new FaviconDownloader(downloader, Path.Combine(DataDirectory, "Favicons"));
+		_window = new MainWindow(new MainViewModel(new LocalAccount(store, downloader), favicons));
 		_window.Closed += (_, _) =>
 		{
 			downloader.Dispose();

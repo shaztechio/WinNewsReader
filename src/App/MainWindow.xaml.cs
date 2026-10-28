@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Text.Json;
 using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -40,7 +42,7 @@ public sealed partial class MainWindow : Window
 		TimelineSplitter.Column = TimelineColumn;
 		Timeline.ItemsSource = ViewModel.Articles;
 		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
-		AddKeyboardAccelerators();
+		AddShortcuts();
 		_ = InitializeArticleViewAsync();
 
 		// Refresh at launch and then every hour, as NetNewsWire does by default.
@@ -62,7 +64,14 @@ public sealed partial class MainWindow : Window
 				SyncSelection(() => Sidebar.SelectedItem = ViewModel.SelectedSidebarItem);
 				break;
 			case nameof(MainViewModel.Articles):
+				// Swapping the list removes the focused row, so keep keyboard focus in the timeline.
+				var timelineFocused = PaneOf(FocusManager.GetFocusedElement(Content.XamlRoot) as DependencyObject) == Pane.Timeline;
 				SyncSelection(() => Timeline.ItemsSource = ViewModel.Articles);
+				if (timelineFocused)
+				{
+					// After layout, once the new rows exist to take focus.
+					DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => Timeline.Focus(FocusState.Keyboard));
+				}
 				break;
 			case nameof(MainViewModel.SelectedArticle):
 				SyncSelection(() => Timeline.SelectedItem = ViewModel.SelectedArticle);
@@ -106,15 +115,6 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	private async void OnSidebarKeyDown(object sender, KeyRoutedEventArgs e)
-	{
-		if (e.Key is VirtualKey.Delete or VirtualKey.Back && ViewModel.SelectedSidebarItem is { Feed: not null } or { Folder: not null })
-		{
-			e.Handled = true;
-			await ConfirmDeleteAsync(ViewModel.SelectedSidebarItem!);
-		}
-	}
-
 	// Article view
 
 	private async Task InitializeArticleViewAsync()
@@ -122,6 +122,11 @@ public sealed partial class MainWindow : Window
 		ArticleView.DefaultBackgroundColor = Colors.Transparent;
 		await ArticleView.EnsureCoreWebView2Async();
 		var core = ArticleView.CoreWebView2;
+		// The page has keyboard focus while reading, so it passes the app's shortcuts back (see ArticleKeysScript).
+		// Browser shortcuts such as Ctrl+R (reload) and Ctrl+P (print) are off; copy and select all still work.
+		core.Settings.AreBrowserAcceleratorKeysEnabled = false;
+		await core.AddScriptToExecuteOnDocumentCreatedAsync(ArticleKeysScript);
+		core.WebMessageReceived += OnArticleMessage;
 		// Links open in the default browser; the pane only ever shows the article.
 		core.NavigationStarting += (_, args) =>
 		{
@@ -439,40 +444,244 @@ public sealed partial class MainWindow : Window
 
 	// Keyboard
 
-	/// <summary>The Windows mappings of NetNewsWire's menu shortcuts from the parity matrix, for the commands built so far.</summary>
-	private void AddKeyboardAccelerators()
+	private enum Pane
 	{
+		Other,
+		Sidebar,
+		Timeline,
+		Article,
+	}
+
+	/// <summary>A key and its modifiers, and the pane focus must be in for it to apply; null for anywhere.</summary>
+	private sealed record Shortcut(VirtualKey Key, VirtualKeyModifiers Modifiers, Pane? Pane, Action Action);
+
+	private readonly List<Shortcut> _shortcuts = [];
+
+	/// <summary>
+	/// The page in the article pane forwards keys the app may want, since WebView2 keeps keyboard input to itself.
+	/// It leaves the page the keys it needs: typing in fields, editing shortcuts such as copy, scrolling, following
+	/// a focused link with Enter, and Space until the article's end.
+	/// </summary>
+	private const string ArticleKeysScript = """
+		addEventListener('keydown', e => {
+			const t = e.target;
+			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+			const key = e.key;
+			if (e.ctrlKey && !e.altKey && ['a', 'c', 'f', 'v', 'x', 'y', 'z', 'Insert'].includes(key.length === 1 ? key.toLowerCase() : key)) return;
+			if (['ArrowUp', 'ArrowDown', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Tab'].includes(key)) return;
+			if (key === ' ' && !e.ctrlKey && !e.altKey && (e.shiftKey || innerHeight + scrollY < document.documentElement.scrollHeight - 4)) return;
+			if (key === 'Enter' && t && t.closest && t.closest('a, button')) return;
+			if (!e.ctrlKey && !e.altKey && key.length !== 1 && !['Enter', 'ArrowLeft', 'F5'].includes(key)) return;
+			e.preventDefault();
+			chrome.webview.postMessage({ keyCode: e.keyCode, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey });
+		}, true);
+		""";
+
+	/// <summary>
+	/// NetNewsWire's keyboard map from the parity matrix, for the commands built so far: menu shortcuts with Ctrl for
+	/// Cmd, the single-key shortcuts, and the keys that move focus between panes.
+	/// </summary>
+	private void AddShortcuts()
+	{
+		const VirtualKeyModifiers None = VirtualKeyModifiers.None;
+		const VirtualKeyModifiers Shift = VirtualKeyModifiers.Shift;
 		const VirtualKeyModifiers Ctrl = VirtualKeyModifiers.Control;
 		const VirtualKeyModifiers CtrlShift = VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift;
 		const VirtualKeyModifiers CtrlAlt = VirtualKeyModifiers.Control | VirtualKeyModifiers.Menu;
-		const VirtualKey Slash = (VirtualKey)191;
+		const VirtualKey Semicolon = (VirtualKey)186, Plus = (VirtualKey)187, Comma = (VirtualKey)188, Minus = (VirtualKey)189,
+			Period = (VirtualKey)190, Slash = (VirtualKey)191, Quote = (VirtualKey)222;
 
-		Add(VirtualKey.R, Ctrl, () => _ = ViewModel.RefreshAsync());
-		Add(VirtualKey.F5, VirtualKeyModifiers.None, () => _ = ViewModel.RefreshAsync());
-		Add(VirtualKey.N, Ctrl, () => _ = ShowNewFeedDialogAsync());
-		Add(VirtualKey.N, CtrlShift, () => _ = ShowNewFolderDialogAsync());
-		Add(VirtualKey.E, CtrlAlt, () => _ = ExportAsync());
-		Add(VirtualKey.K, Ctrl, () => ViewModel.MarkAllRead());
-		Add(VirtualKey.U, CtrlShift, () => ViewModel.ToggleRead());
-		Add(VirtualKey.L, CtrlShift, () => ViewModel.ToggleStarred());
-		Add(Slash, Ctrl, ViewModel.SelectNextUnread);
-		Add(VirtualKey.Number1, Ctrl, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
-		Add(VirtualKey.Number2, Ctrl, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));
-		Add(VirtualKey.Number3, Ctrl, () => ViewModel.SelectSmartFeed(SidebarItemKind.Starred));
-		Add(VirtualKey.Q, Ctrl, Close);
+		// Keys that only apply in one pane come first, so they win over the global ones.
+		Add(VirtualKey.Right, None, Pane.Sidebar, () => FocusPane(Pane.Timeline));
+		Add(VirtualKey.Tab, None, Pane.Sidebar, () => FocusPane(Pane.Timeline));
+		Add(Comma, None, Pane.Sidebar, () => ViewModel.SetSelectedExpanded(false));
+		Add(VirtualKey.Left, Ctrl, Pane.Sidebar, () => ViewModel.SetSelectedExpanded(false));
+		Add(Period, None, Pane.Sidebar, () => ViewModel.SetSelectedExpanded(true));
+		Add(VirtualKey.Right, Ctrl, Pane.Sidebar, () => ViewModel.SetSelectedExpanded(true));
+		Add(Semicolon, None, Pane.Sidebar, () => ViewModel.SetAllExpanded(false));
+		Add(VirtualKey.Left, CtrlAlt, Pane.Sidebar, () => ViewModel.SetAllExpanded(false));
+		Add(Quote, None, Pane.Sidebar, () => ViewModel.SetAllExpanded(true));
+		Add(VirtualKey.Right, CtrlAlt, Pane.Sidebar, () => ViewModel.SetAllExpanded(true));
+		Add(VirtualKey.Delete, None, Pane.Sidebar, () => _ = DeleteSelectedAsync());
+		Add(VirtualKey.Back, None, Pane.Sidebar, () => _ = DeleteSelectedAsync());
+		Add(VirtualKey.Left, None, Pane.Timeline, () => FocusPane(Pane.Sidebar));
+		Add(VirtualKey.Right, None, Pane.Timeline, () => FocusPane(Pane.Article));
+		Add(VirtualKey.Left, None, Pane.Article, () => FocusPane(Pane.Timeline));
 
-		void Add(VirtualKey key, VirtualKeyModifiers modifiers, Action action)
+		// Menu shortcuts.
+		Add(VirtualKey.R, Ctrl, null, () => _ = ViewModel.RefreshAsync());
+		Add(VirtualKey.F5, None, null, () => _ = ViewModel.RefreshAsync());
+		Add(VirtualKey.N, Ctrl, null, () => _ = ShowNewFeedDialogAsync());
+		Add(VirtualKey.N, CtrlShift, null, () => _ = ShowNewFolderDialogAsync());
+		Add(VirtualKey.E, CtrlAlt, null, () => _ = ExportAsync());
+		Add(VirtualKey.K, Ctrl, null, () => ViewModel.MarkAllRead());
+		Add(VirtualKey.U, CtrlShift, null, () => ViewModel.ToggleRead());
+		Add(VirtualKey.L, CtrlShift, null, () => ViewModel.ToggleStarred());
+		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
+		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
+		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));
+		Add(VirtualKey.Number3, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Starred));
+		Add(VirtualKey.Q, Ctrl, null, Close);
+
+		// Single-key shortcuts.
+		Add(VirtualKey.Space, None, null, () => _ = SpaceAsync(up: false));
+		Add(VirtualKey.Space, Shift, null, () => _ = SpaceAsync(up: true));
+		Add(Minus, None, null, ViewModel.SelectPreviousUnread);
+		Add(VirtualKey.Subtract, None, null, ViewModel.SelectPreviousUnread);
+		Add(VirtualKey.N, None, null, ViewModel.SelectNextUnread);
+		Add(Plus, Shift, null, ViewModel.SelectNextUnread);
+		Add(VirtualKey.Add, None, null, ViewModel.SelectNextUnread);
+		Add(VirtualKey.R, None, null, () => ViewModel.ToggleRead());
+		Add(VirtualKey.U, None, null, () => ViewModel.ToggleRead());
+		Add(VirtualKey.K, None, null, () => ViewModel.MarkAllRead());
+		Add(VirtualKey.M, None, null, ViewModel.MarkUnreadAndSelectNextUnread);
+		Add(VirtualKey.L, None, null, ViewModel.MarkAllReadAndSelectNextUnread);
+		Add(VirtualKey.O, None, null, ViewModel.MarkOlderRead);
+		Add(VirtualKey.S, None, null, () => ViewModel.ToggleStarred());
+		// Shift opens in the background on the Mac; Windows can't open a browser behind the app, so both open normally.
+		foreach (var modifiers in new[] { None, Shift })
 		{
-			var accelerator = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
-			accelerator.Invoked += (_, args) =>
+			Add(VirtualKey.B, modifiers, null, () => MainViewModel.OpenInBrowser(ViewModel.SelectedArticle?.LinkUrl));
+			Add(VirtualKey.Enter, modifiers, null, () => MainViewModel.OpenInBrowser(ViewModel.SelectedArticle?.LinkUrl));
+		}
+		Add(VirtualKey.A, None, null, () => ViewModel.SelectAdjacentSidebarItem(-1));
+		Add(VirtualKey.Z, None, null, () => ViewModel.SelectAdjacentSidebarItem(1));
+
+		void Add(VirtualKey key, VirtualKeyModifiers modifiers, Pane? pane, Action action) => _shortcuts.Add(new Shortcut(key, modifiers, pane, action));
+	}
+
+	private void OnPreviewKeyDown(object sender, KeyRoutedEventArgs e)
+	{
+		var focused = FocusManager.GetFocusedElement(Content.XamlRoot) as DependencyObject;
+		var pane = PaneOf(focused);
+		// Keys typed into the article page arrive through OnArticleMessage; single keys never apply in text fields.
+		if (pane == Pane.Article || focused is TextBox or PasswordBox or RichEditBox or AutoSuggestBox)
+		{
+			return;
+		}
+		// Space and Enter press a focused toolbar button.
+		if (pane == Pane.Other && e.Key is VirtualKey.Space or VirtualKey.Enter)
+		{
+			return;
+		}
+		e.Handled = RunShortcut(e.Key, CurrentModifiers(), pane);
+	}
+
+	private void OnArticleMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+	{
+		using var message = JsonDocument.Parse(args.WebMessageAsJson);
+		var root = message.RootElement;
+		var modifiers = VirtualKeyModifiers.None;
+		if (root.GetProperty("ctrl").GetBoolean())
+		{
+			modifiers |= VirtualKeyModifiers.Control;
+		}
+		if (root.GetProperty("shift").GetBoolean())
+		{
+			modifiers |= VirtualKeyModifiers.Shift;
+		}
+		if (root.GetProperty("alt").GetBoolean())
+		{
+			modifiers |= VirtualKeyModifiers.Menu;
+		}
+		// Chromium's keyCode is the Windows virtual-key code.
+		RunShortcut((VirtualKey)root.GetProperty("keyCode").GetInt32(), modifiers, Pane.Article);
+	}
+
+	private bool RunShortcut(VirtualKey key, VirtualKeyModifiers modifiers, Pane pane)
+	{
+		if (_dialogOpen || _shortcuts.FirstOrDefault(s => s.Key == key && s.Modifiers == modifiers && (s.Pane is null || s.Pane == pane)) is not { } shortcut)
+		{
+			return false;
+		}
+		shortcut.Action();
+		return true;
+	}
+
+	private static VirtualKeyModifiers CurrentModifiers()
+	{
+		var modifiers = VirtualKeyModifiers.None;
+		foreach (var (key, modifier) in new[]
+		{
+			(VirtualKey.Control, VirtualKeyModifiers.Control),
+			(VirtualKey.Shift, VirtualKeyModifiers.Shift),
+			(VirtualKey.Menu, VirtualKeyModifiers.Menu),
+		})
+		{
+			if (InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
 			{
-				args.Handled = true;
-				if (!_dialogOpen)
+				modifiers |= modifier;
+			}
+		}
+		return modifiers;
+	}
+
+	private Pane PaneOf(DependencyObject? element)
+	{
+		for (; element is not null; element = VisualTreeHelper.GetParent(element))
+		{
+			if (element == Sidebar)
+			{
+				return Pane.Sidebar;
+			}
+			if (element == Timeline)
+			{
+				return Pane.Timeline;
+			}
+			if (element == ArticleView)
+			{
+				return Pane.Article;
+			}
+		}
+		return Pane.Other;
+	}
+
+	private void FocusPane(Pane pane)
+	{
+		switch (pane)
+		{
+			case Pane.Sidebar:
+				Sidebar.Focus(FocusState.Keyboard);
+				break;
+			case Pane.Timeline:
+				// Focus the selected row, or the first one, as the timeline does when tabbed into.
+				if (ViewModel.SelectedArticle is null && ViewModel.Articles.Count > 0)
 				{
-					action();
+					ViewModel.SelectedArticle = ViewModel.Articles[0];
 				}
-			};
-			Root.KeyboardAccelerators.Add(accelerator);
+				Timeline.Focus(FocusState.Keyboard);
+				break;
+			case Pane.Article when ViewModel.SelectedArticle is not null:
+				ArticleView.Focus(FocusState.Keyboard);
+				break;
+		}
+	}
+
+	/// <summary>Space pages down through the article and, at its end, goes to the next unread article. Shift+Space pages up.</summary>
+	private async Task SpaceAsync(bool up)
+	{
+		if (!_articleViewReady || ViewModel.SelectedArticle is null)
+		{
+			if (!up)
+			{
+				ViewModel.SelectNextUnread();
+			}
+			return;
+		}
+		var result = await ArticleView.CoreWebView2.ExecuteScriptAsync(up
+			? "scrollBy(0, -(innerHeight - 40)); 'scrolled'"
+			: "innerHeight + scrollY >= document.documentElement.scrollHeight - 4 ? 'end' : (scrollBy(0, innerHeight - 40), 'scrolled')");
+		if (result == "\"end\"")
+		{
+			ViewModel.SelectNextUnread();
+		}
+	}
+
+	private async Task DeleteSelectedAsync()
+	{
+		if (ViewModel.SelectedSidebarItem is { Feed: not null } or { Folder: not null })
+		{
+			await ConfirmDeleteAsync(ViewModel.SelectedSidebarItem);
 		}
 	}
 }

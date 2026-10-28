@@ -139,4 +139,7 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] Three-pane window: sidebar (smart feeds, folders, feeds, unread counts), timeline, WebView2 article view; resizable panes
   - [x] Add feed and folder, rename and delete, OPML import and export, refresh at launch and hourly, mark read/starred, first shortcuts
   - [x] App icon (`tools/make-icon.ps1`)
-  - [ ] Favicons, hide read articles and feeds, sort order, search, drag and drop, inline rename, undo, Inspector, preferences, multiple windows
+  - [x] Keyboard map: single-key shortcuts, pane focus keys, and shortcuts inside the article page; next and previous unread across feeds
+  - [x] Favicons in the sidebar and timeline
+  - [ ] Feed icons (larger, from the feed or apple-touch-icon) for the timeline and article header
+  - [ ] Hide read articles and feeds, sort order, search, drag and drop, inline rename, undo, Inspector, preferences, multiple windows

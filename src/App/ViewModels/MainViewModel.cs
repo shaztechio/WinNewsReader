@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using WinNewsReader.Core;
 using WinNewsReader.Store;
 
@@ -8,13 +10,19 @@ namespace WinNewsReader.App.ViewModels;
 /// <summary>State and actions for the main window: sidebar, timeline and the selected article.</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
+	/// <summary>Favicon lookups at once; the downloader's per-host limits apply on top.</summary>
+	private const int MaxConcurrentIconLookups = 6;
+
 	private readonly LocalAccount _account;
+	private readonly FaviconDownloader _favicons;
 	private readonly HashSet<string> _expandedKeys = [nameof(SidebarItemKind.SmartFeedsGroup), nameof(SidebarItemKind.AccountGroup)];
+	private readonly Dictionary<string, ImageSource> _icons = [];
 	private bool _rebuildingSidebar;
 
-	public MainViewModel(LocalAccount account)
+	public MainViewModel(LocalAccount account, FaviconDownloader favicons)
 	{
 		_account = account;
+		_favicons = favicons;
 		Articles = [];
 		StatusText = "";
 		LoadSidebar();
@@ -91,11 +99,57 @@ public sealed partial class MainViewModel : ObservableObject
 		foreach (var item in AllSidebarItems())
 		{
 			item.IsExpanded = _expandedKeys.Contains(item.Key);
+			item.Icon = item.Feed is null ? null : _icons.GetValueOrDefault(item.Feed.FeedId);
 		}
 		UpdateUnreadCounts();
 		SelectedSidebarItem = FindSidebarItem(selectedKey);
 		_rebuildingSidebar = false;
 		LoadArticles(keepSelection: true);
+		_ = LoadIconsAsync();
+	}
+
+	/// <summary>Fetches favicons for feeds that don't have one yet. Misses are remembered by the downloader, so this is cheap to repeat.</summary>
+	public async Task LoadIconsAsync()
+	{
+		var feeds = AllSidebarItems().Select(item => item.Feed).OfType<StoredFeed>()
+			.DistinctBy(feed => feed.FeedId).Where(feed => !_icons.ContainsKey(feed.FeedId)).ToList();
+		using var gate = new SemaphoreSlim(MaxConcurrentIconLookups);
+		await Task.WhenAll(feeds.Select(async feed =>
+		{
+			if ((feed.HomePageUrl ?? FaviconDownloader.SiteRoot(feed.Url)) is not { } site)
+			{
+				return;
+			}
+			string? path;
+			await gate.WaitAsync();
+			try
+			{
+				path = await Task.Run(() => _favicons.FaviconPathAsync(site));
+			}
+			finally
+			{
+				gate.Release();
+			}
+			if (path is not null)
+			{
+				SetIcon(feed.FeedId, path);
+			}
+		}));
+	}
+
+	private void SetIcon(string feedId, string path)
+	{
+		// Decoded at 48 px so 16–24 px icons stay sharp at 200% scaling.
+		var icon = new BitmapImage { DecodePixelWidth = 48, UriSource = new Uri(path) };
+		_icons[feedId] = icon;
+		foreach (var item in AllSidebarItems().Where(item => item.Feed?.FeedId == feedId))
+		{
+			item.Icon = icon;
+		}
+		foreach (var article in Articles.Where(article => article.Article.FeedId == feedId))
+		{
+			article.Icon = icon;
+		}
 	}
 
 	public SidebarItem? FindSidebarItem(string? key) => key is null ? null : AllSidebarItems().FirstOrDefault(item => item.Key == key);
@@ -124,6 +178,8 @@ public sealed partial class MainViewModel : ObservableObject
 			}
 			UpdateUnreadCounts();
 			LoadArticles(keepSelection: true);
+			// A first refresh can teach a feed its home page, which is where its favicon is found.
+			_ = LoadIconsAsync();
 
 			var failed = results.Count(result => result.Status == DownloadStatus.Failed);
 			var newArticles = results.Sum(result => result.NewArticles);
@@ -229,15 +285,109 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>Selects the next unread article after the selection, wrapping to the top of the timeline.</summary>
-	public void SelectNextUnread()
+	/// <summary>
+	/// Selects the next unread article below the selection. When there's none, moves on to the next feed in the sidebar
+	/// with unread articles, wrapping around, and selects its first unread article, as NetNewsWire does.
+	/// </summary>
+	public void SelectNextUnread() => SelectUnread(forward: true);
+
+	/// <summary>The same as <see cref="SelectNextUnread"/>, upwards: ending on the previous feed's last unread article.</summary>
+	public void SelectPreviousUnread() => SelectUnread(forward: false);
+
+	/// <summary>The <c>m</c> key: marks the selected article unread and goes to the next unread one.</summary>
+	public void MarkUnreadAndSelectNextUnread()
 	{
-		var start = SelectedArticle is null ? 0 : IndexOf(SelectedArticle) + 1;
-		var next = Articles.Skip(start).Concat(Articles.Take(start)).FirstOrDefault(article => !article.IsRead);
-		if (next is not null)
+		if (SelectedArticle is { } article)
 		{
-			SelectedArticle = next;
+			SetRead(article, false);
 		}
+		SelectNextUnread();
+	}
+
+	/// <summary>The <c>l</c> key: marks the whole timeline read and goes to the next unread article.</summary>
+	public void MarkAllReadAndSelectNextUnread()
+	{
+		MarkAllRead();
+		SelectNextUnread();
+	}
+
+	/// <summary>Marks articles in the timeline older than the selected one as read.</summary>
+	public void MarkOlderRead()
+	{
+		if (SelectedArticle is not { } selected)
+		{
+			return;
+		}
+		var cutoff = selected.Article.DatePublished ?? selected.Article.DateArrived;
+		var older = Articles.Where(article => !article.IsRead && (article.Article.DatePublished ?? article.Article.DateArrived) < cutoff).ToList();
+		Store.MarkRead(older.Select(article => article.ArticleId));
+		foreach (var article in older)
+		{
+			article.IsRead = true;
+		}
+		ArticleStatusChanged();
+	}
+
+	/// <summary>Moves the sidebar selection to the next or previous visible row, skipping group headers (the <c>z</c> and <c>a</c> keys).</summary>
+	public void SelectAdjacentSidebarItem(int offset)
+	{
+		var rows = VisibleSidebarItems().Where(item => !item.IsGroup).ToList();
+		var index = SelectedSidebarItem is null ? -1 : rows.IndexOf(SelectedSidebarItem);
+		var target = index < 0 ? (offset > 0 ? 0 : rows.Count - 1) : index + offset;
+		if (target >= 0 && target < rows.Count)
+		{
+			SelectedSidebarItem = rows[target];
+		}
+	}
+
+	public void SetSelectedExpanded(bool expanded)
+	{
+		if (SelectedSidebarItem is { Children.Count: > 0 } item)
+		{
+			item.IsExpanded = expanded;
+		}
+	}
+
+	/// <summary>Expands or collapses every folder; the two groups stay open so the selection stays visible.</summary>
+	public void SetAllExpanded(bool expanded)
+	{
+		foreach (var item in AllSidebarItems().Where(item => item.Kind == SidebarItemKind.Folder))
+		{
+			item.IsExpanded = expanded;
+		}
+		if (!expanded && SelectedSidebarItem?.ParentFolder is not null)
+		{
+			SelectedSidebarItem = FindSidebarItem($"folder:{SelectedSidebarItem.ParentFolder.FolderId}");
+		}
+	}
+
+	private void SelectUnread(bool forward)
+	{
+		var index = SelectedArticle is null ? (forward ? -1 : Articles.Count) : IndexOf(SelectedArticle);
+		var inTimeline = forward
+			? Articles.Skip(index + 1).FirstOrDefault(article => !article.IsRead)
+			: Articles.Take(Math.Max(index, 0)).LastOrDefault(article => !article.IsRead);
+		if (inTimeline is not null)
+		{
+			SelectedArticle = inTimeline;
+			return;
+		}
+
+		var rows = AllSidebarItems().ToList();
+		var position = SelectedSidebarItem is null ? -1 : rows.IndexOf(SelectedSidebarItem);
+		var ordered = forward
+			? rows.Skip(position + 1).Concat(rows.Take(position + 1))
+			: rows.Take(Math.Max(position, 0)).Reverse().Concat(rows.Skip(Math.Max(position, 0)).Reverse());
+		if (ordered.FirstOrDefault(item => item.Kind == SidebarItemKind.Feed && item.UnreadCount > 0) is not { } feed)
+		{
+			return;
+		}
+		if (feed.ParentFolder is { } folder)
+		{
+			FindSidebarItem($"folder:{folder.FolderId}")!.IsExpanded = true;
+		}
+		SelectedSidebarItem = feed;
+		SelectedArticle = forward ? Articles.FirstOrDefault(article => !article.IsRead) : Articles.LastOrDefault(article => !article.IsRead);
 	}
 
 	public static void OpenInBrowser(string? url)
@@ -307,7 +457,7 @@ public sealed partial class MainViewModel : ObservableObject
 			articles = [.. articles.OrderByDescending(article => article.DatePublished ?? article.DateArrived).ThenBy(article => article.ArticleId, StringComparer.Ordinal)];
 		}
 		var feedNames = Store.GetFeeds().ToDictionary(feed => feed.FeedId, NameSorting.DisplayName);
-		Articles = [.. articles.Select(article => new ArticleItem(article, feedNames.GetValueOrDefault(article.FeedId, "")))];
+		Articles = [.. articles.Select(article => new ArticleItem(article, feedNames.GetValueOrDefault(article.FeedId, ""), _icons.GetValueOrDefault(article.FeedId)))];
 		SelectedArticle = selected is null ? null : Articles.FirstOrDefault(article => article.ArticleId == selected.ArticleId);
 	}
 
@@ -347,4 +497,13 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	private IEnumerable<SidebarItem> AllSidebarItems() => SidebarItems.SelectMany(item => item.SelfAndDescendants());
+
+	/// <summary>Rows in the order shown, leaving out the children of collapsed rows.</summary>
+	private IEnumerable<SidebarItem> VisibleSidebarItems()
+	{
+		return SidebarItems.SelectMany(Visible);
+
+		static IEnumerable<SidebarItem> Visible(SidebarItem item) =>
+			item.IsExpanded ? item.Children.SelectMany(Visible).Prepend(item) : [item];
+	}
 }
