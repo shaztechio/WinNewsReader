@@ -4,6 +4,8 @@ using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
+using Microsoft.UI.Windowing;
+using Windows.Graphics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -13,6 +15,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 using Windows.System;
 using WinNewsReader.App.ViewModels;
+using WinNewsReader.Core;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 using WinNewsReader.Parser.Opml;
 using WinNewsReader.Store;
@@ -29,19 +32,36 @@ public sealed partial class MainWindow : Window
 	private bool _articleViewReady;
 	private bool _dialogOpen;
 	private string? _shownArticleId;
+	private RectInt32 _normalBounds;
 
 	public MainWindow(MainViewModel viewModel)
 	{
 		ViewModel = viewModel;
 		InitializeComponent();
 
-		AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 860));
+		RestorePlacement(ViewModel.Settings.Window);
+		AppWindow.Changed += (_, args) =>
+		{
+			// Remember the normal bounds, so a window closed while maximized un-maximizes to the right place.
+			if ((args.DidPositionChange || args.DidSizeChange) && AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Restored })
+			{
+				_normalBounds = new RectInt32(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+			}
+		};
 		AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 		SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop();
 		SidebarSplitter.Column = SidebarColumn;
 		TimelineSplitter.Column = TimelineColumn;
 		Timeline.ItemsSource = ViewModel.Articles;
 		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+		ViewModel.SidebarExpansionChanged += (_, _) => ScheduleExpansionSync();
+		ScheduleExpansionSync();
+		// After the first layout, when the sidebar has rows to show the restored selection.
+		Root.Loaded += (_, _) => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ViewModel.RestoreSelection);
+		Closed += (_, _) => ViewModel.SaveState(new WindowPlacement(
+			_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height,
+			AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized },
+			SidebarColumn.ActualWidth, TimelineColumn.ActualWidth));
 		AddShortcuts();
 		_ = InitializeArticleViewAsync();
 
@@ -56,12 +76,47 @@ public sealed partial class MainWindow : Window
 
 	public MainViewModel ViewModel { get; }
 
+	/// <summary>
+	/// Puts the window where it last was, if that's still on a display; otherwise opens it at the default size.
+	/// Also restores the pane widths.
+	/// </summary>
+	private void RestorePlacement(WindowPlacement? placement)
+	{
+		var bounds = placement is null ? (RectInt32?)null : new RectInt32(placement.X, placement.Y, placement.Width, placement.Height);
+		if (bounds is { } saved && saved.Width >= 400 && saved.Height >= 300 && DisplayArea.GetFromRect(saved, DisplayAreaFallback.None) is not null)
+		{
+			AppWindow.MoveAndResize(saved);
+		}
+		else
+		{
+			AppWindow.Resize(new SizeInt32(1400, 860));
+		}
+		_normalBounds = new RectInt32(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+		if (placement is null)
+		{
+			return;
+		}
+		if (placement.IsMaximized && AppWindow.Presenter is OverlappedPresenter presenter)
+		{
+			presenter.Maximize();
+		}
+		SidebarColumn.Width = new GridLength(Math.Clamp(placement.SidebarWidth, SidebarSplitter.MinimumWidth, SidebarSplitter.MaximumWidth));
+		TimelineColumn.Width = new GridLength(Math.Clamp(placement.TimelineWidth, TimelineSplitter.MinimumWidth, TimelineSplitter.MaximumWidth));
+	}
+
 	private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		switch (e.PropertyName)
 		{
 			case nameof(MainViewModel.SelectedSidebarItem):
-				SyncSelection(() => Sidebar.SelectedItem = ViewModel.SelectedSidebarItem);
+				// After layout: when the sidebar was just rebuilt, the new row has no control to highlight yet.
+				DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+				{
+					if (Sidebar.SelectedItem != ViewModel.SelectedSidebarItem)
+					{
+						SyncSelection(() => Sidebar.SelectedItem = ViewModel.SelectedSidebarItem);
+					}
+				});
 				break;
 			case nameof(MainViewModel.Articles):
 				// Swapping the list removes the focused row, so keep keyboard focus in the timeline.
@@ -69,8 +124,13 @@ public sealed partial class MainWindow : Window
 				SyncSelection(() => Timeline.ItemsSource = ViewModel.Articles);
 				if (timelineFocused)
 				{
-					// After layout, once the new rows exist to take focus.
-					DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => Timeline.Focus(FocusState.Keyboard));
+					// After layout, once the new rows exist to take focus. Focusing the list selects the focused row,
+					// which would mark it read, so put back the view model's selection (usually none).
+					DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => SyncSelection(() =>
+					{
+						Timeline.Focus(FocusState.Keyboard);
+						Timeline.SelectedItem = ViewModel.SelectedArticle;
+					}));
 				}
 				break;
 			case nameof(MainViewModel.SelectedArticle):
@@ -104,6 +164,59 @@ public sealed partial class MainWindow : Window
 		if (!_syncingSelection)
 		{
 			ViewModel.SelectedSidebarItem = args.AddedItems.FirstOrDefault() as SidebarItem;
+		}
+	}
+
+	private bool _expansionSyncPending;
+
+	private void ScheduleExpansionSync()
+	{
+		if (_expansionSyncPending)
+		{
+			return;
+		}
+		_expansionSyncPending = true;
+		DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+		{
+			_expansionSyncPending = false;
+			ApplyExpansion(pass: 0);
+		});
+	}
+
+	/// <summary>
+	/// Sets each row's expansion from the view model. Expanding a group creates its folders' rows, so this repeats after
+	/// layout until nothing changes.
+	/// </summary>
+	private void ApplyExpansion(int pass)
+	{
+		var changed = false;
+		foreach (var item in ViewModel.AllSidebarItems())
+		{
+			if (Sidebar.ContainerFromItem(item) is TreeViewItem row && row.IsExpanded != item.IsExpanded)
+			{
+				row.IsExpanded = item.IsExpanded;
+				changed = true;
+			}
+		}
+		if (changed && pass < 3)
+		{
+			DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => ApplyExpansion(pass + 1));
+		}
+	}
+
+	private void OnSidebarExpanding(TreeView sender, TreeViewExpandingEventArgs args)
+	{
+		if (args.Item is SidebarItem item && !item.IsExpanded)
+		{
+			ViewModel.SetExpanded(item, true);
+		}
+	}
+
+	private void OnSidebarCollapsed(TreeView sender, TreeViewCollapsedEventArgs args)
+	{
+		if (args.Item is SidebarItem item && item.IsExpanded)
+		{
+			ViewModel.SetExpanded(item, false);
 		}
 	}
 
@@ -171,6 +284,23 @@ public sealed partial class MainWindow : Window
 	private async void OnExport(object sender, RoutedEventArgs e) => await ExportAsync();
 
 	private void OnMarkAllRead(object sender, RoutedEventArgs e) => ViewModel.MarkAllRead();
+
+	private void OnToggleHideReadArticles(object sender, RoutedEventArgs e) => ViewModel.ToggleHideReadArticles();
+
+	private void OnToggleHideReadFeeds(object sender, RoutedEventArgs e) => ViewModel.ToggleHideReadFeeds();
+
+	private void OnSortNewestFirst(object sender, RoutedEventArgs e) => SetSort(oldestFirst: false, (AppBarToggleButton)sender);
+
+	private void OnSortOldestFirst(object sender, RoutedEventArgs e) => SetSort(oldestFirst: true, (AppBarToggleButton)sender);
+
+	/// <summary>The two sort items act as a pair; clicking the checked one leaves it checked.</summary>
+	private void SetSort(bool oldestFirst, AppBarToggleButton button)
+	{
+		ViewModel.SetSortOldestFirst(oldestFirst);
+		button.IsChecked = true;
+	}
+
+	private void OnCleanUp(object sender, RoutedEventArgs e) => ViewModel.CleanUp();
 
 	private void OnToggleRead(object sender, RoutedEventArgs e) => ViewModel.ToggleRead();
 
@@ -522,6 +652,9 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));
 		Add(VirtualKey.Number3, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Starred));
 		Add(VirtualKey.Q, Ctrl, null, Close);
+		Add(VirtualKey.H, CtrlShift, null, ViewModel.ToggleHideReadArticles);
+		Add(VirtualKey.F, CtrlShift, null, ViewModel.ToggleHideReadFeeds);
+		Add(Quote, Ctrl, null, ViewModel.CleanUp);
 
 		// Single-key shortcuts.
 		Add(VirtualKey.Space, None, null, () => _ = SpaceAsync(up: false));

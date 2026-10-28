@@ -36,6 +36,9 @@
             </AppBarButton>
             <AppBarSeparator />
             <AppBarButton Label="Mark All as Read" ToolTipService.ToolTip="Mark All as Read (Ctrl+K)" Icon="Accept" Click="OnMarkAllRead" />
+            <AppBarToggleButton Label="Hide Read Articles" ToolTipService.ToolTip="Hide Read Articles (Ctrl+Shift+H)" Icon="Filter"
+                                IsChecked="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanHideReadArticles, Mode=OneWay}" Click="OnToggleHideReadArticles" />
             <AppBarSeparator />
             <AppBarButton Label="{x:Bind ViewModel.ReadToggleLabel, Mode=OneWay}" Icon="Read" Click="OnToggleRead"
                           ToolTipService.ToolTip="{x:Bind ViewModel.ReadToggleLabel, Mode=OneWay}"
@@ -54,6 +57,17 @@
                     <FontIcon Glyph="&#xE8A7;" />
                 </AppBarButton.Icon>
             </AppBarButton>
+            <!-- NetNewsWire's View menu items, until the app has a menu bar. -->
+            <CommandBar.SecondaryCommands>
+                <AppBarToggleButton Label="Hide Read Feeds" KeyboardAcceleratorTextOverride="Ctrl+Shift+F"
+                                    IsChecked="{x:Bind ViewModel.HideReadFeeds, Mode=OneWay}" Click="OnToggleHideReadFeeds" />
+                <AppBarSeparator />
+                <AppBarToggleButton Label="Newest Article on Top" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
+                <AppBarToggleButton Label="Oldest Article on Top" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
+                <AppBarSeparator />
+                <AppBarButton Label="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
+                              IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
+            </CommandBar.SecondaryCommands>
         </CommandBar>
 
         <Grid Grid.Row="1">
@@ -68,10 +82,11 @@
             <TreeView x:Name="Sidebar" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"
                       SelectionMode="Single" CanDragItems="False" CanReorderItems="False" AllowDrop="False"
                       SelectionChanged="OnSidebarSelectionChanged"
+                      Expanding="OnSidebarExpanding" Collapsed="OnSidebarCollapsed"
                       AutomationProperties.Name="Sidebar">
                 <TreeView.ItemTemplate>
                     <DataTemplate x:DataType="vm:SidebarItem">
-                        <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                        <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded, Mode=OneWay}"
                                       ContextFlyout="{StaticResource SidebarMenu}"
                                       AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
                             <Grid ColumnSpacing="10">

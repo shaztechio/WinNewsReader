@@ -142,4 +142,6 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] Keyboard map: single-key shortcuts, pane focus keys, and shortcuts inside the article page; next and previous unread across feeds
   - [x] Favicons in the sidebar and timeline
   - [ ] Feed icons (larger, from the feed or apple-touch-icon) for the timeline and article header
-  - [ ] Hide read articles and feeds, sort order, search, drag and drop, inline rename, undo, Inspector, preferences, multiple windows
+  - [x] Hide read articles (per row) and hide read feeds, sort order, clean up; dates follow NetNewsWire's logical publish date
+  - [x] Remember window, panes, open folders and selection; NetNewsWire's default feeds on first launch
+  - [ ] Search, drag and drop, inline rename, undo, Inspector, preferences, multiple windows

@@ -15,18 +15,27 @@ public sealed partial class MainViewModel : ObservableObject
 
 	private readonly LocalAccount _account;
 	private readonly FaviconDownloader _favicons;
-	private readonly HashSet<string> _expandedKeys = [nameof(SidebarItemKind.SmartFeedsGroup), nameof(SidebarItemKind.AccountGroup)];
+	private readonly string _settingsPath;
+	private readonly HashSet<string> _expandedKeys;
 	private readonly Dictionary<string, ImageSource> _icons = [];
 	private bool _rebuildingSidebar;
+	private bool _restoringSelection;
 
-	public MainViewModel(LocalAccount account, FaviconDownloader favicons)
+	public MainViewModel(LocalAccount account, FaviconDownloader favicons, AppSettings settings, string settingsPath)
 	{
 		_account = account;
 		_favicons = favicons;
+		Settings = settings;
+		_settingsPath = settingsPath;
+		_expandedKeys = settings.ExpandedSidebarKeys is { } keys
+			? [.. keys]
+			: [nameof(SidebarItemKind.SmartFeedsGroup), nameof(SidebarItemKind.AccountGroup)];
 		Articles = [];
 		StatusText = "";
 		LoadSidebar();
 	}
+
+	public AppSettings Settings { get; }
 
 	/// <summary>NetNewsWire's <c>todayCutoffDate</c>: 24 hours ago, so Today doesn't empty out at midnight.</summary>
 	private static DateTimeOffset TodayCutoff => DateTimeOffset.Now.AddHours(-24);
@@ -60,26 +69,35 @@ public sealed partial class MainViewModel : ObservableObject
 
 	public string StarToggleLabel => SelectedArticle is { IsStarred: true } ? "Mark as Unstarred" : "Mark as Starred";
 
+	/// <summary>Whether the selected row's timeline hides read articles. All Unread always does, so it can't be switched.</summary>
+	public bool IsHidingReadArticles => SelectedSidebarItem is { } item && HidesReadArticles(item);
+
+	public bool CanHideReadArticles => SelectedSidebarItem is { IsGroup: false, Kind: not SidebarItemKind.AllUnread };
+
+	public bool HideReadFeeds => Settings.HideReadFeeds;
+
+	public bool SortNewestFirst => !Settings.SortOldestFirst;
+
+	public bool SortOldestFirst => Settings.SortOldestFirst;
+
 	public IEnumerable<StoredFolder> Folders => Store.GetFolders().SortedByName();
 
 	/// <summary>The folder a new feed goes in by default: the selected folder, or the folder of the selected feed.</summary>
 	public StoredFolder? DefaultFolderForNewFeed => SelectedSidebarItem?.Folder ?? SelectedSidebarItem?.ParentFolder;
 
-	/// <summary>Rebuilds the sidebar from the store, keeping expanded folders and the selection.</summary>
-	public void LoadSidebar()
+	/// <summary>
+	/// Rebuilds the sidebar from the store, keeping expanded folders and the selection, or selecting the row
+	/// <paramref name="select"/> instead.
+	/// </summary>
+	public void LoadSidebar(string? select = null)
 	{
-		foreach (var item in AllSidebarItems())
-		{
-			if (item.IsExpanded)
-			{
-				_expandedKeys.Add(item.Key);
-			}
-			else
-			{
-				_expandedKeys.Remove(item.Key);
-			}
-		}
-		var selectedKey = SelectedSidebarItem?.Key;
+		var previousKey = SelectedSidebarItem?.Key;
+		var selectedKey = select ?? previousKey;
+		// Hide Read Feeds leaves out feeds, and folders, with nothing unread, except the selected row.
+		var unreadCounts = Store.UnreadCounts();
+		bool Shown(SidebarItem item) =>
+			!Settings.HideReadFeeds || item.Key == selectedKey
+			|| (item.Feed is { } feed ? unreadCounts.ContainsKey(feed.FeedId) : item.Children.Count > 0);
 
 		_rebuildingSidebar = true;
 		SidebarItems.Clear();
@@ -92,9 +110,10 @@ public sealed partial class MainViewModel : ObservableObject
 		// NetNewsWire sorts feeds alphabetically with folders at the end.
 		SidebarItems.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "On This PC",
 		[
-			.. Store.GetTopLevelFeeds().SortedByName().Select(feed => SidebarItem.ForFeed(feed, null)),
+			.. Store.GetTopLevelFeeds().SortedByName().Select(feed => SidebarItem.ForFeed(feed, null)).Where(Shown),
 			.. Store.GetFolders().SortedByName().Select(folder =>
-				SidebarItem.ForFolder(folder, Store.GetFeeds(folder.FolderId).SortedByName().Select(feed => SidebarItem.ForFeed(feed, folder)))),
+				SidebarItem.ForFolder(folder, Store.GetFeeds(folder.FolderId).SortedByName().Select(feed => SidebarItem.ForFeed(feed, folder)).Where(Shown)))
+				.Where(Shown),
 		]));
 		foreach (var item in AllSidebarItems())
 		{
@@ -102,9 +121,10 @@ public sealed partial class MainViewModel : ObservableObject
 			item.Icon = item.Feed is null ? null : _icons.GetValueOrDefault(item.Feed.FeedId);
 		}
 		UpdateUnreadCounts();
+		SidebarExpansionChanged?.Invoke(this, EventArgs.Empty);
 		SelectedSidebarItem = FindSidebarItem(selectedKey);
 		_rebuildingSidebar = false;
-		LoadArticles(keepSelection: true);
+		LoadArticles(keepSelection: selectedKey == previousKey);
 		_ = LoadIconsAsync();
 	}
 
@@ -168,18 +188,26 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			// Parsing is CPU-bound, so keep the whole refresh off the UI thread.
 			var results = await Task.Run(() => _account.RefreshAllAsync());
-			var feeds = Store.GetFeeds().ToDictionary(feed => feed.FeedId);
-			foreach (var item in AllSidebarItems().Where(item => item.Feed is not null))
+			if (Settings.HideReadFeeds)
 			{
-				if (feeds.TryGetValue(item.Feed!.FeedId, out var feed))
-				{
-					item.Update(feed);
-				}
+				// Feeds with new articles may need to come back.
+				LoadSidebar();
 			}
-			UpdateUnreadCounts();
-			LoadArticles(keepSelection: true);
-			// A first refresh can teach a feed its home page, which is where its favicon is found.
-			_ = LoadIconsAsync();
+			else
+			{
+				var feeds = Store.GetFeeds().ToDictionary(feed => feed.FeedId);
+				foreach (var item in AllSidebarItems().Where(item => item.Feed is not null))
+				{
+					if (feeds.TryGetValue(item.Feed!.FeedId, out var feed))
+					{
+						item.Update(feed);
+					}
+				}
+				UpdateUnreadCounts();
+				LoadArticles(keepSelection: true);
+				// A first refresh can teach a feed its home page, which is where its favicon is found.
+				_ = LoadIconsAsync();
+			}
 
 			var failed = results.Count(result => result.Status == DownloadStatus.Failed);
 			var newArticles = results.Sum(result => result.NewArticles);
@@ -200,21 +228,103 @@ public sealed partial class MainViewModel : ObservableObject
 	public async Task SubscribeAsync(string url, StoredFolder? folder)
 	{
 		var (feed, _) = await Task.Run(() => _account.SubscribeAsync(url, folder?.Name));
-		LoadSidebar();
-		var item = FindSidebarItem($"feed:{folder?.FolderId}:{feed.FeedId}");
-		if (item is not null && folder is not null)
+		if (folder is not null)
 		{
-			FindSidebarItem($"folder:{folder.FolderId}")!.IsExpanded = true;
+			_expandedKeys.Add($"folder:{folder.FolderId}");
 		}
-		SelectedSidebarItem = item;
+		LoadSidebar(select: $"feed:{folder?.FolderId}:{feed.FeedId}");
 	}
 
 	public void AddFolder(string name)
 	{
 		var folder = Store.EnsureFolder(name);
-		LoadSidebar();
-		SelectedSidebarItem = FindSidebarItem($"folder:{folder.FolderId}");
+		LoadSidebar(select: $"folder:{folder.FolderId}");
 	}
+
+	/// <summary>Shows or hides read articles in the selected row's timeline; NetNewsWire remembers this per row.</summary>
+	public void ToggleHideReadArticles()
+	{
+		if (!CanHideReadArticles)
+		{
+			return;
+		}
+		if (!Settings.HideReadArticlesKeys.Remove(SelectedSidebarItem!.Key))
+		{
+			Settings.HideReadArticlesKeys.Add(SelectedSidebarItem.Key);
+		}
+		SaveSettings();
+		OnPropertyChanged(nameof(IsHidingReadArticles));
+		LoadArticles(keepSelection: true);
+	}
+
+	public void ToggleHideReadFeeds()
+	{
+		Settings.HideReadFeeds = !Settings.HideReadFeeds;
+		SaveSettings();
+		OnPropertyChanged(nameof(HideReadFeeds));
+		LoadSidebar();
+	}
+
+	public void SetSortOldestFirst(bool oldestFirst)
+	{
+		Settings.SortOldestFirst = oldestFirst;
+		SaveSettings();
+		OnPropertyChanged(nameof(SortNewestFirst));
+		OnPropertyChanged(nameof(SortOldestFirst));
+		LoadArticles(keepSelection: true);
+	}
+
+	/// <summary>
+	/// NetNewsWire's Clean Up: with read articles hidden, drops the ones read since the timeline loaded.
+	/// The article being read stays.
+	/// </summary>
+	public void CleanUp()
+	{
+		if (IsHidingReadArticles)
+		{
+			LoadArticles(keepSelection: true);
+		}
+	}
+
+	/// <summary>Selects what was selected when the app last closed, without marking the article read again.</summary>
+	public void RestoreSelection()
+	{
+		_restoringSelection = true;
+		try
+		{
+			SelectedSidebarItem = FindSidebarItem(Settings.SelectedSidebarKey);
+			SelectedArticle = Articles.FirstOrDefault(article => article.ArticleId == Settings.SelectedArticleId);
+		}
+		finally
+		{
+			_restoringSelection = false;
+		}
+	}
+
+	/// <summary>Records the window and the sidebar's state for the next launch.</summary>
+	public void SaveState(WindowPlacement? window)
+	{
+		Settings.Window = window ?? Settings.Window;
+		Settings.ExpandedSidebarKeys = [.. _expandedKeys];
+		Settings.SelectedSidebarKey = SelectedSidebarItem?.Key;
+		Settings.SelectedArticleId = SelectedArticle?.ArticleId;
+		SaveSettings();
+	}
+
+	private void SaveSettings()
+	{
+		try
+		{
+			Settings.Save(_settingsPath);
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			// Settings are a convenience; failing to save them shouldn't interrupt reading.
+		}
+	}
+
+	private bool HidesReadArticles(SidebarItem item) =>
+		item.Kind == SidebarItemKind.AllUnread || Settings.HideReadArticlesKeys.Contains(item.Key);
 
 	public void RenameFolder(SidebarItem item, string name)
 	{
@@ -318,8 +428,8 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			return;
 		}
-		var cutoff = selected.Article.DatePublished ?? selected.Article.DateArrived;
-		var older = Articles.Where(article => !article.IsRead && (article.Article.DatePublished ?? article.Article.DateArrived) < cutoff).ToList();
+		var cutoff = selected.Article.LogicalDatePublished;
+		var older = Articles.Where(article => !article.IsRead && article.Article.LogicalDatePublished < cutoff).ToList();
 		Store.MarkRead(older.Select(article => article.ArticleId));
 		foreach (var article in older)
 		{
@@ -344,7 +454,25 @@ public sealed partial class MainViewModel : ObservableObject
 	{
 		if (SelectedSidebarItem is { Children.Count: > 0 } item)
 		{
-			item.IsExpanded = expanded;
+			SetExpanded(item, expanded);
+		}
+	}
+
+	/// <summary>
+	/// The one place a row's expanded state changes, so it survives sidebar rebuilds. The tree reports clicks on its
+	/// chevrons here too; its own state isn't read back, since rebuilding reuses row controls.
+	/// </summary>
+	public void SetExpanded(SidebarItem item, bool expanded)
+	{
+		item.IsExpanded = expanded;
+		SidebarExpansionChanged?.Invoke(this, EventArgs.Empty);
+		if (expanded)
+		{
+			_expandedKeys.Add(item.Key);
+		}
+		else
+		{
+			_expandedKeys.Remove(item.Key);
 		}
 	}
 
@@ -353,7 +481,7 @@ public sealed partial class MainViewModel : ObservableObject
 	{
 		foreach (var item in AllSidebarItems().Where(item => item.Kind == SidebarItemKind.Folder))
 		{
-			item.IsExpanded = expanded;
+			SetExpanded(item, expanded);
 		}
 		if (!expanded && SelectedSidebarItem?.ParentFolder is not null)
 		{
@@ -384,7 +512,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		if (feed.ParentFolder is { } folder)
 		{
-			FindSidebarItem($"folder:{folder.FolderId}")!.IsExpanded = true;
+			SetExpanded(FindSidebarItem($"folder:{folder.FolderId}")!, true);
 		}
 		SelectedSidebarItem = feed;
 		SelectedArticle = forward ? Articles.FirstOrDefault(article => !article.IsRead) : Articles.LastOrDefault(article => !article.IsRead);
@@ -405,6 +533,8 @@ public sealed partial class MainViewModel : ObservableObject
 
 	partial void OnSelectedSidebarItemChanged(SidebarItem? value)
 	{
+		OnPropertyChanged(nameof(IsHidingReadArticles));
+		OnPropertyChanged(nameof(CanHideReadArticles));
 		if (!_rebuildingSidebar)
 		{
 			LoadArticles(keepSelection: false);
@@ -414,7 +544,7 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>Selecting an article marks it read, as in NetNewsWire.</summary>
 	partial void OnSelectedArticleChanged(ArticleItem? value)
 	{
-		if (value is { IsRead: false })
+		if (value is { IsRead: false } && !_restoringSelection)
 		{
 			SetRead(value, true);
 		}
@@ -449,13 +579,19 @@ public sealed partial class MainViewModel : ObservableObject
 	private void LoadArticles(bool keepSelection)
 	{
 		var selected = keepSelection ? SelectedArticle : null;
-		var articles = ArticlesFor(SelectedSidebarItem).ToList();
-		// Keep the article being read in view even when it no longer matches, as when All Unread refreshes.
-		if (selected is not null && !articles.Any(article => article.ArticleId == selected.ArticleId) && Store.GetArticle(selected.ArticleId) is { } current)
+		IEnumerable<StoredArticle> articles = ArticlesFor(SelectedSidebarItem);
+		if (SelectedSidebarItem is { } item && HidesReadArticles(item))
 		{
-			articles.Add(current);
-			articles = [.. articles.OrderByDescending(article => article.DatePublished ?? article.DateArrived).ThenBy(article => article.ArticleId, StringComparer.Ordinal)];
+			articles = articles.Where(article => !article.Read);
 		}
+		var list = articles.ToList();
+		// Keep the article being read in view even when it no longer matches, as when All Unread refreshes.
+		if (selected is not null && !list.Any(article => article.ArticleId == selected.ArticleId) && Store.GetArticle(selected.ArticleId) is { } current)
+		{
+			list.Add(current);
+		}
+		var newestFirst = list.OrderByDescending(article => article.LogicalDatePublished).ThenBy(article => article.ArticleId, StringComparer.Ordinal);
+		articles = Settings.SortOldestFirst ? newestFirst.Reverse() : newestFirst;
 		var feedNames = Store.GetFeeds().ToDictionary(feed => feed.FeedId, NameSorting.DisplayName);
 		Articles = [.. articles.Select(article => new ArticleItem(article, feedNames.GetValueOrDefault(article.FeedId, ""), _icons.GetValueOrDefault(article.FeedId)))];
 		SelectedArticle = selected is null ? null : Articles.FirstOrDefault(article => article.ArticleId == selected.ArticleId);
@@ -496,7 +632,13 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	private IEnumerable<SidebarItem> AllSidebarItems() => SidebarItems.SelectMany(item => item.SelfAndDescendants());
+	/// <summary>
+	/// Raised when rows were rebuilt or expanded or collapsed. The tree keeps expansion in its own nodes, which a
+	/// rebuild resets, so the window re-applies <see cref="SidebarItem.IsExpanded"/> to the rows.
+	/// </summary>
+	public event EventHandler? SidebarExpansionChanged;
+
+	public IEnumerable<SidebarItem> AllSidebarItems() => SidebarItems.SelectMany(item => item.SelfAndDescendants());
 
 	/// <summary>Rows in the order shown, leaving out the children of collapsed rows.</summary>
 	private IEnumerable<SidebarItem> VisibleSidebarItems()

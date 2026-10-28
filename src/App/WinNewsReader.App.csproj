@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- NetNewsWire's first-run feeds, from Shared/Importers/DefaultFeeds.opml (MIT). -->
+    <Content Include="Assets\DefaultFeeds.opml" CopyToOutputDirectory="PreserveNewest" />
     <None Remove="Assets\AppIcon.png" />
   </ItemGroup>
 

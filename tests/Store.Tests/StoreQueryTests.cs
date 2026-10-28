@@ -70,6 +70,22 @@ public sealed class StoreQueryTests : IDisposable
 	}
 
 	[Fact]
+	public void ArticlesSortByLogicalPublishDate()
+	{
+		var now = DateTimeOffset.UtcNow;
+		_store.UpsertArticles(FeedA,
+		[
+			Item("published-old", now.AddDays(-3)),
+			// Only an Atom <updated> date: sorts by it, not by when it arrived.
+			new() { FeedUrl = "", UniqueId = "modified-only", DateModified = now.AddDays(-2) },
+			Item("published-new", now.AddDays(-1)),
+		]);
+
+		Assert.Equal(["published-new", "modified-only", "published-old"], _store.GetArticles(FeedA).Select(a => a.UniqueId));
+		Assert.Equal(now.AddDays(-2).ToUnixTimeSeconds(), _store.GetArticles(FeedA)[1].LogicalDatePublished.ToUnixTimeSeconds());
+	}
+
+	[Fact]
 	public void UnreadCountsByFeed()
 	{
 		_store.UpsertArticles(FeedA, [Item("a1"), Item("a2")]);

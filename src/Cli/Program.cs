@@ -111,7 +111,7 @@ try
 			var feedNames = store.GetFeeds().ToDictionary(f => f.FeedId, f => f.Name ?? f.Url);
 			foreach (var article in store.GetUnreadArticles(rest.FirstOrDefault()))
 			{
-				var date = (article.DatePublished ?? article.DateArrived).ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+				var date = article.LogicalDatePublished.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 				Console.WriteLine($"{article.ArticleId[..8]}  {date}  {feedNames.GetValueOrDefault(article.FeedId)}  {article.Title?.DecodingHtmlEntities() ?? "(untitled)"}");
 			}
 			return 0;

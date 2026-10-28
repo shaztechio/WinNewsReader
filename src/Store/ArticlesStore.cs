@@ -24,7 +24,14 @@ public sealed record StoredArticle(
 	DateTimeOffset? DateModified,
 	DateTimeOffset DateArrived,
 	bool Read,
-	bool Starred);
+	bool Starred)
+{
+	/// <summary>
+	/// NetNewsWire's <c>logicalDatePublished</c>: the publish date, else the modified date (Atom feeds with only
+	/// <c>updated</c>), else when the article arrived. Timelines sort and show this date.
+	/// </summary>
+	public DateTimeOffset LogicalDatePublished => DatePublished ?? DateModified ?? DateArrived;
+}
 
 /// <summary>
 /// SQLite store for one account's feeds, folders, articles and statuses. The articles and statuses tables follow
@@ -451,7 +458,7 @@ public sealed class ArticlesStore : IDisposable
 				a.datePublished, a.dateModified, s.dateArrived, s.read, s.starred
 			FROM articles a JOIN statuses s ON s.articleID = a.articleID
 			{where}
-			ORDER BY COALESCE(a.datePublished, s.dateArrived) DESC, a.articleID
+			ORDER BY COALESCE(a.datePublished, a.dateModified, s.dateArrived) DESC, a.articleID
 			""",
 			parameters);
 		using var reader = command.ExecuteReader();

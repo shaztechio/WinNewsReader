@@ -59,7 +59,7 @@ public sealed partial class ArticleItem : ObservableObject
 	{
 		get
 		{
-			var date = (Article.DatePublished ?? Article.DateArrived).ToLocalTime();
+			var date = Article.LogicalDatePublished.ToLocalTime();
 			return date.Date == DateTime.Today ? date.ToString("t") : date.ToString("d");
 		}
 	}

@@ -34,7 +34,7 @@ public static class ArticleHtml
 		var link = article.Url ?? article.ExternalUrl;
 		var title = WebUtility.HtmlEncode((article.Title ?? "").DecodingHtmlEntities());
 		var heading = link is null ? title : $"<a href=\"{WebUtility.HtmlEncode(link)}\">{title}</a>";
-		var localDate = (article.DatePublished ?? article.DateArrived).ToLocalTime();
+		var localDate = article.LogicalDatePublished.ToLocalTime();
 		var date = $"{localDate:D}, {localDate:t}";
 		var feedName = WebUtility.HtmlEncode(feed is null ? "" : Core.NameSorting.DisplayName(feed));
 		var baseUrl = link ?? feed?.HomePageUrl ?? feed?.Url;
