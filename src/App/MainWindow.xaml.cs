@@ -81,6 +81,7 @@ public sealed partial class MainWindow : Window
 		AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 		SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop();
 		Sidebar.ContextFlyout = SidebarEmptySpaceMenu();
+		ViewModel.Undo.Changed += (_, _) => UpdateUndoMenu();
 		SidebarSplitter.Column = SidebarColumn;
 		TimelineSplitter.Column = TimelineColumn;
 		Timeline.ItemsSource = ViewModel.Articles;
@@ -680,6 +681,25 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnToggleRead(object sender, RoutedEventArgs e) => ViewModel.ToggleRead();
+
+	// Undo and Redo (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z) for marking read and starred, and deleting feeds and folders.
+
+	private Task UndoAsync() => RunReportingErrorsAsync("Couldn’t Undo", ViewModel.Undo.UndoAsync);
+
+	private Task RedoAsync() => RunReportingErrorsAsync("Couldn’t Redo", ViewModel.Undo.RedoAsync);
+
+	private void OnUndo(object sender, RoutedEventArgs e) => _ = UndoAsync();
+
+	private void OnRedo(object sender, RoutedEventArgs e) => _ = RedoAsync();
+
+	private void UpdateUndoMenu()
+	{
+		var undo = ViewModel.Undo;
+		UndoItem.Text = undo.UndoLabel is { } undoLabel ? $"Undo {undoLabel}" : "Undo";
+		UndoItem.IsEnabled = undo.CanUndo;
+		RedoItem.Text = undo.RedoLabel is { } redoLabel ? $"Redo {redoLabel}" : "Redo";
+		RedoItem.IsEnabled = undo.CanRedo;
+	}
 
 	// Find in Article: Ctrl+F opens the bar, F3 and Shift+F3 move between matches, Esc closes it.
 
@@ -1595,6 +1615,9 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.C, CtrlAlt, null, () => CopyToClipboard(ViewModel.SelectedArticle is { } article && article.Article.ExternalUrl is { } external && external != article.LinkUrl ? external : null));
 		Add(VirtualKey.W, Ctrl, null, Close);
 		Add(VirtualKey.F11, None, null, ToggleFullScreen);
+		Add(VirtualKey.Z, Ctrl, null, () => _ = UndoAsync());
+		Add(VirtualKey.Y, Ctrl, null, () => _ = RedoAsync());
+		Add(VirtualKey.Z, CtrlShift, null, () => _ = RedoAsync());
 		Add(VirtualKey.F, Ctrl, null, ShowFindBar);
 		Add(VirtualKey.F3, None, null, FindNext);
 		Add(VirtualKey.F3, Shift, null, FindPrevious);

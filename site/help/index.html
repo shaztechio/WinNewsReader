@@ -29,6 +29,7 @@
 				<li><a href="#subscribing">Subscribing to feeds</a></li>
 				<li><a href="#organizing">Folders and organizing</a></li>
 				<li><a href="#reading">Reading</a></li>
+				<li><a href="#undo">Undo</a></li>
 				<li><a href="#find">Find in an article</a></li>
 				<li><a href="#reader-view">Reader View</a></li>
 				<li><a href="#themes">Article themes and text size</a></li>
@@ -89,6 +90,11 @@
 
 			<p>Right-click an article for more: <strong>Mark Above as Read</strong> and <strong>Mark Below as Read</strong> catch up on everything newer or older in the list, and you can jump to the article's feed in the sidebar or mark everything in that feed as read.</p>
 			<p>To see only what you haven't read, turn on <strong>Hide Read Articles</strong> over the timeline (per feed or folder), and <strong>+▾ → Hide Read Feeds</strong>. <strong>+▾ → Clean Up</strong> (<kbd>Ctrl</kbd>+<kbd>'</kbd>) clears articles you've just read out of a timeline that's hiding read ones. The sort order is in the +▾ menu too.</p>
+		</section>
+
+		<section id="undo">
+			<h2>Undo</h2>
+			<p><kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes the last time you marked articles read or unread, starred or unstarred, marked a whole feed or list as read, or deleted a feed or folder. The <strong>+▾</strong> menu names what it will undo, such as <strong>Undo Mark All as Read</strong>, and <kbd>Ctrl</kbd>+<kbd>Y</kbd> redoes it. Undoing a delete subscribes to the feed again, in its folder and with the name you gave it; its articles come back at the next refresh, but the ones that were deleted with it, and whether you'd read or starred them, don't.</p>
 		</section>
 
 		<section id="find">
@@ -213,6 +219,7 @@
 				<tr><td><kbd>Ctrl</kbd>+<kbd>'</kbd></td><td>Clean up</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd></td><td>Show or hide the sidebar</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd></td><td>Search</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Undo / redo marking read or starred and deleting a feed or folder (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> also redoes)</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find in the article; <kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd> for the next / previous match, <kbd>Esc</kbd> to close</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Mark above / below as read</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd></td><td>Copy the article URL / external URL</td></tr>

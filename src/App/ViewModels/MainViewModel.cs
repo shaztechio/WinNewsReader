@@ -664,6 +664,7 @@ public sealed partial class MainViewModel : ObservableObject
 	public void RemoveAccount(IAccount account)
 	{
 		_accounts.RemoveAccount(account);
+		Undo.Clear();
 		Settings.DisabledAccountIds.Remove(account.AccountId);
 		SaveSettings();
 		AccountsChanged?.Invoke(this, EventArgs.Empty);
@@ -858,15 +859,74 @@ public sealed partial class MainViewModel : ObservableObject
 	/// </summary>
 	public async Task DeleteAsync(SidebarItem item)
 	{
+		var account = item.Account!;
 		if (item.Feed is { } feed)
 		{
-			await item.Account!.RemoveFeedAsync(feed.FeedId, item.ParentFolder?.FolderId);
+			var folderName = item.ParentFolder?.Name;
+			await account.RemoveFeedAsync(feed.FeedId, item.ParentFolder?.FolderId);
+			var current = feed;
+			Undo.Push(
+				"Delete Feed",
+				async () => current = await RestoreFeedAsync(account, current, folderName),
+				async () => await account.RemoveFeedAsync(current.FeedId, FolderIdNamed(account, folderName)));
 		}
 		else if (item.Folder is { } folder)
 		{
-			await item.Account!.RemoveFolderAsync(folder.FolderId);
+			var feeds = item.Children.Where(child => child.Feed is not null).Select(child => child.Feed!).ToList();
+			await account.RemoveFolderAsync(folder.FolderId);
+			Undo.Push(
+				"Delete Folder",
+				async () =>
+				{
+					if (account.Kind == AccountKind.Local)
+					{
+						account.Store.EnsureFolder(folder.Name);
+					}
+					for (var i = 0; i < feeds.Count; i++)
+					{
+						feeds[i] = await RestoreFeedAsync(account, feeds[i], folder.Name);
+					}
+				},
+				async () =>
+				{
+					if (FolderIdNamed(account, folder.Name) is { } id)
+					{
+						await account.RemoveFolderAsync(id);
+					}
+				});
 		}
 		LoadSidebar();
+	}
+
+	private static long? FolderIdNamed(IAccount account, string? name) =>
+		name is null ? null : account.Store.GetFolders().FirstOrDefault(folder => folder.Name == name)?.FolderId;
+
+	/// <summary>
+	/// Undoes a delete as NetNewsWire does: subscribes to the feed again, in its folder, with the name the reader gave it.
+	/// Its articles come back with the next refresh; the ones that were deleted with it, and their read and starred marks, don't.
+	/// </summary>
+	private async Task<StoredFeed> RestoreFeedAsync(IAccount account, StoredFeed feed, string? folderName)
+	{
+		StoredFeed restored;
+		if (account.Kind == AccountKind.Local)
+		{
+			restored = account.Store.AddFeed(feed.Url, feed.Name, feed.HomePageUrl, folderName is null ? null : account.Store.EnsureFolder(folderName).FolderId);
+			if (feed.EditedName is { } editedName)
+			{
+				account.Store.SetFeedEditedName(restored.FeedId, editedName);
+			}
+		}
+		else
+		{
+			restored = await Task.Run(() => account.SubscribeAsync(feed.Url, folderName));
+			if (feed.EditedName is { } editedName)
+			{
+				await account.RenameFeedAsync(restored.FeedId, editedName);
+			}
+		}
+		LoadSidebar();
+		_ = RefreshAsync();
+		return restored;
 	}
 
 	/// <summary>Imports into On This PC, then refreshes so the new feeds fill in, as NetNewsWire does.</summary>
@@ -892,16 +952,7 @@ public sealed partial class MainViewModel : ObservableObject
 		var unread = item == SelectedSidebarItem
 			? Articles.Where(article => !article.IsRead).Select(article => (article.Account, article.ArticleId))
 			: ArticlesFor(item).Where(pair => !pair.Article.Read).Select(pair => (pair.Account, pair.Article.ArticleId));
-		foreach (var group in unread.ToList().GroupBy(pair => pair.Account, pair => pair.ArticleId))
-		{
-			var ids = group.ToHashSet();
-			group.Key.SetArticleStatus(ids, StatusKey.Read, true);
-			foreach (var article in Articles.Where(article => article.Account == group.Key && ids.Contains(article.ArticleId)))
-			{
-				article.IsRead = true;
-			}
-		}
-		ArticleStatusChanged();
+		ChangeStatus([.. unread], StatusKey.Read, true, "Mark All as Read");
 	}
 
 	/// <summary>Toggles read for <paramref name="articles"/>, or the selection, as NetNewsWire's toggle does.</summary>
@@ -923,21 +974,47 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	private void SetStatus(IReadOnlyList<ArticleItem> articles, StatusKey key, bool flag)
+	/// <summary>The commands the reader undoes with Ctrl+Z: marking articles read or unread, starred or not, and deleting feeds and folders.</summary>
+	public UndoStack Undo { get; } = new();
+
+	private void SetStatus(IReadOnlyList<ArticleItem> articles, StatusKey key, bool flag) =>
+		ChangeStatus(
+			[.. articles.Where(article => (key == StatusKey.Read ? article.IsRead : article.IsStarred) != flag).Select(article => (article.Account, article.ArticleId))],
+			key, flag, StatusLabel(key, flag));
+
+	private static string StatusLabel(StatusKey key, bool flag) => key switch
 	{
-		foreach (var group in articles.GroupBy(article => article.Account))
+		StatusKey.Read => flag ? "Mark Read" : "Mark Unread",
+		_ => flag ? "Mark Starred" : "Mark Unstarred",
+	};
+
+	/// <summary>Sets the status of <paramref name="changing"/>, the articles that don't have it yet, and records the change to undo.</summary>
+	private void ChangeStatus(List<(IAccount Account, string ArticleId)> changing, StatusKey key, bool flag, string label)
+	{
+		if (changing.Count == 0)
 		{
-			group.Key.SetArticleStatus([.. group.Select(article => article.ArticleId)], key, flag);
+			return;
 		}
-		foreach (var article in articles)
+		ApplyStatus(changing, key, flag);
+		Undo.Push(label, () => ApplyStatus(changing, key, !flag), () => ApplyStatus(changing, key, flag));
+	}
+
+	private void ApplyStatus(List<(IAccount Account, string ArticleId)> articles, StatusKey key, bool flag)
+	{
+		foreach (var group in articles.GroupBy(pair => pair.Account, pair => pair.ArticleId))
 		{
-			if (key == StatusKey.Read)
+			var ids = group.ToHashSet();
+			group.Key.SetArticleStatus(ids, key, flag);
+			foreach (var shown in Articles.Where(shown => shown.Account == group.Key && ids.Contains(shown.ArticleId)))
 			{
-				article.IsRead = flag;
-			}
-			else
-			{
-				article.IsStarred = flag;
+				if (key == StatusKey.Read)
+				{
+					shown.IsRead = flag;
+				}
+				else
+				{
+					shown.IsStarred = flag;
+				}
 			}
 		}
 		ArticleStatusChanged();
@@ -1026,12 +1103,7 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			return;
 		}
-		article.Account.SetArticleStatus(ids, StatusKey.Read, true);
-		foreach (var shown in Articles.Where(shown => shown.Account == article.Account && shown.Article.FeedId == article.Article.FeedId))
-		{
-			shown.IsRead = true;
-		}
-		ArticleStatusChanged();
+		ChangeStatus([.. ids.Select(id => (article.Account, id))], StatusKey.Read, true, "Mark All as Read");
 	}
 
 	public void MarkOlderRead()
@@ -1041,16 +1113,9 @@ public sealed partial class MainViewModel : ObservableObject
 			return;
 		}
 		var cutoff = selected.Article.LogicalDatePublished;
-		var older = Articles.Where(article => !article.IsRead && article.Article.LogicalDatePublished < cutoff).ToList();
-		foreach (var group in older.GroupBy(article => article.Account))
-		{
-			group.Key.SetArticleStatus([.. group.Select(article => article.ArticleId)], StatusKey.Read, true);
-		}
-		foreach (var article in older)
-		{
-			article.IsRead = true;
-		}
-		ArticleStatusChanged();
+		ChangeStatus(
+			[.. Articles.Where(article => !article.IsRead && article.Article.LogicalDatePublished < cutoff).Select(article => (article.Account, article.ArticleId))],
+			StatusKey.Read, true, "Mark Read");
 	}
 
 	/// <summary>Moves the sidebar selection to the next or previous visible row, skipping group headers (the <c>z</c> and <c>a</c> keys).</summary>

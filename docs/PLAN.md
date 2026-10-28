@@ -128,7 +128,7 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 
 ## Next steps
 
-The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 136 done, 18 partial, 42 open, 14 unchecked (built, but the shortcuts, double-click and right-click menu have not been tried with a real keyboard and mouse), 6 waiting for the installer, 2 waiting for service keys, and 19 dropped.
+The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 137 done, 17 partial, 40 open, 16 unchecked (built, but the shortcuts, double-click, right-click menu and deleting have not been tried with real input), 6 waiting for the installer, 2 waiting for service keys, and 19 dropped.
 
 - [ ] Start the code-signing route (Trusted Signing eligibility or OV certificate)
 - [ ] Apply for Feedly API access
@@ -158,6 +158,7 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
   - [x] App badge count (NT-04, NetNewsWire's Dock badge): the unread total on the taskbar icon, drawn as an overlay since Windows' badge API needs a packaged app; follows the Unread Counts preference (number, 99+, dot or none)
   - [x] Empty timeline: with no feed (or a group heading) selected, the middle column says "No Feed Selected", as the article pane says "No Article Selected"
   - [x] Find in Article (Ctrl+F, F3, Shift+F3, Esc) with a match count, Full Screen (F11), Mark Above/Below as Read, Copy Article/External URL, Ctrl+W, Ctrl+0 and Ctrl+Right to open in the browser. Double-clicking a feed opens its home page, and right-clicking empty sidebar space offers New Feed and New Folder. The find bar and Full Screen were driven in the running app; the keystrokes, double-click and right-click were not (no real input available), so those matrix rows read Unchecked.
+  - [x] Undo and redo (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z, and Undo/Redo in the +▾ menu, which names the command) for mark read/unread, star/unstar, Mark All as Read and Mark Older as Read, and for deleting a feed or folder, which subscribes again in the same folder with the same edited name. Mark read and star were undone and redone in the running app; deleting was not driven there (it needs a right-click), so its store steps are covered by tests instead.
   - [x] Screenshots on the help page, taken from a clean demo data folder with NetNewsWire's starter feeds, so no personal feeds show
   - [ ] Dragging URLs and folders, inline rename, undo, multiple windows
 - [x] Phase 3: article view

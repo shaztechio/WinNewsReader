@@ -103,6 +103,9 @@
                                 <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
                                                       Click="OnToggleArticleJavaScript" />
                                 <MenuFlyoutSeparator />
+                                <MenuFlyoutItem x:Name="UndoItem" Text="Undo" IsEnabled="False" Click="OnUndo" KeyboardAcceleratorTextOverride="Ctrl+Z" />
+                                <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="False" Click="OnRedo" KeyboardAcceleratorTextOverride="Ctrl+Y" />
+                                <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="Find in Article…" Click="OnFindInArticle" KeyboardAcceleratorTextOverride="Ctrl+F" />
                                 <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
                                 <MenuFlyoutSeparator />

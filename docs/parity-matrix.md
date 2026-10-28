@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 136 |
-| Partial | 18 |
-| Open | 42 |
-| Unchecked | 14 |
+| Done | 137 |
+| Partial | 17 |
+| Open | 40 |
+| Unchecked | 16 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -42,8 +42,8 @@ By section:
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
 | Main window and layout | 4 | 2 | 5 |  |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
-| Sidebar | 13 | 3 | 2 | 2 |  |  |  |
-| Smart feeds and timeline | 8 | 1 | 6 |  |  |  |  |
+| Sidebar | 13 | 2 | 2 | 3 |  |  |  |
+| Smart feeds and timeline | 9 | 1 | 5 |  |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 11 | 1 | 1 | 1 |  |  |  |
 | Feed management and import/export | 1 | 3 | 3 |  |  |  | 1 |
@@ -55,7 +55,7 @@ By section:
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
-| Menu shortcuts | 22 | 1 | 8 | 11 |  |  |  |
+| Menu shortcuts | 22 | 1 | 7 | 12 |  |  |  |
 
 ## Findings that change the plan
 
@@ -148,7 +148,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SB-04 | Drag and drop: move feeds/folders, between accounts | `SidebarOutlineDataSource.swift` | Port | Partial: feeds, within and between accounts; folders can't be dragged | UI: drag moves feed; sync account reflects it |
 | SB-05 | Drag URL or feed onto sidebar to subscribe | `PasteboardFeed.swift` | Port | Open: dropping a URL does nothing | UI: dropping a URL opens Add Feed |
 | SB-06 | Inline rename | `Sidebar/Renaming` | Port | Partial: Rename… dialog, not in place | UI: F2 / Rename edits in place |
-| SB-07 | Delete with confirmation, undo | `SidebarDeleteItemsAlert.swift` | Port | Partial: asks first; no undo | UI: delete asks; Ctrl+Z restores |
+| SB-07 | Delete with confirmation, undo | `SidebarDeleteItemsAlert.swift` | Port | Unchecked: asks first; undo built (store steps tested), delete not driven in the app | UI: delete asks; Ctrl+Z restores |
 | SB-08 | Hide read feeds | `toggleReadFeedsFilter:` | Port | Done | UI: feeds with no unread hide |
 | SB-09 | Double-click feed opens home page; hidden pref marks all read instead | `GruberFeedDoubleClickMarkAsRead` | Port | Unchecked: double-click needs a mouse; not tested | UI: both behaviors |
 | SB-10 | Context menu, nothing selected: New Feed, New Folder | `menuForNoSelection()` | Port | Unchecked: right-click needs a mouse; not tested | UI: items present |
@@ -175,7 +175,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | TL-07 | Separators (hidden pref) | `CorreiaSeparators` | Port | Open: no separators | UI: setting toggles separators |
 | TL-08 | Context menu: Mark Read/Unread, Star/Unstar, Mark Above/Below as Read, Select Feed in Sidebar, Mark All as Read in feed, Open in Browser, Copy Article URL, Copy External URL, Share | `menu(for:)` | Port | Done | UI: items present in this order |
 | TL-09 | Drag article out as URL | `ArticlePasteboardWriter.swift` | Port | Open: articles can't be dragged out | UI: drop on browser opens URL |
-| TL-10 | Undo for mark read / star | `MarkStatusCommand.swift` | Port | Open: no undo | UI: Ctrl+Z reverts |
+| TL-10 | Undo for mark read / star | `MarkStatusCommand.swift` | Port | Done | UI: Ctrl+Z reverts |
 
 ## Reading state
 
@@ -367,7 +367,7 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | File | Import Subscriptions | none | none | Done |
 | File | Export Subscriptions | Opt+Cmd+E | Ctrl+Alt+E | Done |
 | File | Close Window | Cmd+W | Ctrl+W | Unchecked: Ctrl+W built, not pressed |
-| Edit | Undo / Redo | Cmd+Z / Shift+Cmd+Z | Ctrl+Z / Ctrl+Y and Ctrl+Shift+Z | Open: no undo |
+| Edit | Undo / Redo | Cmd+Z / Shift+Cmd+Z | Ctrl+Z / Ctrl+Y and Ctrl+Shift+Z | Unchecked: Ctrl+Z / Ctrl+Y built, not pressed; the +▾ menu items work |
 | Edit | Cut / Copy / Paste / Select All | Cmd+X/C/V/A | Ctrl+X/C/V/A | Done |
 | Edit | Copy Article URL | Shift+Cmd+C | Ctrl+Shift+C | Unchecked: Ctrl+Shift+C built, not pressed |
 | Edit | Copy External URL | Ctrl+Cmd+C | Ctrl+Alt+C | Unchecked: Ctrl+Alt+C built, not pressed |
