@@ -361,6 +361,8 @@ public sealed partial class MainWindow : Window
 		}
 		_shownArticleId = item?.ArticleId;
 		var html = ViewModel.ArticlePageHtml(item);
+		// Takes effect on the navigation that follows. Scripts the app adds to the page aren't affected.
+		ArticleView.CoreWebView2.Settings.IsScriptEnabled = ViewModel.AllowsContentJavaScript(item);
 		_pendingArticleNavigations++;
 		if (html.Length < MaxNavigateToStringLength)
 		{
@@ -419,6 +421,8 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnCleanUp(object sender, RoutedEventArgs e) => ViewModel.CleanUp();
+
+	private void OnToggleArticleJavaScript(object sender, RoutedEventArgs e) => ViewModel.SetArticleJavaScriptEnabled(!ViewModel.IsArticleJavaScriptEnabled);
 
 	/// <summary>The themes, with the current one checked, then the themes folder, where the reader adds .nnwtheme folders.</summary>
 	private void OnThemeMenuOpening(object? sender, object e)

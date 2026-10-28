@@ -88,6 +88,9 @@
                         <MenuFlyout Opening="OnTextSizeMenuOpening" />
                     </AppBarButton.Flyout>
                 </AppBarButton>
+                <!-- NetNewsWire's General preference. -->
+                <AppBarToggleButton Label="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
+                                    Click="OnToggleArticleJavaScript" />
             </CommandBar.SecondaryCommands>
         </CommandBar>
 

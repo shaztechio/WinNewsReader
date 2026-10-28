@@ -73,6 +73,36 @@ public sealed partial class MainViewModel : ObservableObject
 		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
 	}
 
+	public bool IsArticleJavaScriptEnabled => Settings.ArticleContentJavaScriptEnabled;
+
+	/// <summary>NetNewsWire's "Enable JavaScript": applies from the next article shown, so the current one is shown again.</summary>
+	public void SetArticleJavaScriptEnabled(bool enabled)
+	{
+		Settings.ArticleContentJavaScriptEnabled = enabled;
+		SaveSettings();
+		OnPropertyChanged(nameof(IsArticleJavaScriptEnabled));
+		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>
+	/// NetNewsWire's <c>WebViewConfiguration.allowsContentJavaScript</c>: whether the article's own scripts may run. Off
+	/// when the setting is off, and always for sites whose articles break with it (by link, feed URL or home page).
+	/// The app's page scripts run either way.
+	/// </summary>
+	public bool AllowsContentJavaScript(ArticleItem? item)
+	{
+		if (!Settings.ArticleContentJavaScriptEnabled)
+		{
+			return false;
+		}
+		if (item is null)
+		{
+			return true;
+		}
+		var feed = FeedFor(item);
+		return !ArticleRenderingSpecialCases.ShouldDisableJavaScript(item.LinkUrl, feed?.Url, feed?.HomePageUrl);
+	}
+
 	public void SetTextSize(ArticleTextSize size)
 	{
 		Settings.ArticleTextSize = size;

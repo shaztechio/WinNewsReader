@@ -25,6 +25,9 @@ public sealed class AppSettings
 	/// <summary>The article theme's name; null means NetNewsWire's Default.</summary>
 	public string? ArticleThemeName { get; set; }
 
+	/// <summary>NetNewsWire's "Enable JavaScript" preference for article content. On by default.</summary>
+	public bool ArticleContentJavaScriptEnabled { get; set; } = true;
+
 	/// <summary>Feeds with NetNewsWire's "Always Use Reader View" on, as <c>accountID|feedID</c>.</summary>
 	public HashSet<string> ReaderViewFeedKeys { get; set; } = [];
 
