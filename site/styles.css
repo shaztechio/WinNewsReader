@@ -352,6 +352,113 @@ footer {
 	color: var(--muted);
 }
 
+/* Header links. */
+
+.links {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.links a {
+	color: var(--muted);
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 0.95rem;
+}
+
+.links a:hover,
+.links a[aria-current="page"] {
+	color: var(--text);
+}
+
+/* Help pages: one readable column. */
+
+.doc {
+	width: min(760px, 100% - 32px);
+	padding-bottom: 56px;
+}
+
+.doc h1 {
+	font-size: clamp(2rem, 5vw, 2.6rem);
+	margin: 24px 0 8px;
+	text-align: left;
+}
+
+.doc .lede {
+	margin: 0 0 24px;
+	text-align: left;
+	max-width: none;
+}
+
+.doc h2 {
+	margin: 48px 0 12px;
+	text-align: left;
+	scroll-margin-top: 16px;
+}
+
+.doc h3 {
+	margin: 24px 0 8px;
+	font-size: 1.05rem;
+}
+
+.doc section {
+	scroll-margin-top: 16px;
+}
+
+.doc code {
+	font: 0.85em "Cascadia Mono", Consolas, monospace;
+	background: var(--layer);
+	padding: 0.1em 0.35em;
+	border-radius: 4px;
+}
+
+.toc {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 16px 24px;
+}
+
+.toc ol {
+	margin: 0;
+	padding-left: 1.2em;
+	columns: 2;
+	column-gap: 32px;
+}
+
+.toc a {
+	text-decoration: none;
+}
+
+.doc table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+}
+
+.doc td {
+	padding: 8px 12px 8px 0;
+	border-bottom: 1px solid var(--line);
+	vertical-align: top;
+}
+
+.doc td:first-child {
+	white-space: nowrap;
+	width: 1%;
+	padding-right: 24px;
+}
+
+@media (max-width: 760px) {
+	.toc ol {
+		columns: 1;
+	}
+
+	.doc td:first-child {
+		white-space: normal;
+	}
+}
+
 /* Phones: the illustration keeps the article list and drops the other panes. */
 
 @media (max-width: 760px) {

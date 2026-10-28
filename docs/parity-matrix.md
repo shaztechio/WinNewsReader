@@ -240,7 +240,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | OT-02 | Open in browser, foreground or background | Port | UI |
 | OT-03 | `feed:`, `feeds:`, app-named scheme URLs open Add Feed | Port | HKCU registration. UI: launching URL opens sheet |
 | OT-04 | Register as default feed reader | Port | Installer writes handler; removed on uninstall |
-| OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Point at this project's own links |
+| OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
 | OT-06 | Open Application Support folder | Port | Opens `%LOCALAPPDATA%\<AppName>` |
 | OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Behind PR-14 |
 | OT-08 | Accessibility | Port | Narrator / UI Automation names on every control |

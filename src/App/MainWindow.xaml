@@ -34,6 +34,15 @@
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0" Grid.RowSpan="2">
+            <Grid.Resources>
+                <!-- Toolbar buttons stay borderless when disabled too; only the icon dims. -->
+                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent" />
+                <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="Transparent" />
+                <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled" Color="Transparent" />
+                <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="Transparent" />
+                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedDisabled" Color="Transparent" />
+            </Grid.Resources>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -90,6 +99,16 @@
                             <MenuFlyoutSubItem x:Name="TextSizeMenu" Text="Text Size" />
                             <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
                                                   Click="OnToggleArticleJavaScript" />
+                            <MenuFlyoutSeparator />
+                            <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
+                            <MenuFlyoutSubItem Text="Help">
+                                <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />
+                                <MenuFlyoutItem Text="Keyboard Shortcuts" Click="OnKeyboardShortcutsHelp" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Website" Click="OnWebsite" />
+                                <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
+                                <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
+                            </MenuFlyoutSubItem>
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
@@ -109,11 +128,12 @@
                 </ToggleButton>
             </StackPanel>
 
-            <!-- Over the article: Mark Read, Star, Next Unread, Reader View, Share, Open in Browser, then Search. -->
+            <!-- Over the article: Mark Read, Star, Next Unread, Reader View, Share, Open in Browser, then Search and Help. -->
             <Grid Grid.Row="0" Grid.Column="4" Padding="8,6,12,6" ColumnSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                     <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleRead" IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}"
@@ -147,6 +167,10 @@
                          PlaceholderText="Search (Ctrl+Alt+F)" AutomationProperties.Name="Search Articles"
                          Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
+                <Button Grid.Column="2" Style="{StaticResource ToolbarButtonStyle}" Click="OnHelp" VerticalAlignment="Center"
+                        ToolTipService.ToolTip="WinNewsReader Help (F1)" AutomationProperties.Name="Help">
+                    <FontIcon Glyph="&#xE897;" FontSize="16" />
+                </Button>
             </Grid>
 
             <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"

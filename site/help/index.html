@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WinNewsReader Help</title>
+	<meta name="description" content="How to use WinNewsReader: subscribing to feeds, reading, keyboard shortcuts, themes, Reader View, search and FreshRSS sync.">
+	<meta name="color-scheme" content="light dark">
+	<link rel="icon" href="../favicon.ico" sizes="any">
+	<link rel="icon" href="../icon.png" type="image/png">
+	<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+	<header class="top">
+		<a class="brand" href="/">
+			<img src="../icon.png" alt="" width="32" height="32">
+			<span>WinNewsReader</span>
+		</a>
+		<nav class="links"><a href="/">Home</a> <a href="/help/" aria-current="page">Help</a></nav>
+	</header>
+
+	<main class="doc">
+		<h1>WinNewsReader Help</h1>
+		<p class="lede">WinNewsReader is a feed reader for Windows, built in the spirit of NetNewsWire. If you know NetNewsWire on the Mac, almost everything works the same way, with Ctrl in place of Cmd.</p>
+
+		<nav class="toc" aria-label="Contents">
+			<ol>
+				<li><a href="#window">The window</a></li>
+				<li><a href="#subscribing">Subscribing to feeds</a></li>
+				<li><a href="#organizing">Folders and organizing</a></li>
+				<li><a href="#reading">Reading</a></li>
+				<li><a href="#reader-view">Reader View</a></li>
+				<li><a href="#themes">Article themes and text size</a></li>
+				<li><a href="#search">Search</a></li>
+				<li><a href="#inspector">Get Info</a></li>
+				<li><a href="#freshrss">Syncing with FreshRSS</a></li>
+				<li><a href="#keyboard">Keyboard shortcuts</a></li>
+				<li><a href="#data">Your data</a></li>
+			</ol>
+		</nav>
+
+		<section id="window">
+			<h2>The window</h2>
+			<p>The window has three panes: the <strong>sidebar</strong> of feeds and folders, the <strong>timeline</strong> of articles in whatever you've selected, and the <strong>article</strong> itself. Drag the lines between them to resize them; the app remembers their widths, the open folders and your selection.</p>
+			<p>The toolbar has a group of buttons over each pane:</p>
+			<ul>
+				<li><strong>Over the sidebar:</strong> Toggle Sidebar, Refresh, Hide Read Feeds, and the <strong>+▾</strong> menu, which adds feeds, folders and accounts, imports and exports subscriptions, and holds the view settings and Help.</li>
+				<li><strong>Over the timeline:</strong> Mark All as Read, and Hide Read Articles for the selected feed.</li>
+				<li><strong>Over the article:</strong> Mark Read, Star, Next Unread, Reader View, Share, Open in Browser, and the search box.</li>
+			</ul>
+			<p>The <strong>smart feeds</strong> at the top of the sidebar gather articles from every feed: <strong>Today</strong> (published in the last 24 hours), <strong>All Unread</strong> and <strong>Starred</strong>.</p>
+		</section>
+
+		<section id="subscribing">
+			<h2>Subscribing to feeds</h2>
+			<p>Choose <strong>+▾ → New Feed…</strong> (<kbd>Ctrl</kbd>+<kbd>N</kbd>) and type a feed's address or just a website's address: WinNewsReader finds the site's feed for you. If there's a web address on the clipboard, it's filled in already. Pick the account and folder it goes in, and it's added and fetched right away.</p>
+			<p>RSS, Atom and JSON Feed all work. Feeds refresh when the app starts and every hour after; press <kbd>Ctrl</kbd>+<kbd>R</kbd> or the Refresh button to refresh now.</p>
+			<p>Coming from another reader? Export your subscriptions there as OPML, then choose <strong>+▾ → Import Subscriptions…</strong>. <strong>Export Subscriptions…</strong> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd>) does the reverse, folders and all.</p>
+		</section>
+
+		<section id="organizing">
+			<h2>Folders and organizing</h2>
+			<p>Choose <strong>+▾ → New Folder…</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd>) to make a folder. Drag a feed onto a folder to move it there, or use <strong>Move to</strong> on its right-click menu. Hold <kbd>Ctrl</kbd> while dragging to copy a feed into a second folder instead.</p>
+			<p>Dragging a feed onto another account, such as from On This PC to FreshRSS, subscribes to it there and removes it here; hold <kbd>Ctrl</kbd> to keep it in both.</p>
+			<p>Right-click a feed or folder to rename or delete it, mark all its articles as read, or open its home page.</p>
+		</section>
+
+		<section id="reading">
+			<h2>Reading</h2>
+			<p>Select an article to read it; that marks it as read. Press <kbd>Space</kbd> to page down through it, and at the end, <kbd>Space</kbd> takes you to the next unread article, even in another feed. It's the quickest way through your reading.</p>
+			<p>The <strong>Mark Read</strong> and <strong>Star</strong> buttons show the article's state, and change it. Star an article to keep it in the Starred smart feed. <strong>Open in Browser</strong> (<kbd>B</kbd> or <kbd>Enter</kbd>) shows the article on its website, and <strong>Share</strong> sends its link through Windows' share sheet.</p>
+			<p>To see only what you haven't read, turn on <strong>Hide Read Articles</strong> over the timeline (per feed or folder), and <strong>Hide Read Feeds</strong> over the sidebar. <strong>+▾ → Clean Up</strong> (<kbd>Ctrl</kbd>+<kbd>'</kbd>) clears articles you've just read out of a timeline that's hiding read ones. The sort order is in the +▾ menu too.</p>
+		</section>
+
+		<section id="reader-view">
+			<h2>Reader View</h2>
+			<p>Some feeds send only a summary. <strong>Reader View</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) fetches the article's web page, finds the article in it, and shows that in your theme, without the rest of the page. Click it again to go back to the feed's version.</p>
+			<p>For a feed you always want this way, right-click it and choose <strong>Always Use Reader View</strong>, or turn it on in Get Info.</p>
+		</section>
+
+		<section id="themes">
+			<h2>Article themes and text size</h2>
+			<p>Articles are shown with NetNewsWire's themes. Pick one from <strong>+▾ → Article Theme</strong>, and the size of the text from <strong>+▾ → Text Size</strong>.</p>
+			<p>To add a theme, choose <strong>Install Theme…</strong> in the Article Theme menu and pick a zipped theme, or the <code>Info.plist</code> inside a <code>.nnwtheme</code> folder. <strong>Install Theme from URL…</strong> downloads a zipped theme from the web. You'll be asked before a theme is installed, and told if it runs scripts. <strong>Open Themes Folder</strong> shows where your themes are kept.</p>
+			<p>Themes are written for the Mac, so their Apple fonts are shown in their Windows counterparts, such as Segoe UI.</p>
+			<p><strong>+▾ → Enable JavaScript</strong> controls whether scripts in articles run. Turn it off if you'd rather articles didn't run any code; embedded videos and similar may then not work.</p>
+		</section>
+
+		<section id="search">
+			<h2>Search</h2>
+			<p>Type in the search box (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>) to search every article in every account, by title, text and author. Each word matches the start of words, so <em>feed rea</em> finds “feeds” and “readers”. Use <code>OR</code> between words to find either.</p>
+			<p>Press <kbd>Enter</kbd> to jump to the results. Press <kbd>Escape</kbd>, clear the box or choose something in the sidebar to stop searching.</p>
+		</section>
+
+		<section id="inspector">
+			<h2>Get Info</h2>
+			<p>Select a feed or folder and press <kbd>Ctrl</kbd>+<kbd>I</kbd>, or choose <strong>Get Info</strong> on its right-click menu. For a feed you can rename it, see and copy its home page and feed addresses, and turn on Always Use Reader View. A feed you rename keeps your name, even when the feed itself changes its title.</p>
+		</section>
+
+		<section id="freshrss">
+			<h2>Syncing with FreshRSS</h2>
+			<p>If you run or use a <a href="https://freshrss.org/">FreshRSS</a> server, WinNewsReader can sync with it, so your feeds, folders, and read and starred articles match your other devices.</p>
+			<ol>
+				<li>In FreshRSS, open your profile settings and set an <strong>API password</strong> (it's separate from your login password). Make sure the API is turned on in FreshRSS's authentication settings.</li>
+				<li>In WinNewsReader, choose <strong>+▾ → Add FreshRSS Account…</strong>.</li>
+				<li>Enter your server's address, your username and the API password.</li>
+			</ol>
+			<p>The account appears in the sidebar under its own heading. The password is kept in Windows Credential Manager, not in a file. FreshRSS subscribes only to RSS and Atom feeds, so a JSON Feed can't be moved there.</p>
+		</section>
+
+		<section id="keyboard">
+			<h2>Keyboard shortcuts</h2>
+			<p>The keyboard follows NetNewsWire's, with <kbd>Ctrl</kbd> for <kbd>Cmd</kbd>. Single-key shortcuts work from any pane, including while you're reading an article, but not while you're typing in a box.</p>
+			<h3>Reading</h3>
+			<table>
+				<tr><td><kbd>Space</kbd></td><td>Page down; at the end, go to the next unread article</td></tr>
+				<tr><td><kbd>Shift</kbd>+<kbd>Space</kbd></td><td>Page up</td></tr>
+				<tr><td><kbd>N</kbd> or <kbd>+</kbd></td><td>Next unread article</td></tr>
+				<tr><td><kbd>-</kbd></td><td>Previous unread article</td></tr>
+				<tr><td><kbd>R</kbd> or <kbd>U</kbd></td><td>Mark read or unread</td></tr>
+				<tr><td><kbd>S</kbd></td><td>Star or unstar</td></tr>
+				<tr><td><kbd>K</kbd></td><td>Mark all as read</td></tr>
+				<tr><td><kbd>M</kbd></td><td>Mark unread and go to the next unread</td></tr>
+				<tr><td><kbd>L</kbd></td><td>Mark all as read and go to the next unread</td></tr>
+				<tr><td><kbd>O</kbd></td><td>Mark older articles as read</td></tr>
+				<tr><td><kbd>B</kbd> or <kbd>Enter</kbd></td><td>Open in browser</td></tr>
+				<tr><td><kbd>A</kbd> / <kbd>Z</kbd></td><td>Previous / next feed</td></tr>
+			</table>
+			<h3>Moving around</h3>
+			<table>
+				<tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Move between the sidebar, the timeline and the article</td></tr>
+				<tr><td><kbd>,</kbd> / <kbd>.</kbd></td><td>Collapse / expand the selected folder (in the sidebar)</td></tr>
+				<tr><td><kbd>;</kbd> / <kbd>'</kbd></td><td>Collapse / expand all folders (in the sidebar)</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd></td><td>Today, All Unread, Starred</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Next unread</td></tr>
+			</table>
+			<h3>Commands</h3>
+			<table>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>R</kbd> or <kbd>F5</kbd></td><td>Refresh</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>New feed</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>New folder</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Mark all as read</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd></td><td>Mark read or unread</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Star or unstar</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td><td>Reader View</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd></td><td>Hide read articles</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Hide read feeds</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>'</kbd></td><td>Clean up</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd></td><td>Show or hide the sidebar</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd></td><td>Search</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Get Info</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd></td><td>Export subscriptions</td></tr>
+				<tr><td><kbd>Delete</kbd></td><td>Delete the selected feed or folder (in the sidebar)</td></tr>
+				<tr><td><kbd>F1</kbd></td><td>This help</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Q</kbd></td><td>Quit</td></tr>
+			</table>
+		</section>
+
+		<section id="data">
+			<h2>Your data</h2>
+			<p>Everything stays on your PC, in <code>%LOCALAPPDATA%\WinNewsReader</code>: your feeds and articles, settings, cached site icons and your own themes. WinNewsReader talks only to the sites whose feeds you follow, and to your FreshRSS server if you add one. There's no account to sign up for and nothing is sent anywhere else.</p>
+		</section>
+
+		<section>
+			<h2>More help</h2>
+			<p>Found a problem, or have an idea? Open an issue on <a href="https://github.com/shaztechio/WinNewsReader/issues">GitHub</a>. The source code is at <a href="https://github.com/shaztechio/WinNewsReader">github.com/shaztechio/WinNewsReader</a>.</p>
+		</section>
+	</main>
+
+	<footer>
+		<p>
+			WinNewsReader is a Windows port of <a href="https://github.com/Ranchero-Software/NetNewsWire">NetNewsWire</a>
+			by Brent Simmons and contributors, used under the MIT license. It isn’t affiliated with or endorsed by NetNewsWire.
+		</p>
+	</footer>
+</body>
+</html>

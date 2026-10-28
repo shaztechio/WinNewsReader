@@ -611,6 +611,19 @@ public sealed partial class MainWindow : Window
 
 	private void OnToggleSidebar(object sender, RoutedEventArgs e) => ToggleSidebar();
 
+	// NetNewsWire's Help menu (HelpURL), with this project's pages: help on the website, the repository and its issues.
+	private const string HelpUrl = "https://winnewsreader.com/help/";
+
+	private void OnHelp(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser(HelpUrl);
+
+	private void OnKeyboardShortcutsHelp(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser(HelpUrl + "#keyboard");
+
+	private void OnWebsite(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://winnewsreader.com/");
+
+	private void OnSourceCode(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://github.com/shaztechio/WinNewsReader");
+
+	private void OnReportProblem(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://github.com/shaztechio/WinNewsReader/issues");
+
 	/// <summary>
 	/// NetNewsWire's Toggle Sidebar. The sidebar's toolbar buttons stay in reach by moving over the timeline, as the
 	/// Mac's toolbar does when the sidebar collapses.
@@ -1189,7 +1202,7 @@ public sealed partial class MainWindow : Window
 			if (['ArrowUp', 'ArrowDown', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Tab'].includes(key)) return;
 			if (key === ' ' && !e.ctrlKey && !e.altKey && (e.shiftKey || innerHeight + scrollY < document.documentElement.scrollHeight - 4)) return;
 			if (key === 'Enter' && t && t.closest && t.closest('a, button')) return;
-			if (!e.ctrlKey && !e.altKey && key.length !== 1 && !['Enter', 'ArrowLeft', 'F5'].includes(key)) return;
+			if (!e.ctrlKey && !e.altKey && key.length !== 1 && !['Enter', 'ArrowLeft', 'F1', 'F5'].includes(key)) return;
 			e.preventDefault();
 			post({ token: '[[token]]', keyCode: e.keyCode, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey });
 		}, true);
@@ -1240,6 +1253,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.I, Ctrl, null, () => _ = ShowInspectorAsync(null));
 		Add(VirtualKey.F, CtrlAlt, null, () => SearchBox.Focus(FocusState.Keyboard));
 		Add(VirtualKey.S, CtrlAlt, null, ToggleSidebar);
+		Add(VirtualKey.F1, None, null, () => MainViewModel.OpenInBrowser(HelpUrl));
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));
