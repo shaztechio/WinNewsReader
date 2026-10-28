@@ -283,6 +283,12 @@ public sealed partial class MainViewModel : ObservableObject
 	partial void OnSelectedArticleChanged(ArticleItem? oldValue, ArticleItem? newValue)
 	{
 		OnPropertyChanged(nameof(CanUseReaderView));
+		// Choosing one article elsewhere, as Next Unread does, makes it the whole selection.
+		if (!_settingSelection)
+		{
+			SelectedArticles = newValue is null ? [] : [newValue];
+			SelectionChanged();
+		}
 		if (oldValue?.ArticleId == newValue?.ArticleId && oldValue?.Account == newValue?.Account)
 		{
 			return;
@@ -301,6 +307,10 @@ public sealed partial class MainViewModel : ObservableObject
 	public string ArticlePageHtml(ArticleItem? item)
 	{
 		var theme = CurrentTheme;
+		if (item is null && HasMultipleSelection)
+		{
+			return ArticleRenderer.PageHtml(ArticleRenderer.MultipleSelection(theme, [.. SelectedArticles.Select(article => (article.FeedName, article.Title))]), Themes.PageTemplate);
+		}
 		if (item is null)
 		{
 			return ArticleRenderer.PageHtml(ArticleRenderer.NoContent(theme), Themes.PageTemplate);
@@ -333,8 +343,49 @@ public sealed partial class MainViewModel : ObservableObject
 	public partial SidebarItem? SelectedSidebarItem { get; set; }
 
 	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(HasSelectedArticle), nameof(ReadToggleLabel), nameof(StarToggleLabel), nameof(ReadToggleGlyph), nameof(StarToggleGlyph))]
+	[NotifyPropertyChangedFor(nameof(HasSelectedArticle))]
 	public partial ArticleItem? SelectedArticle { get; set; }
+
+	/// <summary>
+	/// NetNewsWire's <c>selectedArticles</c>. With one article selected, it's <see cref="SelectedArticle"/>; with
+	/// several, <see cref="SelectedArticle"/> is null and the article pane says so, and the read and star commands act
+	/// on them all.
+	/// </summary>
+	public IReadOnlyList<ArticleItem> SelectedArticles { get; private set; } = [];
+
+	public bool HasSelection => SelectedArticles.Count > 0;
+
+	public bool HasMultipleSelection => SelectedArticles.Count > 1;
+
+	/// <summary>Set while the selection comes from the timeline, so the single selection doesn't reset the list.</summary>
+	private bool _settingSelection;
+
+	/// <summary>The timeline's selection, one article or several.</summary>
+	public void SetSelectedArticles(IReadOnlyList<ArticleItem> articles)
+	{
+		_settingSelection = true;
+		try
+		{
+			SelectedArticles = articles;
+			SelectedArticle = articles.Count == 1 ? articles[0] : null;
+		}
+		finally
+		{
+			_settingSelection = false;
+		}
+		SelectionChanged();
+	}
+
+	private void SelectionChanged()
+	{
+		OnPropertyChanged(nameof(SelectedArticles));
+		OnPropertyChanged(nameof(HasSelection));
+		OnPropertyChanged(nameof(HasMultipleSelection));
+		OnPropertyChanged(nameof(ReadToggleLabel));
+		OnPropertyChanged(nameof(StarToggleLabel));
+		OnPropertyChanged(nameof(ReadToggleGlyph));
+		OnPropertyChanged(nameof(StarToggleGlyph));
+	}
 
 	[ObservableProperty]
 	[NotifyPropertyChangedFor(nameof(IsNotRefreshing))]
@@ -347,15 +398,22 @@ public sealed partial class MainViewModel : ObservableObject
 
 	public bool HasSelectedArticle => SelectedArticle is not null;
 
-	public string ReadToggleLabel => SelectedArticle is { IsRead: false } ? "Mark as Read" : "Mark as Unread";
+	// NetNewsWire's toggles over a selection: if any article is unread, they all become read, otherwise unread; if any
+	// isn't starred, they all become starred, otherwise unstarred.
 
-	public string StarToggleLabel => SelectedArticle is { IsStarred: true } ? "Mark as Unstarred" : "Mark as Starred";
+	public string ReadToggleLabel => MarksRead(SelectedArticles) ? "Mark as Read" : "Mark as Unread";
 
-	/// <summary>The toolbar's read button shows the article's state, as NetNewsWire's does: a closed envelope while unread.</summary>
-	public string ReadToggleGlyph => SelectedArticle is { IsRead: false } ? "\uE715" : "\uE8C3";
+	public string StarToggleLabel => MarksStarred(SelectedArticles) ? "Mark as Starred" : "Mark as Unstarred";
 
-	/// <summary>A filled star while starred.</summary>
-	public string StarToggleGlyph => SelectedArticle is { IsStarred: true } ? "\uE735" : "\uE734";
+	/// <summary>The toolbar's read button shows the selection's state, as NetNewsWire's does: a closed envelope while unread.</summary>
+	public string ReadToggleGlyph => SelectedArticles.Any(article => !article.IsRead) ? "\uE715" : "\uE8C3";
+
+	/// <summary>A filled star while everything selected is starred.</summary>
+	public string StarToggleGlyph => SelectedArticles.Count > 0 && !MarksStarred(SelectedArticles) ? "\uE735" : "\uE734";
+
+	public static bool MarksRead(IReadOnlyList<ArticleItem> articles) => articles.Any(article => !article.IsRead);
+
+	public static bool MarksStarred(IReadOnlyList<ArticleItem> articles) => articles.Count == 0 || articles.Any(article => !article.IsStarred);
 
 	/// <summary>Whether the selected row's timeline hides read articles. All Unread always does, so it can't be switched.</summary>
 	public bool IsHidingReadArticles => SelectedSidebarItem is { } item && HidesReadArticles(item);
@@ -802,22 +860,43 @@ public sealed partial class MainViewModel : ObservableObject
 		ArticleStatusChanged();
 	}
 
-	public void ToggleRead(ArticleItem? article = null)
+	/// <summary>Toggles read for <paramref name="articles"/>, or the selection, as NetNewsWire's toggle does.</summary>
+	public void ToggleRead(IReadOnlyList<ArticleItem>? articles = null)
 	{
-		if ((article ?? SelectedArticle) is { } target)
+		var targets = articles ?? SelectedArticles;
+		if (targets.Count > 0)
 		{
-			SetRead(target, !target.IsRead);
+			SetStatus(targets, StatusKey.Read, MarksRead(targets));
 		}
 	}
 
-	public void ToggleStarred(ArticleItem? article = null)
+	public void ToggleStarred(IReadOnlyList<ArticleItem>? articles = null)
 	{
-		if ((article ?? SelectedArticle) is { } target)
+		var targets = articles ?? SelectedArticles;
+		if (targets.Count > 0)
 		{
-			target.Account.SetArticleStatus([target.ArticleId], StatusKey.Starred, !target.IsStarred);
-			target.IsStarred = !target.IsStarred;
-			ArticleStatusChanged();
+			SetStatus(targets, StatusKey.Starred, MarksStarred(targets));
 		}
+	}
+
+	private void SetStatus(IReadOnlyList<ArticleItem> articles, StatusKey key, bool flag)
+	{
+		foreach (var group in articles.GroupBy(article => article.Account))
+		{
+			group.Key.SetArticleStatus([.. group.Select(article => article.ArticleId)], key, flag);
+		}
+		foreach (var article in articles)
+		{
+			if (key == StatusKey.Read)
+			{
+				article.IsRead = flag;
+			}
+			else
+			{
+				article.IsStarred = flag;
+			}
+		}
+		ArticleStatusChanged();
 	}
 
 	/// <summary>
@@ -847,6 +926,64 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	/// <summary>Marks articles in the timeline older than the selected one as read.</summary>
+	// The timeline's Mark Above as Read and Mark Below as Read, as in NetNewsWire: the unread articles listed above the
+	// first of the articles, or below the last.
+
+	public IReadOnlyList<ArticleItem> UnreadAbove(IReadOnlyList<ArticleItem> articles)
+	{
+		var first = articles.Select(IndexOf).Where(index => index >= 0).DefaultIfEmpty(-1).Min();
+		return first < 0 ? [] : [.. Articles.Take(first).Where(article => !article.IsRead)];
+	}
+
+	public IReadOnlyList<ArticleItem> UnreadBelow(IReadOnlyList<ArticleItem> articles)
+	{
+		var last = articles.Select(IndexOf).DefaultIfEmpty(-1).Max();
+		return last < 0 ? [] : [.. Articles.Skip(last + 1).Where(article => !article.IsRead)];
+	}
+
+	public void MarkRead(IReadOnlyList<ArticleItem> articles)
+	{
+		if (articles.Count > 0)
+		{
+			SetStatus(articles, StatusKey.Read, true);
+		}
+	}
+
+	/// <summary>NetNewsWire's Select “Feed” in Sidebar: the article's feed, unless the timeline is already showing it.</summary>
+	public SidebarItem? FeedRowFor(ArticleItem article) =>
+		AllSidebarItems().FirstOrDefault(item => item.Account == article.Account && item.Feed?.FeedId == article.Article.FeedId);
+
+	public bool IsShowingOnlyFeedOf(ArticleItem article) =>
+		_searchString is null && SelectedSidebarItem is { Kind: SidebarItemKind.Feed } row && row.Account == article.Account && row.Feed!.FeedId == article.Article.FeedId;
+
+	public void SelectFeedInSidebar(ArticleItem article)
+	{
+		if (FeedRowFor(article) is { } row)
+		{
+			EndSearch();
+			SelectedSidebarItem = row;
+			SelectedArticle = Articles.FirstOrDefault(item => item.Account == article.Account && item.ArticleId == article.ArticleId);
+		}
+	}
+
+	/// <summary>How many unread articles the article's feed has, for Mark All as Read in “Feed”.</summary>
+	public int UnreadCountInFeedOf(ArticleItem article) => article.Account.Store.UnreadCounts().GetValueOrDefault(article.Article.FeedId);
+
+	public void MarkAllReadInFeedOf(ArticleItem article)
+	{
+		var ids = article.Account.Store.GetUnreadArticles(article.Article.FeedId).Select(unread => unread.ArticleId).ToList();
+		if (ids.Count == 0)
+		{
+			return;
+		}
+		article.Account.SetArticleStatus(ids, StatusKey.Read, true);
+		foreach (var shown in Articles.Where(shown => shown.Account == article.Account && shown.Article.FeedId == article.Article.FeedId))
+		{
+			shown.IsRead = true;
+		}
+		ArticleStatusChanged();
+	}
+
 	public void MarkOlderRead()
 	{
 		if (SelectedArticle is not { } selected)
@@ -1056,6 +1193,7 @@ public sealed partial class MainViewModel : ObservableObject
 	private void LoadArticles(bool keepSelection)
 	{
 		var selected = keepSelection ? SelectedArticle : null;
+		var selectedMany = keepSelection && SelectedArticles.Count > 1 ? SelectedArticles : null;
 		var pairs = _searchString is { } search
 			? Accounts.ToList().SelectMany(account => account.Store.Search(search).Select(article => (Account: account, Article: article)))
 			: ArticlesFor(SelectedSidebarItem);
@@ -1081,8 +1219,20 @@ public sealed partial class MainViewModel : ObservableObject
 		_restoringSelection = true;
 		try
 		{
-			SelectedArticle = selected is null ? null
-				: Articles.FirstOrDefault(article => article.Account == selected.Account && article.ArticleId == selected.ArticleId);
+			if (selectedMany is not null)
+			{
+				// A refresh keeps a multiple selection too, as far as the articles are still listed.
+				SetSelectedArticles([.. Articles.Where(article => selectedMany.Any(old => old.Account == article.Account && old.ArticleId == article.ArticleId))]);
+			}
+			else
+			{
+				SelectedArticle = selected is null ? null
+					: Articles.FirstOrDefault(article => article.Account == selected.Account && article.ArticleId == selected.ArticleId);
+				if (SelectedArticle is null && SelectedArticles.Count > 0)
+				{
+					SetSelectedArticles([]);
+				}
+			}
 		}
 		finally
 		{

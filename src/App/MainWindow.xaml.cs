@@ -163,12 +163,37 @@ public sealed partial class MainWindow : Window
 					DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => SyncSelection(() =>
 					{
 						Timeline.Focus(FocusState.Keyboard);
-						Timeline.SelectedItem = ViewModel.SelectedArticle;
+						Timeline.SelectedItems.Clear();
+						foreach (var selected in ViewModel.SelectedArticles)
+						{
+							Timeline.SelectedItems.Add(selected);
+						}
 					}));
 				}
 				break;
+			case nameof(MainViewModel.SelectedArticles):
+				// A selection the view model chose, such as one kept across a refresh: the list follows it.
+				if (!Timeline.SelectedItems.OfType<ArticleItem>().SequenceEqual(ViewModel.SelectedArticles))
+				{
+					SyncSelection(() =>
+					{
+						Timeline.SelectedItems.Clear();
+						foreach (var selected in ViewModel.SelectedArticles)
+						{
+							Timeline.SelectedItems.Add(selected);
+						}
+					});
+				}
+				if (ViewModel.HasMultipleSelection)
+				{
+					ShowArticle(null);
+				}
+				break;
 			case nameof(MainViewModel.SelectedArticle):
-				SyncSelection(() => Timeline.SelectedItem = ViewModel.SelectedArticle);
+				if (ViewModel.SelectedArticle is not null && !(Timeline.SelectedItems.Count == 1 && Timeline.SelectedItem == ViewModel.SelectedArticle))
+				{
+					SyncSelection(() => Timeline.SelectedItem = ViewModel.SelectedArticle);
+				}
 				if (ViewModel.SelectedArticle is { } article)
 				{
 					Timeline.ScrollIntoView(article);
@@ -312,7 +337,7 @@ public sealed partial class MainWindow : Window
 	{
 		if (!_syncingSelection)
 		{
-			ViewModel.SelectedArticle = Timeline.SelectedItem as ArticleItem;
+			ViewModel.SetSelectedArticles([.. Timeline.SelectedItems.OfType<ArticleItem>()]);
 		}
 	}
 
@@ -379,11 +404,14 @@ public sealed partial class MainWindow : Window
 
 	private void ShowArticle(ArticleItem? item)
 	{
-		if (!_articleViewReady || item?.ArticleId == _shownArticleId)
+		var shownId = item is null && ViewModel.HasMultipleSelection
+			? MultipleSelectionShown + string.Join("|", ViewModel.SelectedArticles.Select(article => article.ArticleId))
+			: item?.ArticleId;
+		if (!_articleViewReady || shownId == _shownArticleId)
 		{
 			return;
 		}
-		_shownArticleId = item?.ArticleId;
+		_shownArticleId = shownId;
 		var html = ViewModel.ArticlePageHtml(item);
 		// Takes effect on the navigation that follows. Scripts the app adds to the page aren't affected.
 		ArticleView.CoreWebView2.Settings.IsScriptEnabled = ViewModel.AllowsContentJavaScript(item);
@@ -400,6 +428,9 @@ public sealed partial class MainWindow : Window
 			ArticleView.CoreWebView2.Navigate(new Uri(path).AbsoluteUri);
 		}
 	}
+
+	/// <summary>Stands for the "Multiple selection" page in <see cref="_shownArticleId"/>.</summary>
+	private const string MultipleSelectionShown = "\0multiple";
 
 	/// <summary>Under WebView2's 2 MB limit for NavigateToString, leaving room for UTF-8 encoding of non-ASCII text.</summary>
 	private const int MaxNavigateToStringLength = 600_000;
@@ -664,9 +695,16 @@ public sealed partial class MainWindow : Window
 	}
 
 	/// <summary>Shares the article's link and title through Windows' share sheet, in place of NetNewsWire's sharing services.</summary>
-	private void OnShare(object sender, RoutedEventArgs e)
+	private void OnShare(object sender, RoutedEventArgs e) => Share(ViewModel.SelectedArticles);
+
+	/// <summary>
+	/// The articles' links through Windows' share sheet: one article as a web link with its title, several as their
+	/// links, oldest first, as NetNewsWire orders them.
+	/// </summary>
+	private void Share(IReadOnlyList<ArticleItem> articles)
 	{
-		if (ViewModel.SelectedArticle is not { LinkUrl: { } link } article || !Uri.TryCreate(link, UriKind.Absolute, out var uri))
+		var links = articles.OrderBy(article => article.Article.LogicalDatePublished).Select(article => article.LinkUrl).OfType<string>().ToList();
+		if (links.Count == 0)
 		{
 			return;
 		}
@@ -675,9 +713,16 @@ public sealed partial class MainWindow : Window
 		void OnDataRequested(DataTransferManager sender, DataRequestedEventArgs args)
 		{
 			sender.DataRequested -= OnDataRequested;
-			args.Request.Data.Properties.Title = article.Title is { Length: > 0 } title ? title : link;
-			args.Request.Data.SetWebLink(uri);
-			args.Request.Data.SetText(link);
+			if (links.Count == 1 && Uri.TryCreate(links[0], UriKind.Absolute, out var uri))
+			{
+				args.Request.Data.Properties.Title = articles.First(article => article.LinkUrl == links[0]).Title is { Length: > 0 } title ? title : links[0];
+				args.Request.Data.SetWebLink(uri);
+			}
+			else
+			{
+				args.Request.Data.Properties.Title = $"{links.Count} Articles";
+			}
+			args.Request.Data.SetText(string.Join(Environment.NewLine, links));
 		}
 		manager.DataRequested += OnDataRequested;
 		DataTransferManagerInterop.ShowShareUIForWindow(window);
@@ -689,7 +734,14 @@ public sealed partial class MainWindow : Window
 
 	private void OnToggleReaderView(object sender, RoutedEventArgs e) => ViewModel.ToggleReaderView();
 
-	private void OnOpenInBrowser(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser(ViewModel.SelectedArticle?.LinkUrl);
+	/// <summary>NetNewsWire opens every selected article, each in its own browser tab.</summary>
+	private void OnOpenInBrowser(object sender, RoutedEventArgs e)
+	{
+		foreach (var article in ViewModel.SelectedArticles)
+		{
+			MainViewModel.OpenInBrowser(article.LinkUrl);
+		}
+	}
 
 	// Context menus
 
@@ -773,6 +825,10 @@ public sealed partial class MainWindow : Window
 	}
 
 	/// <summary>NetNewsWire's timeline menu (parity row TL-08), minus items whose features aren't built yet.</summary>
+	/// <summary>
+	/// NetNewsWire's timeline menu (<c>menu(for:)</c>): for the clicked article, or for all the selected ones when it's one
+	/// of them. Each item shows only when it applies.
+	/// </summary>
 	private void OnArticleMenuOpening(object? sender, object e)
 	{
 		var menu = (MenuFlyout)sender!;
@@ -781,12 +837,88 @@ public sealed partial class MainWindow : Window
 		{
 			return;
 		}
-		menu.Items.Add(MenuItem(article.IsRead ? "Mark as Unread" : "Mark as Read", () => ViewModel.ToggleRead(article)));
-		menu.Items.Add(MenuItem(article.IsStarred ? "Mark as Unstarred" : "Mark as Starred", () => ViewModel.ToggleStarred(article)));
-		menu.Items.Add(new MenuFlyoutSeparator());
-		menu.Items.Add(MenuItem("Open in Browser", () => MainViewModel.OpenInBrowser(article.LinkUrl), article.LinkUrl is not null));
-		menu.Items.Add(MenuItem("Copy Article URL", () => CopyToClipboard(article.Article.Url), article.Article.Url is not null));
-		menu.Items.Add(MenuItem("Copy External URL", () => CopyToClipboard(article.Article.ExternalUrl), article.Article.ExternalUrl is not null));
+		IReadOnlyList<ArticleItem> targets = ViewModel.SelectedArticles.Contains(article) ? ViewModel.SelectedArticles : [article];
+		if (targets.Any(target => !target.IsRead))
+		{
+			menu.Items.Add(MenuItem("Mark as Read", () => ViewModel.MarkRead(targets)));
+		}
+		if (targets.Any(target => target.IsRead))
+		{
+			menu.Items.Add(MenuItem("Mark as Unread", () => ViewModel.ToggleRead([.. targets.Where(target => target.IsRead)])));
+		}
+		if (targets.Any(target => !target.IsStarred))
+		{
+			menu.Items.Add(MenuItem("Mark as Starred", () => ViewModel.ToggleStarred([.. targets.Where(target => !target.IsStarred)])));
+		}
+		if (targets.Any(target => target.IsStarred))
+		{
+			menu.Items.Add(MenuItem("Mark as Unstarred", () => ViewModel.ToggleStarred([.. targets.Where(target => target.IsStarred)])));
+		}
+		if (ViewModel.UnreadAbove(targets) is { Count: > 0 } above)
+		{
+			menu.Items.Add(MenuItem("Mark Above as Read", () => ViewModel.MarkRead(above)));
+		}
+		if (ViewModel.UnreadBelow(targets) is { Count: > 0 } below)
+		{
+			menu.Items.Add(MenuItem("Mark Below as Read", () => ViewModel.MarkRead(below)));
+		}
+		if (targets.Count == 1)
+		{
+			var feedName = MainViewModel.FeedFor(article) is { } feed ? NameSorting.DisplayName(feed) : article.FeedName;
+			var feedItems = new List<MenuFlyoutItemBase>();
+			if (!ViewModel.IsShowingOnlyFeedOf(article) && ViewModel.FeedRowFor(article) is not null)
+			{
+				feedItems.Add(MenuItem($"Select “{feedName}” in Sidebar", () => ViewModel.SelectFeedInSidebar(article)));
+			}
+			if (ViewModel.UnreadCountInFeedOf(article) > 0)
+			{
+				feedItems.Add(MenuItem($"Mark All as Read in “{feedName}”", () => ViewModel.MarkAllReadInFeedOf(article)));
+			}
+			AddGroup(menu, feedItems);
+			if (article.LinkUrl is { } link)
+			{
+				// The toolbar's article actions, for the article being read.
+				var linkItems = new List<MenuFlyoutItemBase> { MenuItem("Open in Browser", () => MainViewModel.OpenInBrowser(link)) };
+				if (article == ViewModel.SelectedArticle)
+				{
+					linkItems.Add(MenuItem(ViewModel.IsShowingReaderView ? "Hide Reader View" : "Show Reader View", ViewModel.ToggleReaderView));
+				}
+				AddGroup(menu, linkItems);
+				var copyItems = new List<MenuFlyoutItemBase> { MenuItem("Copy Article URL", () => CopyToClipboard(link)) };
+				if (article.Article.ExternalUrl is { } external && external != link)
+				{
+					copyItems.Add(MenuItem("Copy External URL", () => CopyToClipboard(external)));
+				}
+				AddGroup(menu, copyItems);
+			}
+		}
+		else
+		{
+			AddGroup(menu, [MenuItem($"Open {targets.Count} Articles in Browser", () =>
+			{
+				foreach (var target in targets)
+				{
+					MainViewModel.OpenInBrowser(target.LinkUrl);
+				}
+			})]);
+		}
+		AddGroup(menu, [MenuItem("Share…", () => Share(targets), targets.Any(target => target.LinkUrl is not null))]);
+
+		static void AddGroup(MenuFlyout menu, IReadOnlyList<MenuFlyoutItemBase> items)
+		{
+			if (items.Count == 0)
+			{
+				return;
+			}
+			if (menu.Items.Count > 0)
+			{
+				menu.Items.Add(new MenuFlyoutSeparator());
+			}
+			foreach (var item in items)
+			{
+				menu.Items.Add(item);
+			}
+		}
 	}
 
 	private static object? DataContextOf(FrameworkElement? element) =>

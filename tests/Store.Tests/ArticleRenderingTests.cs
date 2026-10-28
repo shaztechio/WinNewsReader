@@ -262,6 +262,23 @@ public class ArticleRendererTests
 	}
 
 	[Fact]
+	public void MultipleSelectionIsAStackOfTheFirstFewArticles()
+	{
+		var articles = Enumerable.Range(1, 6).Select(i => ("Feed <b>", $"Article {i} & more")).ToList();
+
+		var rendering = ArticleRenderer.MultipleSelection(Themes.Default, articles);
+
+		Assert.Contains("6 Articles Selected", rendering.Html);
+		Assert.Contains("Article 1 &amp; more", rendering.Html);
+		Assert.Contains("Article 4 &amp; more", rendering.Html);
+		Assert.DoesNotContain("Article 5", rendering.Html);
+		Assert.DoesNotContain("<b>", rendering.Html);
+		// The first article is drawn last, so it's on top.
+		Assert.True(rendering.Html.IndexOf("Article 1 ", StringComparison.Ordinal) > rendering.Html.IndexOf("Article 2 ", StringComparison.Ordinal));
+		Assert.Contains("height: 200px !important", rendering.Style);
+	}
+
+	[Fact]
 	public void AppleFontsBecomeWindowsFonts()
 	{
 		Assert.All(Themes.All, theme => Assert.DoesNotContain("-apple-system", theme.Css));

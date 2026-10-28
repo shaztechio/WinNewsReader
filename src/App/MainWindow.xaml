@@ -139,11 +139,11 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleRead" IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}"
+                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleRead" IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
                             ToolTipService.ToolTip="{x:Bind ViewModel.ReadToggleLabel, Mode=OneWay}" AutomationProperties.Name="{x:Bind ViewModel.ReadToggleLabel, Mode=OneWay}">
                         <FontIcon Glyph="{x:Bind ViewModel.ReadToggleGlyph, Mode=OneWay}" FontSize="16" />
                     </Button>
-                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleStarred" IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}"
+                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleStarred" IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
                             ToolTipService.ToolTip="{x:Bind ViewModel.StarToggleLabel, Mode=OneWay}" AutomationProperties.Name="{x:Bind ViewModel.StarToggleLabel, Mode=OneWay}">
                         <FontIcon Glyph="{x:Bind ViewModel.StarToggleGlyph, Mode=OneWay}" FontSize="16" />
                     </Button>
@@ -156,11 +156,11 @@
                                   ToolTipService.ToolTip="{x:Bind ViewModel.ReaderViewLabel, Mode=OneWay}" AutomationProperties.Name="Reader View">
                         <FontIcon Glyph="&#xE736;" FontSize="16" />
                     </ToggleButton>
-                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnShare" IsEnabled="{x:Bind ViewModel.CanUseReaderView, Mode=OneWay}"
+                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnShare" IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
                             ToolTipService.ToolTip="Share" AutomationProperties.Name="Share">
                         <FontIcon Glyph="&#xE72D;" FontSize="16" />
                     </Button>
-                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnOpenInBrowser" IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}"
+                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnOpenInBrowser" IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
                             ToolTipService.ToolTip="Open in Browser" AutomationProperties.Name="Open in Browser">
                         <FontIcon Glyph="&#xE774;" FontSize="16" />
                     </Button>
@@ -208,7 +208,7 @@
                 <Rectangle Width="1" HorizontalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
             </local:PaneSplitter>
 
-            <ListView x:Name="Timeline" Grid.Row="1" Grid.Column="2" SelectionMode="Single" SelectionChanged="OnTimelineSelectionChanged"
+            <ListView x:Name="Timeline" Grid.Row="1" Grid.Column="2" SelectionMode="Extended" SelectionChanged="OnTimelineSelectionChanged"
                       Background="{ThemeResource LayerFillColorDefaultBrush}" AutomationProperties.Name="Timeline">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ArticleItem">

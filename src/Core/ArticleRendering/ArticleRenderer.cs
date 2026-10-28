@@ -1,3 +1,4 @@
+using System.Net;
 using System.Globalization;
 using System.Text;
 using WinNewsReader.Parser.Feeds;
@@ -77,6 +78,52 @@ public static class ArticleRenderer
 
 	/// <summary>What NetNewsWire shows with nothing selected: the theme's styling and an empty body.</summary>
 	public static ArticleRendering NoContent(ArticleTheme theme) => new(theme.Css, "", "", "");
+
+	/// <summary>
+	/// Several articles selected, drawn as a stack of paper: the first few selected articles as cards, the top one in
+	/// front with its feed and title, and how many there are below. NetNewsWire says "Multiple selection" in words.
+	/// </summary>
+	public static ArticleRendering MultipleSelection(ArticleTheme theme, IReadOnlyList<(string Feed, string Title)> articles)
+	{
+		const int MaxCards = 4;
+		var cards = articles.Take(MaxCards).ToList();
+		var html = new StringBuilder("<div class='selectionStack' role='img' aria-label='")
+			.Append(WebUtility.HtmlEncode($"{articles.Count} articles selected")).Append("'><div class='stack'>");
+		// Drawn back to front, so the first article ends up on top.
+		for (var i = cards.Count - 1; i >= 0; i--)
+		{
+			html.Append($"<div class='sheet sheet{i}'><p class='sheetFeed'>{WebUtility.HtmlEncode(cards[i].Feed)}</p>")
+				.Append($"<p class='sheetTitle'>{WebUtility.HtmlEncode(cards[i].Title)}</p>")
+				.Append("<p class='sheetLine'></p><p class='sheetLine'></p><p class='sheetLine short'></p></div>");
+		}
+		html.Append("</div><p class='stackCount'>").Append(articles.Count).Append(" Articles Selected</p></div>");
+		return new ArticleRendering(theme.Css + SelectionStackCss, html.ToString(), "", "");
+	}
+
+	/// <summary>
+	/// The stack's own look, after the theme's: system colors, so it reads as paper in any theme, light or dark. The
+	/// heights are !important because NetNewsWire's stylesheet gives every div <c>height: auto !important</c>.
+	/// </summary>
+	private const string SelectionStackCss = """
+
+		.selectionStack { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; -webkit-user-select: none; cursor: default; }
+		.selectionStack .stack { position: relative; width: min(340px, 70vw); height: 200px !important; margin: 0; }
+		.selectionStack .sheet { position: absolute; inset: 0; height: 100% !important; margin: 0; box-sizing: border-box; padding: 18px 20px; border-radius: 10px;
+			background: Canvas; color: CanvasText; border: 1px solid color-mix(in srgb, CanvasText 14%, transparent);
+			box-shadow: 0 1px 2px color-mix(in srgb, CanvasText 10%, transparent), 0 8px 24px -8px color-mix(in srgb, CanvasText 30%, transparent);
+			overflow: hidden; }
+		.selectionStack .sheet0 { transform: rotate(0deg); }
+		.selectionStack .sheet1 { transform: translate(10px, -10px) rotate(3deg); }
+		.selectionStack .sheet2 { transform: translate(-10px, -16px) rotate(-3.5deg); }
+		.selectionStack .sheet3 { transform: translate(16px, -22px) rotate(6deg); }
+		.selectionStack .sheet:not(.sheet0) > * { visibility: hidden; }
+		.selectionStack .sheetFeed { margin: 0 0 6px; font-size: 12px; opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.selectionStack .sheetTitle { margin: 0 0 14px; font-size: 17px; font-weight: 600; line-height: 1.3;
+			display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+		.selectionStack .sheetLine { height: 8px; margin: 0 0 9px; border-radius: 4px; background: color-mix(in srgb, CanvasText 12%, transparent); }
+		.selectionStack .sheetLine.short { width: 60%; }
+		.selectionStack .stackCount { margin: 0; font-size: 15px; font-weight: 600; opacity: 0.65; }
+		""";
 
 	/// <summary>What NetNewsWire shows while Reader View fetches an article.</summary>
 	public static ArticleRendering Loading(ArticleTheme theme) => new(theme.Css, "<h3 class='systemMessage'>Loading…</h3>", "", "");
