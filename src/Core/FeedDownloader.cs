@@ -11,7 +11,11 @@ public enum DownloadStatus
 	Failed,
 }
 
-public sealed record DownloadResult(DownloadStatus Status, byte[]? Data, string? ETag, string? LastModified, Uri? FinalUrl, string? Error);
+public sealed record DownloadResult(DownloadStatus Status, byte[]? Data, string? ETag, string? LastModified, Uri? FinalUrl, string? Error)
+{
+	/// <summary>The final response's HTTP status, or 0 if there was no response.</summary>
+	public int StatusCode { get; init; }
+}
 
 /// <summary>
 /// HTTP fetches for feeds: conditional GET with ETag and Last-Modified, and at most
@@ -73,15 +77,21 @@ public sealed class FeedDownloader : IDisposable
 			using var _ = response;
 			if (response.StatusCode == HttpStatusCode.NotModified)
 			{
-				return new DownloadResult(DownloadStatus.NotModified, null, etag, lastModified, requestUri, null);
+				return new DownloadResult(DownloadStatus.NotModified, null, etag, lastModified, requestUri, null) { StatusCode = 304 };
 			}
 			if (!response.IsSuccessStatusCode)
 			{
-				return new DownloadResult(DownloadStatus.Failed, null, null, null, requestUri, $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
+				return new DownloadResult(DownloadStatus.Failed, null, null, null, requestUri, $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}")
+				{
+					StatusCode = (int)response.StatusCode,
+				};
 			}
 			var data = await response.Content.ReadAsByteArrayAsync(cancellationToken);
 			response.Content.Headers.TryGetValues("Last-Modified", out var lastModifiedValues);
-			return new DownloadResult(DownloadStatus.Ok, data, response.Headers.ETag?.ToString(), lastModifiedValues?.FirstOrDefault(), requestUri, null);
+			return new DownloadResult(DownloadStatus.Ok, data, response.Headers.ETag?.ToString(), lastModifiedValues?.FirstOrDefault(), requestUri, null)
+			{
+				StatusCode = (int)response.StatusCode,
+			};
 		}
 		catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
 		{

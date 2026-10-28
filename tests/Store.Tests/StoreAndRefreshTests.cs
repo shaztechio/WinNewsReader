@@ -127,9 +127,83 @@ public sealed class StoreAndRefreshTests : IDisposable
 
 		var (subscribed, newArticles) = await _account.SubscribeAsync("http://example.com/rss.xml");
 
-		Assert.Equal("http://example.com/rss.xml", subscribed.Url);
+		// As in NetNewsWire, a feed entered directly is subscribed at the URL it ends up at.
+		Assert.Equal("http://example.com/feed/", subscribed.Url);
 		Assert.Equal(1, newArticles);
 	}
+
+	[Fact]
+	public async Task SubscribeFindsFeedInPageHead()
+	{
+		var feed = Rss("One");
+		_handler.RespondWith(request => request.RequestUri!.ToString() switch
+		{
+			"https://example.com/" => Html("""<link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">"""),
+			"https://example.com/feed.xml" => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(feed) },
+			_ => new HttpResponseMessage(HttpStatusCode.NotFound),
+		});
+
+		// A bare host gets https:// only after feeds:, so type the scheme.
+		var (subscribed, newArticles) = await _account.SubscribeAsync("https://example.com");
+
+		Assert.Equal("https://example.com/feed.xml", subscribed.Url);
+		Assert.Equal(1, newArticles);
+	}
+
+	[Fact]
+	public async Task SubscribeFallsBackToWordPressFeedPath()
+	{
+		var feed = Rss("One");
+		_handler.RespondWith(request => request.RequestUri!.ToString() switch
+		{
+			"https://example.com/blog" => Html(""),
+			"https://example.com/blog/feed/" => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(feed) },
+			_ => new HttpResponseMessage(HttpStatusCode.NotFound),
+		});
+
+		var (subscribed, _) = await _account.SubscribeAsync("https://example.com/blog");
+
+		Assert.Equal("https://example.com/blog/feed/", subscribed.Url);
+	}
+
+	[Fact]
+	public async Task FinderPrefersHeadFeedsOverBodyLinks()
+	{
+		_handler.RespondWith(request => request.RequestUri!.ToString() switch
+		{
+			"https://example.com/" => Html(
+				"""<link rel="alternate" type="application/atom+xml" href="/atom.xml"><link rel="alternate" type="application/rss+xml" href="/comments/rss.xml">""",
+				"""<a href="/other-feed.xml">Feed</a>"""),
+			_ => new HttpResponseMessage(HttpStatusCode.NotFound),
+		});
+
+		var specifiers = await new FeedFinder(_downloader).FindAsync("https://example.com/");
+
+		// Head feeds are trusted without fetching them, and body links are ignored when the head has any.
+		Assert.Equal(["https://example.com/atom.xml", "https://example.com/comments/rss.xml"], specifiers.Select(s => s.Url).Order());
+		Assert.Single(_handler.Requests);
+		// Earlier wins; "comments" costs 10 and "rss" earns 5.
+		Assert.Equal("https://example.com/atom.xml", FeedSpecifier.BestFeed([.. specifiers])!.Url);
+	}
+
+	[Fact]
+	public async Task MicroBlogUserPageFallsBackToJson()
+	{
+		var specifiers = await new FeedFinder(_downloader).FindAsync("https://micro.blog/someone");
+		Assert.Equal("https://micro.blog/someone.json", Assert.Single(specifiers).Url);
+	}
+
+	[Theory]
+	[InlineData("daringfireball.net", "http://daringfireball.net/")]
+	[InlineData("  https://example.com  ", "https://example.com/")]
+	[InlineData("feed:http://boingboing.net/feed", "http://boingboing.net/feed")]
+	[InlineData("feeds://example.com/feed", "https://example.com/feed")]
+	[InlineData("feed://example.com/rss", "http://example.com/rss")]
+	[InlineData("https://example.com/blog", "https://example.com/blog")]
+	public void NormalizedUrl(string input, string expected) => Assert.Equal(expected, input.NormalizedUrl());
+
+	private static HttpResponseMessage Html(string head, string body = "") =>
+		new(HttpStatusCode.OK) { Content = new StringContent($"<!DOCTYPE html><html><head>{head}</head><body>{body}</body></html>", Encoding.UTF8, "text/html") };
 
 	[Fact]
 	public async Task RedirectLoopsFail()

@@ -8,12 +8,12 @@ Status: Phase 1 (core engine) in progress. There's no UI yet; the `wnr` command-
 
 | Project | What it holds |
 | --- | --- |
-| `src/Parser` | RSS, RSS 1.0 (RDF), Atom, JSON Feed, RSS-in-JSON and OPML parsers, ported from NetNewsWire's RSParser so the same feed gives the same article IDs |
+| `src/Parser` | RSS, RSS 1.0 (RDF), Atom, JSON Feed, RSS-in-JSON and OPML parsers, plus HTML link and metadata parsers, ported from NetNewsWire's RSParser so the same feed gives the same article IDs |
 | `src/Store` | SQLite store for feeds, articles and read/starred status, following NetNewsWire's schema |
-| `src/Core` | Downloading (conditional GET, per-host limits, redirects) and the local "On This PC" account |
+| `src/Core` | Downloading (conditional GET, per-host limits, redirects), the feed finder, and the local "On This PC" account |
 | `src/Cli` | `wnr`, a headless driver for the core |
 | `tests/Parser.Tests` | NetNewsWire's parser tests ported to xUnit, run against its fixtures |
-| `tests/Store.Tests` | Store, refresh and download tests |
+| `tests/Store.Tests` | Store, refresh, download and feed finder tests |
 
 ## Build and test
 
@@ -26,7 +26,7 @@ dotnet test
 ## Try it
 
 ```bash
-dotnet run --project src/Cli -- subscribe https://daringfireball.net/feeds/main
+dotnet run --project src/Cli -- subscribe daringfireball.net
 ```
 
 ```bash
@@ -37,7 +37,7 @@ dotnet run --project src/Cli -- refresh
 dotnet run --project src/Cli -- unread
 ```
 
-Run `dotnet run --project src/Cli -- help` for every command. Data goes to `%LOCALAPPDATA%\WinNewsReader\OnThisPC\articles.db` unless you pass `--db <path>`.
+`subscribe` takes a feed URL or a web page; for a page it finds the feed the way NetNewsWire does. Run `dotnet run --project src/Cli -- help` for every command. Data goes to `%LOCALAPPDATA%\WinNewsReader\OnThisPC\articles.db` unless you pass `--db <path>`.
 
 ## Credits
 

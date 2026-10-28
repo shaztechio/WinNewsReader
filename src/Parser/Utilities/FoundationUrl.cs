@@ -124,6 +124,10 @@ public static partial class FoundationUrl
 		return new Parts(b.Scheme, authority, path, query, reference.Fragment).ToString();
 	}
 
+	/// <summary><c>URL.standardized.absoluteString</c>: dot segments removed from the path.</summary>
+	public static string Standardize(string url) =>
+		Parse(url) is { } parts ? (parts with { Path = RemoveDotSegments(parts.Path) }).ToString() : url;
+
 	private static string Merge(Parts b, string referencePath)
 	{
 		if (b.Authority is not null && b.Path.Length == 0)

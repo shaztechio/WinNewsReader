@@ -17,14 +17,29 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 	/// <summary>Feeds refreshed at once across all hosts. Per-host limits apply on top.</summary>
 	public const int MaxConcurrentRefreshes = 8;
 
+	private readonly FeedFinder _feedFinder = new(downloader);
+
 	public ArticlesStore Store { get; } = store;
 
 	/// <summary>
-	/// Fetches <paramref name="url"/>, and if it's a feed, subscribes and stores its articles.
-	/// Throws <see cref="SubscribeException"/> if it can't be fetched or isn't a feed.
+	/// Finds the best feed for <paramref name="userUrl"/>, which may be a feed or a web page, then
+	/// subscribes and stores its articles. Throws <see cref="SubscribeException"/> if no feed is found
+	/// or it can't be fetched.
 	/// </summary>
-	public async Task<(StoredFeed Feed, int NewArticles)> SubscribeAsync(string url, CancellationToken cancellationToken = default)
+	public async Task<(StoredFeed Feed, int NewArticles)> SubscribeAsync(string userUrl, CancellationToken cancellationToken = default)
 	{
+		var normalizedUrl = userUrl.NormalizedUrl();
+		IReadOnlySet<FeedSpecifier> feedSpecifiers;
+		try
+		{
+			feedSpecifiers = await _feedFinder.FindAsync(normalizedUrl, cancellationToken);
+		}
+		catch (FeedNotFoundException)
+		{
+			throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+		}
+		var url = FeedSpecifier.BestFeed([.. feedSpecifiers])?.Url ?? throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+
 		var download = await downloader.DownloadAsync(url, null, null, cancellationToken);
 		if (download.Status != DownloadStatus.Ok)
 		{

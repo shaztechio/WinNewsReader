@@ -9,12 +9,18 @@ public interface IXmlSaxParserDelegate
 
 	void DidEndElement(XmlSaxParser parser, ReadOnlySpan<byte> localName, XmlNamespace ns) { }
 
+	/// <summary>Called for each run of character content, with entities expanded. Never empty.</summary>
+	void DidFindCharacters(XmlSaxParser parser, ReadOnlySpan<byte> bytes) { }
+
 	/// <summary>
 	/// The raw inner bytes of an element, verbatim, after the delegate called
 	/// <see cref="XmlSaxParser.CaptureRawInnerContent"/> from <see cref="DidStartElement"/>. No events are
 	/// delivered for its children. The outer element's <see cref="DidEndElement"/> follows immediately.
 	/// </summary>
 	void DidCaptureRawInnerContent(XmlSaxParser parser, ReadOnlySpan<byte> bytes, ReadOnlySpan<byte> localName, XmlNamespace ns) { }
+
+	/// <summary>Called once at the end of the document, after any unclosed elements are closed.</summary>
+	void DidEnd(XmlSaxParser parser) { }
 }
 
 /// <summary>
@@ -98,6 +104,7 @@ public sealed class XmlSaxParser
 						_elementStack.RemoveAt(_elementStack.Count - 1);
 						EmitEndElement(top.Namespace, top.LocalName);
 					}
+					_delegate.DidEnd(this);
 					return;
 			}
 		}
@@ -255,10 +262,15 @@ public sealed class XmlSaxParser
 
 	private void HandleCharacters(byte[] bytes)
 	{
-		if (bytes.Length > 0 && _storingCharacters)
+		if (bytes.Length == 0)
+		{
+			return;
+		}
+		if (_storingCharacters)
 		{
 			_charactersBuffer.AddRange(bytes);
 		}
+		_delegate.DidFindCharacters(this, bytes);
 	}
 
 	private static List<(string? Prefix, string Uri)>? ExtractNamespaceBindings(List<XmlScanner.RawAttribute>? rawAttributes)

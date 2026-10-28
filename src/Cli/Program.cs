@@ -8,7 +8,7 @@ const string Usage = """
 	Usage: wnr [--db <path>] <command> [arguments]
 
 	Commands:
-	  subscribe <url>        Fetch a feed and subscribe to it
+	  subscribe <url>        Subscribe to a feed, or find the feed for a web page
 	  unsubscribe <url>      Remove a feed and its articles
 	  import <file.opml>     Add every feed in an OPML file (run refresh afterwards)
 	  feeds                  List subscriptions with unread counts
