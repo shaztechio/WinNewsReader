@@ -128,6 +128,8 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 
 ## Next steps
 
+The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 134 done, 24 partial, 51 open, 1 unchecked, 6 waiting for the installer, 2 waiting for service keys, and 19 dropped.
+
 - [ ] Start the code-signing route (Trusted Signing eligibility or OV certificate)
 - [ ] Apply for Feedly API access
 - [ ] Pick the app's name
@@ -141,7 +143,7 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] App icon (`tools/make-icon.ps1`)
   - [x] Keyboard map: single-key shortcuts, pane focus keys, and shortcuts inside the article page; next and previous unread across feeds
   - [x] Favicons in the sidebar and timeline
-  - [ ] Feed icons (larger, from the feed or apple-touch-icon) for the timeline and article header
+  - [x] Feed icons (SB-03, NetNewsWire's `FeedIconDownloader`): the feed's own icon, else the home page's largest Apple touch icon, Open Graph or Twitter image, else the favicon, in the sidebar, timeline and article header. NetNewsWire's skip and ignore lists and WordPress size-query fix are in. Generated letter icons for feeds with none are left for later
   - [x] Hide read articles (per row) and hide read feeds, sort order, clean up; dates follow NetNewsWire's logical publish date
   - [x] Remember window, panes, open folders and selection; NetNewsWire's default feeds on first launch
   - [x] Move feeds between folders: drag and drop (Ctrl copies, local only) and a Move to menu, in both accounts
@@ -153,6 +155,8 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] New-article notifications (IN-02, NetNewsWire's `UserNotificationManager`): per feed, from the right-click menu or Get Info; Windows toasts with the feed's icon, Mark as Read and Mark as Starred, at most five per feed per refresh and then a count; removed once read. Windows' own toast API, since the Windows App SDK's needs its runtime installed; so clicks work while the app runs, and it clears its notifications on exit. Clicks that start the app wait for a COM activator or packaging
   - [x] Multiple selection in the timeline (Ctrl/Shift-click, Ctrl+A): read, star, share and open act on them all with NetNewsWire's any-unread/any-unstarred rule, and the article pane shows a stack of the selected articles. NetNewsWire's article menu: Mark as Read/Unread, Starred/Unstarred, Mark Above/Below as Read, Select “Feed” in Sidebar, Mark All as Read in “Feed”, Open in Browser, Copy URLs, Share, plus Reader View
   - [x] Preferences window (+▾ → Preferences…, Ctrl+,): General (PR-01 unread counts, PR-02 to PR-05 text size, theme, JavaScript, browser picker, PR-08 refresh interval) and Accounts (PR-09 turn on or off, add, remove), plus Light/Dark/System appearance for the whole app, articles included (NetNewsWire only follows the system). Account name, server, username and password can be edited (a blank password keeps the saved one); names are kept unique, and the same server and username can't be two accounts (NetNewsWire's `duplicateServiceAccount`). Not yet: Advanced (updates and crash logs need the installer), and PR-06 open in background, which Windows browsers don't allow from outside
+  - [x] App badge count (NT-04, NetNewsWire's Dock badge): the unread total on the taskbar icon, drawn as an overlay since Windows' badge API needs a packaged app; follows the Unread Counts preference (number, 99+, dot or none)
+  - [x] Empty timeline: with no feed (or a group heading) selected, the middle column says "No Feed Selected", as the article pane says "No Article Selected"
   - [x] Screenshots on the help page, taken from a clean demo data folder with NetNewsWire's starter feeds, so no personal feeds show
   - [ ] Dragging URLs and folders, inline rename, undo, multiple windows
 - [x] Phase 3: article view

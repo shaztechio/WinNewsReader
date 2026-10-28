@@ -46,3 +46,30 @@ public sealed class PreferencesTests
 		Assert.Equal(browsers.Select(browser => browser.Name).OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase), browsers.Select(browser => browser.Name));
 	}
 }
+
+public sealed class UnreadBadgeTests
+{
+	[Theory]
+	[InlineData(0, UnreadCountDisplay.Show, null)]
+	[InlineData(-3, UnreadCountDisplay.Show, null)]
+	[InlineData(1, UnreadCountDisplay.Show, "1")]
+	[InlineData(42, UnreadCountDisplay.Show, "42")]
+	[InlineData(99, UnreadCountDisplay.Show, "99")]
+	[InlineData(100, UnreadCountDisplay.Show, "99+")]
+	[InlineData(2702, UnreadCountDisplay.Show, "99+")]
+	[InlineData(5, UnreadCountDisplay.Dot, "●")]
+	[InlineData(0, UnreadCountDisplay.Dot, null)]
+	[InlineData(5, UnreadCountDisplay.Hide, null)]
+	public void BadgeTextFollowsTheUnreadCountsPreference(int unread, UnreadCountDisplay display, string? expected) =>
+		Assert.Equal(expected, UnreadBadge.Text(unread, display));
+
+	[Fact]
+	public void ScreenReadersGetTheRealCount()
+	{
+		Assert.Equal("1 unread article", UnreadBadge.Description(1, UnreadCountDisplay.Show));
+		Assert.Equal("2,702 unread articles", UnreadBadge.Description(2702, UnreadCountDisplay.Show));
+		Assert.Equal("5 unread articles", UnreadBadge.Description(5, UnreadCountDisplay.Dot));
+		Assert.Equal("", UnreadBadge.Description(5, UnreadCountDisplay.Hide));
+		Assert.Equal("", UnreadBadge.Description(0, UnreadCountDisplay.Show));
+	}
+}

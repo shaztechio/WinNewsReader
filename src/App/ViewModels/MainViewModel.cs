@@ -526,7 +526,7 @@ public sealed partial class MainViewModel : ObservableObject
 			await gate.WaitAsync();
 			try
 			{
-				path = await Task.Run(() => _favicons.FaviconPathAsync(site));
+				path = await Task.Run(() => _favicons.IconPathAsync(site, feed.IconUrl, feed.Url));
 			}
 			finally
 			{
@@ -1163,11 +1163,18 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>Raised when the reader picks Light, Dark or System.</summary>
 	public event EventHandler? AppearanceChanged;
 
+	/// <summary>Every unread article in the accounts that are on: what the taskbar badge counts, as NetNewsWire's Dock badge does.</summary>
+	public int TotalUnread { get; private set; }
+
+	/// <summary>Raised when the unread total or the Unread Counts preference changes.</summary>
+	public event EventHandler? UnreadBadgeChanged;
+
 	public void SetUnreadCountDisplay(UnreadCountDisplay display)
 	{
 		Settings.UnreadCounts = display;
 		SidebarItem.CountDisplay = display;
 		SaveSettings();
+		UnreadBadgeChanged?.Invoke(this, EventArgs.Empty);
 		foreach (var item in AllSidebarItems())
 		{
 			item.RefreshCountText();
@@ -1210,6 +1217,12 @@ public sealed partial class MainViewModel : ObservableObject
 
 	public bool IsSearching => _searchString is not null;
 
+	/// <summary>
+	/// Nothing in the sidebar that has articles is selected, so the timeline has nothing to show and says so. A group
+	/// heading, like Smart Feeds, has no articles of its own; search results are shown whatever the sidebar has selected.
+	/// </summary>
+	public bool HasNoFeedSelected => !IsSearching && SelectedSidebarItem is null or { IsGroup: true };
+
 	/// <summary>NetNewsWire's window title while searching: "Search: …".</summary>
 	public string WindowTitle => _searchString is { } search ? $"Search: {search}" : "WinNewsReader";
 
@@ -1222,6 +1235,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		_searchString = search;
 		OnPropertyChanged(nameof(IsSearching));
+		OnPropertyChanged(nameof(HasNoFeedSelected));
 		OnPropertyChanged(nameof(WindowTitle));
 		LoadArticles(keepSelection: false);
 	}
@@ -1253,6 +1267,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		OnPropertyChanged(nameof(IsHidingReadArticles));
 		OnPropertyChanged(nameof(CanHideReadArticles));
+		OnPropertyChanged(nameof(HasNoFeedSelected));
 		if (!_rebuildingSidebar)
 		{
 			LoadArticles(keepSelection: false);
@@ -1373,6 +1388,11 @@ public sealed partial class MainViewModel : ObservableObject
 		foreach (var group in SidebarItems)
 		{
 			Update(group);
+		}
+		if (TotalUnread != allUnread)
+		{
+			TotalUnread = allUnread;
+			UnreadBadgeChanged?.Invoke(this, EventArgs.Empty);
 		}
 
 		int Update(SidebarItem item)

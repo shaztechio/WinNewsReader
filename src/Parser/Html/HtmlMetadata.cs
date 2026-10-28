@@ -105,6 +105,50 @@ public sealed class HtmlMetadata
 	/// <summary>The first <c>twitter:image:src</c> meta tag's content.</summary>
 	public string? TwitterImageUrl { get; }
 
+	/// <summary>Addresses that are placeholders, not a site's own image.</summary>
+	private static readonly HashSet<string> BadIconUrls = ["https://s0.wp.com/i/blank.jpg"];
+
+	/// <summary>
+	/// NetNewsWire's <c>bestWebsiteIconURL</c>: the largest Apple touch icon, else the largest Open Graph image, else the
+	/// Twitter card image. Images more than twice as wide as tall are banners, not icons, and are skipped.
+	/// </summary>
+	public string? BestWebsiteIconUrl()
+	{
+		if (LargestAppleTouchIconUrl() is { } appleTouchIcon)
+		{
+			return appleTouchIcon;
+		}
+		if (LargestOpenGraphImageUrl() is { } openGraphImage)
+		{
+			return openGraphImage;
+		}
+		return TwitterImageUrl;
+	}
+
+	public string? LargestAppleTouchIconUrl() =>
+		Largest(AppleTouchIcons.Select(icon => (icon.Width, icon.Height, Url: icon.Url)));
+
+	public string? LargestOpenGraphImageUrl() =>
+		Largest(OpenGraphImages.Select(image => (image.Width, image.Height, Url: image.SecureUrl ?? image.Url))) is { } url && !BadIconUrls.Contains(url) ? url : null;
+
+	/// <summary>The first icon that isn't a banner, replaced by any later one that's larger both ways.</summary>
+	private static string? Largest(IEnumerable<(double Width, double Height, string? Url)> images)
+	{
+		(double Width, double Height, string? Url)? best = null;
+		foreach (var image in images)
+		{
+			if (image.Height > 0 && image.Width / image.Height > 2)
+			{
+				continue;
+			}
+			if (best is null || (image.Height > best.Value.Height && image.Width > best.Value.Width))
+			{
+				best = image;
+			}
+		}
+		return best?.Url;
+	}
+
 	private static List<HtmlMetadataFavicon> ResolveFavicons(IReadOnlyList<HtmlTag> tags, string baseUrl)
 	{
 		var seen = new HashSet<string>();

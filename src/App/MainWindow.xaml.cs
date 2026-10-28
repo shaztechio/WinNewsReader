@@ -28,6 +28,8 @@ public sealed partial class MainWindow : Window
 {
 	private PreferencesWindow? _preferences;
 
+	private readonly TaskbarBadge _badge;
+
 	private readonly DispatcherQueueTimer _refreshTimer;
 	private bool _syncingSelection;
 	private bool _articleViewReady;
@@ -100,6 +102,13 @@ public sealed partial class MainWindow : Window
 		ViewModel.RefreshIntervalChanged += (_, _) => ApplyRefreshInterval();
 		_ = ViewModel.PrepareSearchAsync();
 		_ = ViewModel.RefreshAsync();
+
+		_badge = new TaskbarBadge(this);
+		ViewModel.UnreadBadgeChanged += (_, _) => _badge.Update(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts);
+		// The taskbar button may not exist yet when the first count arrives; trying again as the window comes forward catches it.
+		Activated += (_, _) => _badge.Reapply(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts);
+		Root.Loaded += (_, _) => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+			() => _badge.Update(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts));
 
 		WindowAppearance.Track(this, Root);
 		WindowAppearance.Apply(this, Root, ViewModel.Settings.Appearance);

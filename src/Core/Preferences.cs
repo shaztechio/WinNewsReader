@@ -90,3 +90,25 @@ public static partial class InstalledBrowsers
 	[GeneratedRegex("""^(?:"(?<path>[^"]+\.exe)"|(?<path>.+?\.exe))(?:\s|$)""", RegexOptions.IgnoreCase)]
 	private static partial Regex Program();
 }
+
+/// <summary>What the taskbar badge says, for NetNewsWire's "Unread Counts" preference.</summary>
+public static class UnreadBadge
+{
+	/// <summary>The badge's text for a dot, which the badge draws as a dot rather than as text.</summary>
+	public const string DotText = "●";
+
+	/// <summary>
+	/// The number for Show, past 99 as "99+" since the badge is tiny, a dot for Show dot, and null, meaning no badge,
+	/// for Hide or when nothing is unread.
+	/// </summary>
+	public static string? Text(int unread, UnreadCountDisplay display) => unread <= 0 ? null : display switch
+	{
+		UnreadCountDisplay.Show => unread > 99 ? "99+" : unread.ToString(System.Globalization.CultureInfo.InvariantCulture),
+		UnreadCountDisplay.Dot => DotText,
+		_ => null,
+	};
+
+	/// <summary>What a screen reader says for the badge.</summary>
+	public static string Description(int unread, UnreadCountDisplay display) =>
+		unread <= 0 || display == UnreadCountDisplay.Hide ? "" : unread == 1 ? "1 unread article" : $"{unread:N0} unread articles";
+}
