@@ -62,6 +62,37 @@ public interface IAccount
 /// <summary>A sync account as listed in <c>accounts.json</c>. Its password is in the credential store, not here.</summary>
 public sealed record AccountRecord(string AccountId, AccountKind Kind, string Name, string Endpoint, string Username);
 
+/// <summary>
+/// What makes two accounts the same. NetNewsWire lets accounts share a name but refuses the same service login twice
+/// (<c>duplicateServiceAccount</c>); this also keeps names apart, since the sidebar, Move to and New Feed show only names.
+/// </summary>
+public static class AccountRules
+{
+	/// <summary><paramref name="baseName"/>, or with " 2", " 3" and so on after it, whichever isn't taken yet.</summary>
+	public static string UniqueName(string baseName, IEnumerable<string> existingNames)
+	{
+		var taken = existingNames.Select(Normalized).ToHashSet(StringComparer.OrdinalIgnoreCase);
+		var name = baseName;
+		for (var number = 2; taken.Contains(Normalized(name)); number++)
+		{
+			name = $"{baseName} {number}";
+		}
+		return name;
+	}
+
+	/// <summary>Case and stray spaces don't make a different name.</summary>
+	public static bool NameIsTaken(string name, IEnumerable<string> existingNames) =>
+		existingNames.Any(existing => string.Equals(Normalized(existing), Normalized(name), StringComparison.OrdinalIgnoreCase));
+
+	/// <summary>The account already using this server and username, if any, ignoring <paramref name="exceptAccountId"/> itself.</summary>
+	public static AccountRecord? FindDuplicateLogin(IEnumerable<AccountRecord> accounts, string endpoint, string username, string? exceptAccountId = null) =>
+		accounts.FirstOrDefault(account => account.AccountId != exceptAccountId
+			&& string.Equals(account.Endpoint.TrimEnd('/'), endpoint.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
+			&& string.Equals(account.Username.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
+
+	private static string Normalized(string name) => name.Trim();
+}
+
 /// <summary>The list of sync accounts. The local account is always there and isn't listed.</summary>
 public static class AccountsFile
 {

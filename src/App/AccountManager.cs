@@ -35,11 +35,14 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 	public async Task<IAccount> AddFreshRssAccountAsync(string serverUrl, string username, string password, CancellationToken cancellationToken = default)
 	{
 		var endpoint = ReaderApiCaller.NormalizedEndpoint(serverUrl);
+		RejectDuplicateLogin(endpoint, username, exceptAccountId: null);
 		using (var check = new ReaderApiCaller(endpoint, username, password))
 		{
 			await check.LoginAsync(cancellationToken);
 		}
-		var record = new AccountRecord(Guid.NewGuid().ToString("N"), AccountKind.FreshRss, "FreshRSS", endpoint, username);
+		// A second FreshRSS account is "FreshRSS 2", so the two can be told apart.
+		var name = AccountRules.UniqueName("FreshRSS", _accounts.Select(account => account.Name));
+		var record = new AccountRecord(Guid.NewGuid().ToString("N"), AccountKind.FreshRss, name, endpoint, username);
 		credentials.SetSecret(CredentialTarget(record.AccountId), username, password);
 		AccountsFile.Save(AccountsPath, [.. AccountsFile.Load(AccountsPath), record]);
 		var account = OpenSyncAccount(record, password);
@@ -57,6 +60,11 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 		var endpoint = ReaderApiCaller.NormalizedEndpoint(serverUrl);
 		var target = CredentialTarget(account.AccountId);
 		var current = account.Record;
+		if (AccountRules.NameIsTaken(name, _accounts.Where(other => other.AccountId != account.AccountId).Select(other => other.Name)))
+		{
+			throw new InvalidOperationException($"There’s already an account named “{name}”. Choose a different name.");
+		}
+		RejectDuplicateLogin(endpoint, username, account.AccountId);
 		var secret = password.Length > 0 ? password : credentials.GetSecret(target) ?? "";
 		var loginChanged = password.Length > 0 || endpoint != current.Endpoint || username != current.Username;
 		if (loginChanged)
@@ -71,6 +79,15 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 		}
 		AccountsFile.Save(AccountsPath, AccountsFile.Load(AccountsPath).Select(saved => saved.AccountId == record.AccountId ? record : saved));
 		await account.ReconfigureAsync(record, new ReaderApiCaller(endpoint, username, secret), cancellationToken);
+	}
+
+	/// <summary>NetNewsWire's <c>duplicateServiceAccount</c>: the same server and username can't be two accounts.</summary>
+	private void RejectDuplicateLogin(string endpoint, string username, string? exceptAccountId)
+	{
+		if (AccountRules.FindDuplicateLogin(_accounts.OfType<ReaderApiAccount>().Select(account => account.Record), endpoint, username, exceptAccountId) is { } existing)
+		{
+			throw new InvalidOperationException($"You already have an account for “{username}” on {new Uri(endpoint).Host}: “{existing.Name}”.");
+		}
 	}
 
 	/// <summary>Removes a sync account and its local copy of the data. Nothing changes on the server.</summary>
