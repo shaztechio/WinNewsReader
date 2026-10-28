@@ -35,6 +35,8 @@ public sealed partial class MainWindow : Window
 
 	private DispatcherQueueTimer? _searchTimer;
 
+	private double _sidebarWidthBeforeHiding = 250;
+
 	/// <summary>Navigations the app started and hasn't seen begin yet; the article pane allows only those.</summary>
 	private int _pendingArticleNavigations;
 
@@ -53,6 +55,10 @@ public sealed partial class MainWindow : Window
 		InitializeComponent();
 
 		RestorePlacement(ViewModel.Settings.Window);
+		if (ViewModel.Settings.SidebarHidden)
+		{
+			ShowSidebar(false);
+		}
 		AppWindow.Changed += (_, args) =>
 		{
 			// Remember the normal bounds, so a window closed while maximized un-maximizes to the right place.
@@ -74,7 +80,7 @@ public sealed partial class MainWindow : Window
 		Closed += (_, _) => ViewModel.SaveState(new WindowPlacement(
 			_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height,
 			AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized },
-			SidebarColumn.ActualWidth, TimelineColumn.ActualWidth));
+			ViewModel.Settings.SidebarHidden ? _sidebarWidthBeforeHiding : SidebarColumn.ActualWidth, TimelineColumn.ActualWidth));
 		AddShortcuts();
 		_ = InitializeArticleViewAsync();
 
@@ -115,6 +121,7 @@ public sealed partial class MainWindow : Window
 			presenter.Maximize();
 		}
 		SidebarColumn.Width = new GridLength(Math.Clamp(placement.SidebarWidth, SidebarSplitter.MinimumWidth, SidebarSplitter.MaximumWidth));
+		_sidebarWidthBeforeHiding = SidebarColumn.Width.Value;
 		TimelineColumn.Width = new GridLength(Math.Clamp(placement.TimelineWidth, TimelineSplitter.MinimumWidth, TimelineSplitter.MaximumWidth));
 	}
 
@@ -467,10 +474,16 @@ public sealed partial class MainWindow : Window
 
 	private void OnToggleArticleJavaScript(object sender, RoutedEventArgs e) => ViewModel.SetArticleJavaScriptEnabled(!ViewModel.IsArticleJavaScriptEnabled);
 
-	/// <summary>The themes, with the current one checked, then the themes folder, where the reader adds .nnwtheme folders.</summary>
-	private void OnThemeMenuOpening(object? sender, object e)
+	/// <summary>Fills the New menu's Article Theme and Text Size submenus, which change as themes come and go.</summary>
+	private void OnNewMenuOpening(object? sender, object e)
 	{
-		var menu = (MenuFlyout)sender!;
+		FillThemeMenu(ThemeMenu);
+		FillTextSizeMenu(TextSizeMenu);
+	}
+
+	/// <summary>The themes, with the current one checked, then the themes folder, where the reader adds .nnwtheme folders.</summary>
+	private void FillThemeMenu(MenuFlyoutSubItem menu)
+	{
 		menu.Items.Clear();
 		ViewModel.Themes.Reload();
 		var current = ViewModel.CurrentTheme.Name;
@@ -576,9 +589,8 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	private void OnTextSizeMenuOpening(object? sender, object e)
+	private void FillTextSizeMenu(MenuFlyoutSubItem menu)
 	{
-		var menu = (MenuFlyout)sender!;
 		menu.Items.Clear();
 		foreach (var (size, name) in new[]
 		{
@@ -596,6 +608,55 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnToggleRead(object sender, RoutedEventArgs e) => ViewModel.ToggleRead();
+
+	private void OnToggleSidebar(object sender, RoutedEventArgs e) => ToggleSidebar();
+
+	/// <summary>
+	/// NetNewsWire's Toggle Sidebar. The sidebar's toolbar buttons stay in reach by moving over the timeline, as the
+	/// Mac's toolbar does when the sidebar collapses.
+	/// </summary>
+	private void ToggleSidebar() => ShowSidebar(ViewModel.Settings.SidebarHidden);
+
+	private void ShowSidebar(bool show)
+	{
+		if (show)
+		{
+			SidebarColumn.Width = new GridLength(Math.Max(_sidebarWidthBeforeHiding, SidebarSplitter.MinimumWidth));
+		}
+		else if (SidebarColumn.ActualWidth > 0)
+		{
+			_sidebarWidthBeforeHiding = SidebarColumn.ActualWidth;
+			SidebarColumn.Width = new GridLength(0);
+		}
+		Sidebar.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+		SidebarSplitter.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+		Grid.SetColumn(SidebarToolbar, show ? 0 : 2);
+		if (ViewModel.Settings.SidebarHidden == show)
+		{
+			ViewModel.Settings.SidebarHidden = !show;
+			ViewModel.SaveSettings();
+		}
+	}
+
+	/// <summary>Shares the article's link and title through Windows' share sheet, in place of NetNewsWire's sharing services.</summary>
+	private void OnShare(object sender, RoutedEventArgs e)
+	{
+		if (ViewModel.SelectedArticle is not { LinkUrl: { } link } article || !Uri.TryCreate(link, UriKind.Absolute, out var uri))
+		{
+			return;
+		}
+		var window = WinRT.Interop.WindowNative.GetWindowHandle(this);
+		var manager = DataTransferManagerInterop.GetForWindow(window);
+		void OnDataRequested(DataTransferManager sender, DataRequestedEventArgs args)
+		{
+			sender.DataRequested -= OnDataRequested;
+			args.Request.Data.Properties.Title = article.Title is { Length: > 0 } title ? title : link;
+			args.Request.Data.SetWebLink(uri);
+			args.Request.Data.SetText(link);
+		}
+		manager.DataRequested += OnDataRequested;
+		DataTransferManagerInterop.ShowShareUIForWindow(window);
+	}
 
 	private void OnToggleStarred(object sender, RoutedEventArgs e) => ViewModel.ToggleStarred();
 
@@ -1178,6 +1239,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.R, CtrlShift, null, () => ViewModel.ToggleReaderView());
 		Add(VirtualKey.I, Ctrl, null, () => _ = ShowInspectorAsync(null));
 		Add(VirtualKey.F, CtrlAlt, null, () => SearchBox.Focus(FocusState.Keyboard));
+		Add(VirtualKey.S, CtrlAlt, null, ToggleSidebar);
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));

@@ -19,6 +19,9 @@ public sealed class AppSettings
 
 	public bool HideReadFeeds { get; set; }
 
+	/// <summary>NetNewsWire's Toggle Sidebar state.</summary>
+	public bool SidebarHidden { get; set; }
+
 	/// <summary>NetNewsWire's "Sort Articles By" setting. Newest first by default.</summary>
 	public bool SortOldestFirst { get; set; }
 

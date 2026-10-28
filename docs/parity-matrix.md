@@ -86,7 +86,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | TB-07 | Star / Unstar | Port | UI: icon flips with selection state |
 | TB-08 | Next Unread | Port | UI: selects next unread across feeds |
 | TB-09 | Reader View (shows extracting progress, failure state) | Port | UI: idle, processing, on, failed states |
-| TB-10 | Share | Drop | macOS sharing service; see SH-01 |
+| TB-10 | Share | Port | Windows' share sheet (`DataTransferManager`) with the article's title and link; see SH-01 |
 | TB-11 | Open in Browser | Port | UI: opens article link |
 | TB-12 | Article Theme menu (optional item) | Port | UI: picking theme re-renders |
 | TB-13 | Search field | Port | UI: typing filters timeline |
@@ -252,7 +252,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | DR-01 | AppleScript dictionary | `Mac/Scripting`, `AppleScript/`, `NetNewsWire.sdef` | macOS only |
 | DR-02 | Safari subscribe extension | `Mac/SafariExtension` | Safari only |
 | DR-03 | Share extension (subscribe from Share menu) | `Mac/ShareExtension` | macOS only |
-| SH-01 | Share via macOS sharing services | `SharingServiceDelegate.swift` | macOS only. Windows Share UI could replace it later |
+| SH-01 | Share via macOS sharing services | `SharingServiceDelegate.swift` | Port | Windows' share sheet in its place: the article's title and link |
 | DR-04 | Send to MarsEdit, Send to Micro.blog | `Shared/ExtensionPoints` | Mac apps |
 | DR-05 | Handoff / NSUserActivity | `Shared/Activity` | Apple only |
 | DR-06 | Spotlight indexing | `Shared/Activity` | Apple only |

@@ -277,7 +277,7 @@ public sealed partial class MainViewModel : ObservableObject
 	public partial SidebarItem? SelectedSidebarItem { get; set; }
 
 	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(HasSelectedArticle), nameof(ReadToggleLabel), nameof(StarToggleLabel))]
+	[NotifyPropertyChangedFor(nameof(HasSelectedArticle), nameof(ReadToggleLabel), nameof(StarToggleLabel), nameof(ReadToggleGlyph), nameof(StarToggleGlyph))]
 	public partial ArticleItem? SelectedArticle { get; set; }
 
 	[ObservableProperty]
@@ -294,6 +294,12 @@ public sealed partial class MainViewModel : ObservableObject
 	public string ReadToggleLabel => SelectedArticle is { IsRead: false } ? "Mark as Read" : "Mark as Unread";
 
 	public string StarToggleLabel => SelectedArticle is { IsStarred: true } ? "Mark as Unstarred" : "Mark as Starred";
+
+	/// <summary>The toolbar's read button shows the article's state, as NetNewsWire's does: a closed envelope while unread.</summary>
+	public string ReadToggleGlyph => SelectedArticle is { IsRead: false } ? "\uE715" : "\uE8C3";
+
+	/// <summary>A filled star while starred.</summary>
+	public string StarToggleGlyph => SelectedArticle is { IsStarred: true } ? "\uE735" : "\uE734";
 
 	/// <summary>Whether the selected row's timeline hides read articles. All Unread always does, so it can't be switched.</summary>
 	public bool IsHidingReadArticles => SelectedSidebarItem is { } item && HidesReadArticles(item);
@@ -570,7 +576,7 @@ public sealed partial class MainViewModel : ObservableObject
 		SaveSettings();
 	}
 
-	private void SaveSettings()
+	public void SaveSettings()
 	{
 		try
 		{
@@ -965,6 +971,8 @@ public sealed partial class MainViewModel : ObservableObject
 	{
 		OnPropertyChanged(nameof(ReadToggleLabel));
 		OnPropertyChanged(nameof(StarToggleLabel));
+		OnPropertyChanged(nameof(ReadToggleGlyph));
+		OnPropertyChanged(nameof(StarToggleGlyph));
 		UpdateUnreadCounts();
 	}
 

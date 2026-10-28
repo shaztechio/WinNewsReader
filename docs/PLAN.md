@@ -148,12 +148,13 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] Move or copy feeds between accounts, by subscribing in the other account (JSON Feeds can't go to FreshRSS, as in NetNewsWire)
   - [x] Inspector (IN-01, IN-03 to IN-06) as a Get Info dialog (Ctrl+I): feed name, home page, feed URL and Always Use Reader View; folder name; smart feed name. Feed rename (SB-11) keeps an edited name, renamed on the server for FreshRSS. New-article notifications (IN-02) wait for notifications
   - [x] Search (TB-13, SF-04): NetNewsWire's full-text index (FTS4 over title, plain-text body and authors, prefix match per word), across every account, in a toolbar box (Ctrl+Alt+F). Search within the current timeline (SF-05, iOS's scope) is left for later
+  - [x] NetNewsWire 7's toolbar layout (TB-01 to TB-13): three groups over the three panes, Toggle Sidebar (Ctrl+Alt+S), Hide Read Feeds, a +▾ menu with New and the view settings, and Share through Windows' share sheet (SH-01)
   - [ ] Dragging URLs and folders, inline rename, undo, preferences, multiple windows
 - [x] Phase 3: article view
   - [x] NetNewsWire's template, core and stylesheet CSS, page scripts and special cases (AV-01), its eight bundled themes (AV-02), Open Themes Folder (AV-05), article text size; feed icons in the article header
   - [x] Reader View (AV-08, TB-09): SmartReader extracts the article from its page, on demand (Ctrl+Shift+R) or always for a feed set to Always Use Reader View
   - [x] Theme import (AV-03) and download from a URL (AV-04): **Install Theme…** takes a zip or a theme's `Info.plist`, since a `.nnwtheme` is a folder on Windows and can't be double-clicked; **Install Theme from URL…** downloads a zip. Same checks and prompts as NetNewsWire. The `netnewswire://theme/add?url=` link waits for a URL scheme registration
-  - [x] Enable JavaScript (AV-07) in the … menu, on by default, applied per article as NetNewsWire does; always off for sites that break with it (slashdot.org). The app's own page scripts run either way
+  - [x] Enable JavaScript (AV-07) in the +▾ menu, on by default, applied per article as NetNewsWire does; always off for sites that break with it (slashdot.org). The app's own page scripts run either way
 - [ ] Phase 4, started early: FreshRSS
   - [x] Account layer (several accounts, one store each), sync status queue, Credential Manager
   - [x] Reader API client and account: feeds, folders, articles and statuses both ways; subscribe, unsubscribe, rename and delete folders
