@@ -25,9 +25,10 @@
 
   <ItemGroup>
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The icon Windows shows on the app's notifications. -->
+    <Content Include="Assets\AppIcon.png" CopyToOutputDirectory="PreserveNewest" />
     <!-- NetNewsWire's first-run feeds, from Shared/Importers/DefaultFeeds.opml (MIT). -->
     <Content Include="Assets\DefaultFeeds.opml" CopyToOutputDirectory="PreserveNewest" />
-    <None Remove="Assets\AppIcon.png" />
   </ItemGroup>
 
   <ItemGroup>

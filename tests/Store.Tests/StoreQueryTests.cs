@@ -98,6 +98,31 @@ public sealed class StoreQueryTests : IDisposable
 		Assert.False(counts.ContainsKey(FeedC));
 	}
 
+	[Fact]
+	public void NewArticlesAndStatusChangesAreAnnounced()
+	{
+		var added = new List<ArticlesAddedEventArgs>();
+		var changed = new List<StatusesChangedEventArgs>();
+		_store.ArticlesAdded += (_, e) => added.Add(e);
+		_store.StatusesChanged += (_, e) => changed.Add(e);
+
+		_store.UpsertArticles(FeedA, [Item("a"), Item("b")]);
+		_store.UpsertArticles(FeedA, [Item("a"), Item("b"), Item("c")]);
+		_store.UpsertArticles(FeedA, [Item("a")]);
+
+		Assert.Equal([2, 1], added.Select(e => e.ArticleIds.Count));
+		Assert.All(added, e => Assert.Equal(FeedA, e.FeedId));
+		var ids = _store.GetArticles(FeedA).ToDictionary(a => a.UniqueId, a => a.ArticleId);
+		Assert.Equal(ids["c"], Assert.Single(added[1].ArticleIds));
+
+		_store.SetStatuses([ids["a"], ids["b"]], StatusKey.Read, true);
+		_store.SetStatuses([ids["a"]], StatusKey.Read, true);
+
+		var change = Assert.Single(changed);
+		Assert.Equal(new[] { ids["a"], ids["b"] }.Order(), change.ArticleIds.Order());
+		Assert.Equal((StatusKey.Read, true), (change.Key, change.Flag));
+	}
+
 	private static ParsedItem Item(string uniqueId, DateTimeOffset? datePublished = default) =>
 		new() { FeedUrl = "", UniqueId = uniqueId, Title = uniqueId, DatePublished = datePublished };
 }

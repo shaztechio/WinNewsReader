@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using WinNewsReader.App.ViewModels;
 using WinNewsReader.Core;
@@ -47,13 +48,40 @@ public partial class App : Application
 		AddDefaultFeedsOnFirstLaunch(accounts.LocalAccount, settings, settingsPath);
 		// NetNewsWire's themes ship with the app; the reader's own go in the Themes folder.
 		var themes = new ArticleThemes(Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources"), Path.Combine(DataDirectory, "Themes"));
-		_window = new MainWindow(new MainViewModel(accounts, favicons, themes, new ArticleThemeInstaller(themes, downloader), new ArticleExtractor(downloader), settings, settingsPath));
+		var viewModel = new MainViewModel(accounts, favicons, themes, new ArticleThemeInstaller(themes, downloader), new ArticleExtractor(downloader), settings, settingsPath);
+		_window = new MainWindow(viewModel);
+		StartNotifications(viewModel, _window);
 		_window.Closed += (_, _) =>
 		{
 			accounts.Dispose();
 			downloader.Dispose();
 		};
 		_window.Activate();
+	}
+
+	/// <summary>New-article notifications, cleared when the window closes, since their buttons work only while it's open.</summary>
+	private static void StartNotifications(MainViewModel viewModel, MainWindow window)
+	{
+		var notifications = new NewArticleNotifications(viewModel, window.DispatcherQueue);
+		notifications.Invoked += (action, accountId, articleId) =>
+		{
+			viewModel.HandleNotification(action, accountId, articleId);
+			if (action == NotificationAction.Open)
+			{
+				window.BringToFront();
+			}
+		};
+		viewModel.AccountAdded += (_, _) => notifications.WatchAccounts();
+		try
+		{
+			notifications.Start();
+		}
+		catch (Exception ex) when (ex is COMException or UnauthorizedAccessException)
+		{
+			// Notifications are a nicety; the reader works without them.
+			return;
+		}
+		window.Closed += (_, _) => notifications.Stop();
 	}
 
 	/// <summary>

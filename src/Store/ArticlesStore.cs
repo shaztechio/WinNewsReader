@@ -20,6 +20,12 @@ public enum StatusKey
 /// <summary>A local status change waiting to be sent to a sync service: NetNewsWire's <c>SyncStatus</c>.</summary>
 public sealed record SyncStatus(string ArticleId, StatusKey Key, bool Flag);
 
+/// <summary>Articles a feed's refresh stored for the first time: NetNewsWire's <c>AccountDidDownloadArticles</c> new articles.</summary>
+public sealed record ArticlesAddedEventArgs(string FeedId, IReadOnlyList<string> ArticleIds);
+
+/// <summary>Articles whose read or starred status changed: NetNewsWire's <c>StatusesDidChange</c>.</summary>
+public sealed record StatusesChangedEventArgs(IReadOnlySet<string> ArticleIds, StatusKey Key, bool Flag);
+
 /// <summary>A folder. As in NetNewsWire, folders are one level deep and hold only feeds.</summary>
 public sealed record StoredFolder(long FolderId, string Name);
 
@@ -363,20 +369,29 @@ public sealed class ArticlesStore : IDisposable
 	/// Inserts new articles as unread and updates changed ones. Articles missing from the feed are kept.
 	/// Returns the number of new articles.
 	/// </summary>
+	/// <summary>Raised after new articles are saved, on the thread that saved them.</summary>
+	public event EventHandler<ArticlesAddedEventArgs>? ArticlesAdded;
+
+	/// <summary>Raised after read or starred statuses change, on the thread that changed them.</summary>
+	public event EventHandler<StatusesChangedEventArgs>? StatusesChanged;
+
 	public int UpsertArticles(string feedId, IEnumerable<ParsedItem> items, bool defaultRead = false)
 	{
+		var added = new List<string>();
 		lock (_lock)
 		{
 			using var transaction = _connection.BeginTransaction();
 			var now = Now();
-			var newCount = 0;
 			foreach (var item in items)
 			{
 				// Sync services name their own articles, as in NetNewsWire.
 				var articleId = item.SyncServiceId ?? CalculatedArticleId(feedId, item.UniqueId);
 				using (var exists = Command("SELECT EXISTS (SELECT 1 FROM articles WHERE articleID = $id)", ("$id", articleId)))
 				{
-					newCount += Convert.ToInt32(exists.ExecuteScalar()) == 0 ? 1 : 0;
+					if (Convert.ToInt32(exists.ExecuteScalar()) == 0)
+					{
+						added.Add(articleId);
+					}
 				}
 				Execute(
 					"""
@@ -402,8 +417,12 @@ public sealed class ArticlesStore : IDisposable
 			}
 			IndexUnindexedArticles();
 			transaction.Commit();
-			return newCount;
 		}
+		if (added.Count > 0)
+		{
+			ArticlesAdded?.Invoke(this, new ArticlesAddedEventArgs(feedId, added));
+		}
+		return added.Count;
 	}
 
 	/// <summary>
@@ -553,11 +572,11 @@ public sealed class ArticlesStore : IDisposable
 	public IReadOnlySet<string> SetStatuses(IEnumerable<string> articleIds, StatusKey key, bool flag)
 	{
 		var column = key == StatusKey.Read ? "read" : "starred";
+		var changed = new HashSet<string>();
 		lock (_lock)
 		{
 			using var transaction = _connection.BeginTransaction();
 			var now = Now();
-			var changed = new HashSet<string>();
 			foreach (var id in articleIds)
 			{
 				Execute("INSERT OR IGNORE INTO statuses (articleID, read, starred, dateArrived) VALUES ($id, 0, 0, $now)", ("$id", id), ("$now", now));
@@ -567,8 +586,12 @@ public sealed class ArticlesStore : IDisposable
 				}
 			}
 			transaction.Commit();
-			return changed;
 		}
+		if (changed.Count > 0)
+		{
+			StatusesChanged?.Invoke(this, new StatusesChangedEventArgs(changed, key, flag));
+		}
+		return changed;
 	}
 
 	/// <summary>IDs with read or starred set to <paramref name="flag"/>, including statuses whose articles aren't downloaded.</summary>

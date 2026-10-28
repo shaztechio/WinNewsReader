@@ -35,6 +35,16 @@ public sealed partial class MainWindow : Window
 
 	private DispatcherQueueTimer? _searchTimer;
 
+	/// <summary>For a notification click: the window comes forward, unminimized.</summary>
+	public void BringToFront()
+	{
+		if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
+		{
+			presenter.Restore();
+		}
+		Activate();
+	}
+
 	private double _sidebarWidthBeforeHiding = 250;
 
 	/// <summary>Navigations the app started and hasn't seen begin yet; the article pane allows only those.</summary>
@@ -643,7 +653,9 @@ public sealed partial class MainWindow : Window
 		}
 		Sidebar.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
 		SidebarSplitter.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+		// Over the timeline, the group sits at the left, its buttons together, clear of the timeline's own.
 		Grid.SetColumn(SidebarToolbar, show ? 0 : 2);
+		SidebarToolbar.HorizontalAlignment = show ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
 		if (ViewModel.Settings.SidebarHidden == show)
 		{
 			ViewModel.Settings.SidebarHidden = !show;
@@ -702,6 +714,9 @@ public sealed partial class MainWindow : Window
 			menu.Items.Add(MenuItem("Copy Feed URL", () => CopyToClipboard(feed.Url)));
 			menu.Items.Add(MenuItem("Copy Home Page URL", () => CopyToClipboard(feed.HomePageUrl), feed.HomePageUrl is not null));
 			menu.Items.Add(new MenuFlyoutSeparator());
+			var notifications = new ToggleMenuFlyoutItem { Text = "Show Notifications for New Articles", IsChecked = ViewModel.IsNotifyingNewArticles(item) };
+			notifications.Click += (_, _) => ViewModel.SetNotifiesNewArticles(item, notifications.IsChecked);
+			menu.Items.Add(notifications);
 			var readerView = new ToggleMenuFlyoutItem { Text = "Always Use Reader View", IsChecked = ViewModel.IsReaderViewAlwaysOn(item) };
 			readerView.Click += (_, _) => ViewModel.SetReaderViewAlwaysOn(item, readerView.IsChecked);
 			menu.Items.Add(readerView);
@@ -890,6 +905,7 @@ public sealed partial class MainWindow : Window
 		var panel = new StackPanel { Spacing = 12, Width = 420 };
 		TextBox? nameBox = null;
 		CheckBox? readerView = null;
+		CheckBox? notifications = null;
 		string title;
 		if (item is null or { Kind: SidebarItemKind.SmartFeedsGroup or SidebarItemKind.AccountGroup })
 		{
@@ -924,6 +940,8 @@ public sealed partial class MainWindow : Window
 				title = "Feed Inspector";
 				panel.Children.Add(Field("Home Page", inspected.HomePageUrl));
 				panel.Children.Add(Field("Feed", inspected.Url));
+				notifications = new CheckBox { Content = "Show Notifications for New Articles", IsChecked = ViewModel.IsNotifyingNewArticles(item) };
+				panel.Children.Add(notifications);
 				readerView = new CheckBox { Content = "Always Use Reader View", IsChecked = ViewModel.IsReaderViewAlwaysOn(item) };
 				panel.Children.Add(readerView);
 			}
@@ -951,6 +969,10 @@ public sealed partial class MainWindow : Window
 		if (readerView is not null)
 		{
 			ViewModel.SetReaderViewAlwaysOn(item, readerView.IsChecked == true);
+		}
+		if (notifications is not null)
+		{
+			ViewModel.SetNotifiesNewArticles(item, notifications.IsChecked == true);
 		}
 		if (nameBox is { Text: var newName } && newName.Trim().Length > 0 && newName.Trim() != item.Title)
 		{

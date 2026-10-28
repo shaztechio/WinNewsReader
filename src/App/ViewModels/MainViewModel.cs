@@ -188,6 +188,62 @@ public sealed partial class MainViewModel : ObservableObject
 
 	private static string ReaderViewKey(IAccount account, string feedId) => $"{account.AccountId}|{feedId}";
 
+	// NetNewsWire's per-feed "Show Notifications for New Articles" (newArticleNotificationsEnabled).
+
+	public bool NotifiesNewArticles(IAccount account, string feedId) => Settings.NotificationFeedKeys.Contains(ReaderViewKey(account, feedId));
+
+	public bool IsNotifyingNewArticles(SidebarItem feedItem) => NotifiesNewArticles(feedItem.Account!, feedItem.Feed!.FeedId);
+
+	public void SetNotifiesNewArticles(SidebarItem feedItem, bool on)
+	{
+		var key = ReaderViewKey(feedItem.Account!, feedItem.Feed!.FeedId);
+		if (on ? Settings.NotificationFeedKeys.Add(key) : Settings.NotificationFeedKeys.Remove(key))
+		{
+			SaveSettings();
+		}
+	}
+
+	/// <summary>The feed's cached icon file, if it's a kind a notification can show.</summary>
+	public string? IconPath(IAccount account, string feedId) =>
+		_iconPaths.GetValueOrDefault(IconKey(account, feedId)) is { } path
+		&& Path.GetExtension(path).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".gif" ? path : null;
+
+	/// <summary>
+	/// A notification's Open, Mark as Read or Mark as Starred. Open selects the article in its feed, as NetNewsWire does.
+	/// </summary>
+	public void HandleNotification(NotificationAction action, string accountId, string articleId)
+	{
+		if (Accounts.FirstOrDefault(account => account.AccountId == accountId) is not { } account
+			|| account.Store.GetArticle(articleId) is not { } article)
+		{
+			return;
+		}
+		switch (action)
+		{
+			case NotificationAction.MarkRead:
+				account.SetArticleStatus([articleId], StatusKey.Read, true);
+				break;
+			case NotificationAction.MarkStarred:
+				account.SetArticleStatus([articleId], StatusKey.Starred, true);
+				break;
+			default:
+				EndSearch();
+				if (AllSidebarItems().FirstOrDefault(item => item.Account == account && item.Feed?.FeedId == article.FeedId) is { } feedRow)
+				{
+					SelectedSidebarItem = feedRow;
+				}
+				SelectedArticle = Articles.FirstOrDefault(item => item.Account == account && item.ArticleId == articleId);
+				return;
+		}
+		// The timeline and counts follow the status the notification changed.
+		if (Articles.FirstOrDefault(item => item.Account == account && item.ArticleId == articleId) is { } shown)
+		{
+			shown.IsRead = account.Store.GetArticle(articleId)?.Read ?? shown.IsRead;
+			shown.IsStarred = account.Store.GetArticle(articleId)?.Starred ?? shown.IsStarred;
+		}
+		ArticleStatusChanged();
+	}
+
 	private async Task ExtractAsync(ArticleItem article)
 	{
 		CancelExtraction();
@@ -496,10 +552,14 @@ public sealed partial class MainViewModel : ObservableObject
 	public async Task AddFreshRssAccountAsync(string serverUrl, string username, string password)
 	{
 		var account = await _accounts.AddFreshRssAccountAsync(serverUrl, username, password);
+		AccountAdded?.Invoke(this, EventArgs.Empty);
 		_expandedKeys.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "", [], account).Key);
 		LoadSidebar();
 		_ = RefreshAsync();
 	}
+
+	/// <summary>Raised when a sync account is added, before its first refresh.</summary>
+	public event EventHandler? AccountAdded;
 
 	/// <summary>Removes a sync account and its local copy; nothing changes on the server.</summary>
 	public void RemoveAccount(IAccount account)

@@ -31,6 +31,9 @@ public sealed class AppSettings
 	/// <summary>NetNewsWire's "Enable JavaScript" preference for article content. On by default.</summary>
 	public bool ArticleContentJavaScriptEnabled { get; set; } = true;
 
+	/// <summary>Feeds with NetNewsWire's "Show Notifications for New Articles" on, as <c>accountID|feedID</c>.</summary>
+	public HashSet<string> NotificationFeedKeys { get; set; } = [];
+
 	/// <summary>Feeds with NetNewsWire's "Always Use Reader View" on, as <c>accountID|feedID</c>.</summary>
 	public HashSet<string> ReaderViewFeedKeys { get; set; } = [];
 

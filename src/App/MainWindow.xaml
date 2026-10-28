@@ -55,64 +55,68 @@
                 <ColumnDefinition Width="*" MinWidth="300" />
             </Grid.ColumnDefinitions>
 
-            <!-- NetNewsWire 7's toolbar sits over the three panes. Over the sidebar: Toggle Sidebar, Refresh, Hide Read
-                 Feeds and the New menu, which here also holds the View menu's items until the app has a menu bar. While the sidebar
-                 is hidden, this group moves over the timeline. -->
-            <StackPanel x:Name="SidebarToolbar" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="2" Padding="8,6,8,6"
-                        HorizontalAlignment="Left" VerticalAlignment="Center">
+            <!-- NetNewsWire 7's toolbar sits over the three panes. Over the sidebar: Toggle Sidebar on the left, and
+                 Refresh and the New menu on the right; the New menu also holds the View and Help menus' items until the
+                 app has a menu bar. While the sidebar is hidden, this group moves over the timeline. -->
+            <Grid x:Name="SidebarToolbar" Grid.Row="0" Grid.Column="0" Padding="8,6,8,6" ColumnSpacing="2"
+                  HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleSidebar"
                         ToolTipService.ToolTip="Toggle Sidebar (Ctrl+Alt+S)" AutomationProperties.Name="Toggle Sidebar">
                     <FontIcon Glyph="&#xE8A0;" FontSize="16" />
                 </Button>
-                <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnRefresh" IsEnabled="{x:Bind ViewModel.IsNotRefreshing, Mode=OneWay}"
-                        ToolTipService.ToolTip="Refresh (Ctrl+R)" AutomationProperties.Name="Refresh">
-                    <FontIcon Glyph="&#xE72C;" FontSize="16" />
-                </Button>
-                <ToggleButton Style="{StaticResource ToolbarToggleButtonStyle}" Click="OnToggleHideReadFeeds"
-                              IsChecked="{x:Bind ViewModel.HideReadFeeds, Mode=OneWay}"
-                              ToolTipService.ToolTip="Hide Read Feeds (Ctrl+Shift+F)" AutomationProperties.Name="Hide Read Feeds">
-                    <FontIcon Glyph="&#xE71C;" FontSize="16" />
-                </ToggleButton>
-                <Button Style="{StaticResource ToolbarButtonStyle}" ToolTipService.ToolTip="New and View Options" AutomationProperties.Name="New">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <FontIcon Glyph="&#xE710;" FontSize="16" />
-                        <FontIcon Glyph="&#xE70D;" FontSize="8" />
-                    </StackPanel>
-                    <Button.Flyout>
-                        <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="OnNewMenuOpening">
-                            <!-- The shortcuts themselves are registered on the window, so they work with the menu closed. -->
-                            <MenuFlyoutItem Text="New Feed…" Click="OnNewFeed" KeyboardAcceleratorTextOverride="Ctrl+N" />
-                            <MenuFlyoutItem Text="New Folder…" Click="OnNewFolder" KeyboardAcceleratorTextOverride="Ctrl+Shift+N" />
-                            <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
-                            <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
-                            <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="Add FreshRSS Account…" Click="OnAddFreshRssAccount" />
-                            <MenuFlyoutSeparator />
-                            <RadioMenuFlyoutItem Text="Newest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
-                            <RadioMenuFlyoutItem Text="Oldest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
-                            <MenuFlyoutItem Text="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
-                                            IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
-                            <MenuFlyoutSeparator />
-                            <!-- NetNewsWire's View > Article Theme menu, and the article text size and JavaScript from its preferences. -->
-                            <MenuFlyoutSubItem x:Name="ThemeMenu" Text="Article Theme" />
-                            <MenuFlyoutSubItem x:Name="TextSizeMenu" Text="Text Size" />
-                            <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
-                                                  Click="OnToggleArticleJavaScript" />
-                            <MenuFlyoutSeparator />
-                            <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
-                            <MenuFlyoutSubItem Text="Help">
-                                <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />
-                                <MenuFlyoutItem Text="Keyboard Shortcuts" Click="OnKeyboardShortcutsHelp" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+                    <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnRefresh" IsEnabled="{x:Bind ViewModel.IsNotRefreshing, Mode=OneWay}"
+                            ToolTipService.ToolTip="Refresh (Ctrl+R)" AutomationProperties.Name="Refresh">
+                        <FontIcon Glyph="&#xE72C;" FontSize="16" />
+                    </Button>
+                    <Button Style="{StaticResource ToolbarButtonStyle}" ToolTipService.ToolTip="New and View Options" AutomationProperties.Name="New">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <FontIcon Glyph="&#xE710;" FontSize="16" />
+                            <FontIcon Glyph="&#xE70D;" FontSize="8" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="OnNewMenuOpening">
+                                <!-- The shortcuts themselves are registered on the window, so they work with the menu closed. -->
+                                <MenuFlyoutItem Text="New Feed…" Click="OnNewFeed" KeyboardAcceleratorTextOverride="Ctrl+N" />
+                                <MenuFlyoutItem Text="New Folder…" Click="OnNewFolder" KeyboardAcceleratorTextOverride="Ctrl+Shift+N" />
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="Website" Click="OnWebsite" />
-                                <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
-                                <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
-                            </MenuFlyoutSubItem>
-                        </MenuFlyout>
-                    </Button.Flyout>
-                </Button>
-            </StackPanel>
+                                <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
+                                <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Add FreshRSS Account…" Click="OnAddFreshRssAccount" />
+                                <MenuFlyoutSeparator />
+                                <ToggleMenuFlyoutItem Text="Hide Read Feeds" KeyboardAcceleratorTextOverride="Ctrl+Shift+F"
+                                                      IsChecked="{x:Bind ViewModel.HideReadFeeds, Mode=OneWay}" Click="OnToggleHideReadFeeds" />
+                                <RadioMenuFlyoutItem Text="Newest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
+                                <RadioMenuFlyoutItem Text="Oldest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
+                                <MenuFlyoutItem Text="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
+                                                IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
+                                <MenuFlyoutSeparator />
+                                <!-- NetNewsWire's View > Article Theme menu, and the article text size and JavaScript from its preferences. -->
+                                <MenuFlyoutSubItem x:Name="ThemeMenu" Text="Article Theme" />
+                                <MenuFlyoutSubItem x:Name="TextSizeMenu" Text="Text Size" />
+                                <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
+                                                      Click="OnToggleArticleJavaScript" />
+                                <MenuFlyoutSeparator />
+                                <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
+                                <MenuFlyoutSubItem Text="Help">
+                                    <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />
+                                    <MenuFlyoutItem Text="Keyboard Shortcuts" Click="OnKeyboardShortcutsHelp" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="Website" Click="OnWebsite" />
+                                    <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
+                                    <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
+                                </MenuFlyoutSubItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+            </Grid>
 
             <!-- Over the timeline: Mark All as Read and Hide Read Articles. -->
             <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="2" Padding="8,6,8,6"
@@ -128,12 +132,11 @@
                 </ToggleButton>
             </StackPanel>
 
-            <!-- Over the article: Mark Read, Star, Next Unread, Reader View, Share, Open in Browser, then Search and Help. -->
+            <!-- Over the article: Mark Read, Star, Next Unread, Reader View, Share, Open in Browser, then Search. -->
             <Grid Grid.Row="0" Grid.Column="4" Padding="8,6,12,6" ColumnSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                     <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnToggleRead" IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}"
@@ -167,10 +170,6 @@
                          PlaceholderText="Search (Ctrl+Alt+F)" AutomationProperties.Name="Search Articles"
                          Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
-                <Button Grid.Column="2" Style="{StaticResource ToolbarButtonStyle}" Click="OnHelp" VerticalAlignment="Center"
-                        ToolTipService.ToolTip="WinNewsReader Help (F1)" AutomationProperties.Name="Help">
-                    <FontIcon Glyph="&#xE897;" FontSize="16" />
-                </Button>
             </Grid>
 
             <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"

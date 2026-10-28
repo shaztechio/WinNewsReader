@@ -181,7 +181,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | ID | Feature | Decision | Test / reason |
 | --- | --- | --- | --- |
 | IN-01 | Feed: name (editable), home page, feed URL | Port | UI: rename persists |
-| IN-02 | Feed: show notifications for new articles | Port | UI: toggle matches context menu |
+| IN-02 | Feed: show notifications for new articles | Port | Windows toasts; toggle matches context menu |
 | IN-03 | Feed: always use Reader View | Port | UI: toggle matches context menu |
 | IN-04 | Folder: name | Port | UI |
 | IN-05 | Smart feed: name | Port | UI |
