@@ -97,7 +97,10 @@ public sealed class ArticleTheme
 	internal static Dictionary<string, string> ReadPlist(string path)
 	{
 		var values = new Dictionary<string, string>();
-		var dict = XDocument.Load(path).Root?.Element("dict") ?? throw new InvalidDataException($"{path} has no dictionary.");
+		// Plists start with a DOCTYPE; skip it rather than process it, so no entity expansion or external fetch.
+		var settings = new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Ignore, XmlResolver = null, MaxCharactersInDocument = 1_000_000 };
+		using var reader = System.Xml.XmlReader.Create(path, settings);
+		var dict = XDocument.Load(reader).Root?.Element("dict") ?? throw new InvalidDataException($"{path} has no dictionary.");
 		string? key = null;
 		foreach (var element in dict.Elements())
 		{

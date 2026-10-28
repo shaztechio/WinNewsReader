@@ -31,6 +31,15 @@ public sealed partial class MainWindow : Window
 	private readonly DispatcherQueueTimer _refreshTimer;
 	private bool _syncingSelection;
 	private bool _articleViewReady;
+
+	/// <summary>Navigations the app started and hasn't seen begin yet; the article pane allows only those.</summary>
+	private int _pendingArticleNavigations;
+
+	/// <summary>
+	/// Proves a key message came from <see cref="ArticleKeysScript"/>, which keeps it out of reach of article and theme
+	/// scripts, rather than from one of them posting a shortcut of their own.
+	/// </summary>
+	private static readonly string ArticleKeysToken = Guid.NewGuid().ToString("N");
 	private bool _dialogOpen;
 	private string? _shownArticleId;
 	private RectInt32 _normalBounds;
@@ -293,7 +302,7 @@ public sealed partial class MainWindow : Window
 		// The page has keyboard focus while reading, so it passes the app's shortcuts back (see ArticleKeysScript).
 		// Browser shortcuts such as Ctrl+R (reload) and Ctrl+P (print) are off; copy and select all still work.
 		core.Settings.AreBrowserAcceleratorKeysEnabled = false;
-		await core.AddScriptToExecuteOnDocumentCreatedAsync(ArticleKeysScript);
+		await core.AddScriptToExecuteOnDocumentCreatedAsync(ArticleKeysScript.Replace("[[token]]", ArticleKeysToken));
 		// NetNewsWire's page scripts tidy up article content. Its Mac script reports scrolling and link hovers to the app
 		// through WebKit message handlers; WebView2 shows hovered links itself, so those messages go nowhere.
 		await core.AddScriptToExecuteOnDocumentCreatedAsync(WebKitMessageHandlersShim);
@@ -310,20 +319,33 @@ public sealed partial class MainWindow : Window
 			_shownArticleId = "";
 			ShowArticle(ViewModel.SelectedArticle);
 		};
-		// Links open in the default browser; the pane only ever shows the article.
+		// The pane only ever shows the article the app put there. A link the reader clicks opens in the default browser;
+		// anything else, such as a script sending the page to a file:// URL or another app's protocol, goes nowhere.
 		core.NavigationStarting += (_, args) =>
 		{
-			if (IsWebUrl(args.Uri))
+			if (_pendingArticleNavigations > 0 && !IsWebUrl(args.Uri))
 			{
-				args.Cancel = true;
+				_pendingArticleNavigations--;
+				return;
+			}
+			args.Cancel = true;
+			if (args.IsUserInitiated && IsWebUrl(args.Uri))
+			{
 				MainViewModel.OpenInBrowser(args.Uri);
 			}
 		};
 		core.NewWindowRequested += (_, args) =>
 		{
 			args.Handled = true;
-			MainViewModel.OpenInBrowser(args.Uri);
+			if (args.IsUserInitiated)
+			{
+				MainViewModel.OpenInBrowser(args.Uri);
+			}
 		};
+		core.LaunchingExternalUriScheme += (_, args) => args.Cancel = true;
+		core.DownloadStarting += (_, args) => args.Cancel = true;
+		// Camera, microphone, location, notifications and the rest: an article has no use for them.
+		core.PermissionRequested += (_, args) => args.State = CoreWebView2PermissionState.Deny;
 		_articleViewReady = true;
 		_shownArticleId = "";
 		ShowArticle(ViewModel.SelectedArticle);
@@ -339,6 +361,7 @@ public sealed partial class MainWindow : Window
 		}
 		_shownArticleId = item?.ArticleId;
 		var html = ViewModel.ArticlePageHtml(item);
+		_pendingArticleNavigations++;
 		if (html.Length < MaxNavigateToStringLength)
 		{
 			ArticleView.NavigateToString(html);
@@ -461,15 +484,29 @@ public sealed partial class MainWindow : Window
 		using (package)
 		{
 			var theme = package.Theme;
-			var website = new StackPanel();
+			var details = new StackPanel { Spacing = 4, MaxWidth = 420 };
 			if (theme.CreatorHomePage is { Length: > 0 } homePage)
 			{
-				website.Children.Add(new TextBlock { Text = "Author’s website:" });
-				website.Children.Add(Uri.TryCreate(homePage, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"
+				details.Children.Add(new TextBlock { Text = "Author’s website:" });
+				details.Children.Add(Uri.TryCreate(homePage, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"
 					? new HyperlinkButton { Content = homePage, NavigateUri = uri, Padding = new Thickness(0) }
-					: new TextBlock { Text = homePage });
+					: new TextBlock { Text = homePage, TextWrapping = TextWrapping.Wrap });
 			}
-			if (await ShowDialogAsync(Dialog($"Install theme “{theme.Name}” by {theme.CreatorName}?", "Install Theme", website)) != ContentDialogResult.Primary)
+			// The author's name and website come from the theme itself; where it was downloaded from is the one fact it can't fake.
+			if (package.Source is { } source)
+			{
+				details.Children.Add(new TextBlock { Text = $"Downloaded from {source.Host}" + (source.Scheme == "http" ? " over an insecure connection (http)." : "."), TextWrapping = TextWrapping.Wrap });
+			}
+			if (package.RunsScripts)
+			{
+				details.Children.Add(new TextBlock
+				{
+					Text = "This theme runs scripts in every article you read with it. Install it only if you trust where it came from.",
+					TextWrapping = TextWrapping.Wrap,
+					Foreground = ThemeBrush("SystemFillColorCautionBrush"),
+				});
+			}
+			if (await ShowDialogAsync(Dialog($"Install theme “{theme.Name}” by {theme.CreatorName}?", "Install Theme", details)) != ContentDialogResult.Primary)
 			{
 				return;
 			}
@@ -927,7 +964,14 @@ public sealed partial class MainWindow : Window
 	/// a focused link with Enter, and Space until the article's end.
 	/// </summary>
 	private const string ArticleKeysScript = """
+		(() => {
+		// Captured before any other script runs, so one can't replace postMessage to see the token.
+		const webview = window.chrome && chrome.webview;
+		if (!webview) return;
+		const post = webview.postMessage.bind(webview);
 		addEventListener('keydown', e => {
+			// Only real key presses: a script can dispatch a keydown, but not a trusted one.
+			if (!e.isTrusted) return;
 			const t = e.target;
 			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
 			const key = e.key;
@@ -937,8 +981,9 @@ public sealed partial class MainWindow : Window
 			if (key === 'Enter' && t && t.closest && t.closest('a, button')) return;
 			if (!e.ctrlKey && !e.altKey && key.length !== 1 && !['Enter', 'ArrowLeft', 'F5'].includes(key)) return;
 			e.preventDefault();
-			chrome.webview.postMessage({ keyCode: e.keyCode, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey });
+			post({ token: '[[token]]', keyCode: e.keyCode, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey });
 		}, true);
+		})();
 		""";
 
 	/// <summary>
@@ -1037,8 +1082,24 @@ public sealed partial class MainWindow : Window
 
 	private void OnArticleMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
 	{
-		using var message = JsonDocument.Parse(args.WebMessageAsJson);
-		var root = message.RootElement;
+		// Any script in the page can post, so anything that isn't a well-formed key message from the key script is dropped.
+		JsonElement root;
+		try
+		{
+			using var message = JsonDocument.Parse(args.WebMessageAsJson);
+			root = message.RootElement.Clone();
+		}
+		catch (JsonException)
+		{
+			return;
+		}
+		if (root.ValueKind != JsonValueKind.Object
+			|| !root.TryGetProperty("token", out var token) || token.ValueKind != JsonValueKind.String || token.GetString() != ArticleKeysToken
+			|| !root.TryGetProperty("keyCode", out var keyCode) || !keyCode.TryGetInt32(out var code)
+			|| !IsBoolean(root, "ctrl") || !IsBoolean(root, "shift") || !IsBoolean(root, "alt"))
+		{
+			return;
+		}
 		var modifiers = VirtualKeyModifiers.None;
 		if (root.GetProperty("ctrl").GetBoolean())
 		{
@@ -1053,7 +1114,10 @@ public sealed partial class MainWindow : Window
 			modifiers |= VirtualKeyModifiers.Menu;
 		}
 		// Chromium's keyCode is the Windows virtual-key code.
-		RunShortcut((VirtualKey)root.GetProperty("keyCode").GetInt32(), modifiers, Pane.Article);
+		RunShortcut((VirtualKey)code, modifiers, Pane.Article);
+
+		static bool IsBoolean(JsonElement element, string name) =>
+			element.TryGetProperty(name, out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False;
 	}
 
 	private bool RunShortcut(VirtualKey key, VirtualKeyModifiers modifiers, Pane pane)
