@@ -45,23 +45,41 @@ public static class ArticleRenderer
 		_ => "largeText",
 	};
 
-	public static ArticleRendering Render(StoredArticle article, ArticleRenderContext context, ArticleTheme theme)
+	/// <summary>
+	/// Renders the article, or with <paramref name="extracted"/>, Reader View's version of it: the extracted body, with
+	/// the web page as the base URL, and the feed's own fixes left out since the content didn't come from the feed.
+	/// </summary>
+	public static ArticleRendering Render(StoredArticle article, ArticleRenderContext context, ArticleTheme theme, ExtractedArticle? extracted = null)
 	{
 		var title = ArticleText.SanitizedTitle(article.Title, forHtml: true) ?? "";
 		var feed = context.Feed;
-		var body = ArticleRenderingSpecialCases.ExtractBodyFragmentIfNeeded(BodyHtml(article));
-		body = ArticleRenderingSpecialCases.InsertParagraphTagsIfNeeded(body, feed?.Url, feed?.HomePageUrl);
-		body = ArticleRenderingSpecialCases.RemoveStrayLineBreaksIfNeeded(body, feed?.Url, feed?.HomePageUrl);
-		if (context.IsFreshRss)
+		string body;
+		string? baseUrl;
+		if (extracted is not null)
 		{
-			body = ArticleRenderingSpecialCases.DesanitizeFreshRssContent(body);
+			body = ArticleRenderingSpecialCases.ExtractBodyFragmentIfNeeded(extracted.Content);
+			baseUrl = extracted.Url;
+		}
+		else
+		{
+			body = ArticleRenderingSpecialCases.ExtractBodyFragmentIfNeeded(BodyHtml(article));
+			body = ArticleRenderingSpecialCases.InsertParagraphTagsIfNeeded(body, feed?.Url, feed?.HomePageUrl);
+			body = ArticleRenderingSpecialCases.RemoveStrayLineBreaksIfNeeded(body, feed?.Url, feed?.HomePageUrl);
+			if (context.IsFreshRss)
+			{
+				body = ArticleRenderingSpecialCases.DesanitizeFreshRssContent(body);
+			}
+			baseUrl = BaseUrl(article, feed);
 		}
 		var html = MacroProcessor.RenderedText(theme.Template, Substitutions(article, context, theme, title, body));
-		return new ArticleRendering(theme.Css, html, title, BaseUrl(article, feed) ?? "");
+		return new ArticleRendering(theme.Css, html, title, baseUrl ?? "");
 	}
 
 	/// <summary>What NetNewsWire shows with nothing selected: the theme's styling and an empty body.</summary>
 	public static ArticleRendering NoContent(ArticleTheme theme) => new(theme.Css, "", "", "");
+
+	/// <summary>What NetNewsWire shows while Reader View fetches an article.</summary>
+	public static ArticleRendering Loading(ArticleTheme theme) => new(theme.Css, "<h3 class='systemMessage'>Loading…</h3>", "", "");
 
 	/// <summary>The full page for a rendering, ready to load into the article view.</summary>
 	public static string PageHtml(ArticleRendering rendering, string pageTemplate, int windowScrollY = 0)

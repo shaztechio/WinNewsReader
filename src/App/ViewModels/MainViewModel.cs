@@ -8,6 +8,14 @@ using WinNewsReader.Store;
 
 namespace WinNewsReader.App.ViewModels;
 
+public enum ReaderViewState
+{
+	Off,
+	Loading,
+	On,
+	Failed,
+}
+
 /// <summary>State and actions for the main window: sidebar, timeline and the selected article.</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -23,11 +31,13 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool _rebuildingSidebar;
 	private bool _restoringSelection;
 
-	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, AppSettings settings, string settingsPath)
+	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, ArticleExtractor extractor, AppSettings settings, string settingsPath)
 	{
 		_accounts = accounts;
 		_favicons = favicons;
 		Themes = themes;
+		_extractor = extractor;
+		ReaderView = ReaderViewState.Off;
 		Settings = settings;
 		_settingsPath = settingsPath;
 		_expandedKeys = settings.ExpandedSidebarKeys is { } keys
@@ -76,6 +86,128 @@ public sealed partial class MainViewModel : ObservableObject
 		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
 	}
 
+	// Reader View, as NetNewsWire's MainWindowController runs it: per selected article, off again when the selection
+	// changes, unless the article's feed has Always Use Reader View on.
+
+	private readonly ArticleExtractor _extractor;
+	private CancellationTokenSource? _extraction;
+	private ExtractedArticle? _extracted;
+	private string? _extractedArticleId;
+
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(IsShowingReaderView), nameof(ReaderViewLabel))]
+	public partial ReaderViewState ReaderView { get; private set; }
+
+	public bool IsShowingReaderView => ReaderView == ReaderViewState.On;
+
+	public bool CanUseReaderView => SelectedArticle?.LinkUrl is not null;
+
+	public string ReaderViewLabel => ReaderView switch
+	{
+		ReaderViewState.Loading => "Loading Reader View… (click to stop)",
+		ReaderViewState.Failed => "Reader View Couldn’t Load: Try Again",
+		ReaderViewState.On => "Hide Reader View",
+		_ => "Show Reader View",
+	};
+
+	/// <summary>NetNewsWire's <c>toggleArticleExtractor</c>: stops a load, hides Reader View, or shows it, fetching it if needed.</summary>
+	public void ToggleReaderView()
+	{
+		if (SelectedArticle is not { LinkUrl: not null } article)
+		{
+			return;
+		}
+		switch (ReaderView)
+		{
+			case ReaderViewState.Loading:
+				CancelExtraction();
+				ReaderView = ReaderViewState.Off;
+				ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+				break;
+			case ReaderViewState.On:
+				ReaderView = ReaderViewState.Off;
+				ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+				break;
+			default:
+				if (_extracted is not null && _extractedArticleId == article.ArticleId)
+				{
+					ReaderView = ReaderViewState.On;
+					ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+				}
+				else
+				{
+					_ = ExtractAsync(article);
+				}
+				break;
+		}
+	}
+
+	public bool IsReaderViewAlwaysOn(SidebarItem feedItem) => Settings.ReaderViewFeedKeys.Contains(ReaderViewKey(feedItem.Account!, feedItem.Feed!.FeedId));
+
+	public void SetReaderViewAlwaysOn(SidebarItem feedItem, bool on)
+	{
+		var key = ReaderViewKey(feedItem.Account!, feedItem.Feed!.FeedId);
+		if (on ? Settings.ReaderViewFeedKeys.Add(key) : Settings.ReaderViewFeedKeys.Remove(key))
+		{
+			SaveSettings();
+		}
+	}
+
+	private static string ReaderViewKey(IAccount account, string feedId) => $"{account.AccountId}|{feedId}";
+
+	private async Task ExtractAsync(ArticleItem article)
+	{
+		CancelExtraction();
+		var extraction = _extraction = new CancellationTokenSource();
+		_extracted = null;
+		_extractedArticleId = article.ArticleId;
+		ReaderView = ReaderViewState.Loading;
+		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+		try
+		{
+			_extracted = await _extractor.ExtractAsync(article.LinkUrl!, extraction.Token);
+			ReaderView = ReaderViewState.On;
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (Exception ex) when (ex is ArticleExtractionException or HttpRequestException or IOException)
+		{
+			if (extraction.IsCancellationRequested)
+			{
+				return;
+			}
+			ReaderView = ReaderViewState.Failed;
+			StatusText = ex.Message;
+		}
+		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	private void CancelExtraction()
+	{
+		_extraction?.Cancel();
+		_extraction = null;
+	}
+
+	/// <summary>A different article turns Reader View off, or on again for a feed set to always use it. A reload of the same one leaves it be.</summary>
+	partial void OnSelectedArticleChanged(ArticleItem? oldValue, ArticleItem? newValue)
+	{
+		OnPropertyChanged(nameof(CanUseReaderView));
+		if (oldValue?.ArticleId == newValue?.ArticleId && oldValue?.Account == newValue?.Account)
+		{
+			return;
+		}
+		CancelExtraction();
+		_extracted = null;
+		_extractedArticleId = null;
+		ReaderView = ReaderViewState.Off;
+		if (newValue is { LinkUrl: not null } && Settings.ReaderViewFeedKeys.Contains(ReaderViewKey(newValue.Account, newValue.Article.FeedId)))
+		{
+			_ = ExtractAsync(newValue);
+		}
+	}
+
 	/// <summary>The article page in the current theme, or the theme's empty page when nothing is selected.</summary>
 	public string ArticlePageHtml(ArticleItem? item)
 	{
@@ -84,11 +216,16 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			return ArticleRenderer.PageHtml(ArticleRenderer.NoContent(theme), Themes.PageTemplate);
 		}
+		if (ReaderView == ReaderViewState.Loading && _extractedArticleId == item.ArticleId)
+		{
+			return ArticleRenderer.PageHtml(ArticleRenderer.Loading(theme), Themes.PageTemplate);
+		}
+		var extracted = ReaderView == ReaderViewState.On && _extractedArticleId == item.ArticleId ? _extracted : null;
 		var avatar = _iconPaths.TryGetValue(IconKey(item.Account, item.Article.FeedId), out var path)
 			? $"https://{FeedIconsHost}/{Uri.EscapeDataString(Path.GetFileName(path))}"
 			: TransparentPixel;
 		var context = new ArticleRenderContext(FeedFor(item), item.Account.Kind == AccountKind.FreshRss, Settings.ArticleTextSize.CssClass(), avatar);
-		return ArticleRenderer.PageHtml(ArticleRenderer.Render(item.Article, context, theme), Themes.PageTemplate);
+		return ArticleRenderer.PageHtml(ArticleRenderer.Render(item.Article, context, theme, extracted), Themes.PageTemplate);
 	}
 
 	/// <summary>NetNewsWire's <c>todayCutoffDate</c>: 24 hours ago, so Today doesn't empty out at midnight.</summary>

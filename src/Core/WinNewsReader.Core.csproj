@@ -9,6 +9,11 @@
     <InternalsVisibleTo Include="WinNewsReader.Store.Tests" />
   </ItemGroup>
 
+  <!-- Reader View: a Readability port that runs locally, in place of NetNewsWire's Feedbin extraction service. -->
+  <ItemGroup>
+    <PackageReference Include="SmartReader" Version="0.11.1" />
+  </ItemGroup>
+
   <!-- NetNewsWire's article template, stylesheets, scripts and built-in themes (MIT; NewsFax's font has its own license). -->
   <ItemGroup>
     <None Include="ArticleRendering\Resources\**" CopyToOutputDirectory="PreserveNewest" />

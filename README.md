@@ -4,7 +4,7 @@ A native Windows feed reader aiming for feature parity with the [NetNewsWire](ht
 
 <img src="src/App/Assets/AppIcon.png" width="96" align="right" alt="">
 
-Status: Phase 2 (the Windows app) has started. Phase 1 (the core engine) is done. The app has the three-pane window over the local account and FreshRSS sync, and Phase 3's article themes are in; the `wnr` command-line tool drives the same engine.
+Status: Phase 2 (the Windows app) has started. Phase 1 (the core engine) is done. The app has the three-pane window over the local account and FreshRSS sync, and Phase 3's article themes and Reader View are in; the `wnr` command-line tool drives the same engine.
 
 ## Layout
 
@@ -46,7 +46,7 @@ The first launch adds NetNewsWire's starter feeds. The app refreshes at launch a
 - Left and Right move between the sidebar, the timeline and the article. In the sidebar, `,` and `.` collapse and expand a folder, and `;` and `'` collapse and expand all.
 - Ctrl+R refresh, Ctrl+N new feed, Ctrl+K mark all as read, Ctrl+Shift+U and Ctrl+Shift+L toggle read and star, Ctrl+Shift+H hide read articles, Ctrl+Shift+F hide read feeds, Ctrl+' clean up, Ctrl+1, 2 and 3 for the smart feeds.
 
-Feeds show their site's favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`. Articles render with NetNewsWire's templates and themes: pick one from **… → Article Theme**, and the text size from **… → Text Size**. To add a theme, put its `.nnwtheme` folder in the folder **Open Themes Folder** opens. Pass `-- --data <folder>` to use a different data folder.
+Feeds show their site's favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`. Articles render with NetNewsWire's templates and themes: pick one from **… → Article Theme**, and the text size from **… → Text Size**. To add a theme, put its `.nnwtheme` folder in the folder **Open Themes Folder** opens. **Reader View** (Ctrl+Shift+R) fetches the article's page and shows just the article; a feed's **Always Use Reader View** menu item turns it on for every article in that feed. Pass `-- --data <folder>` to use a different data folder.
 
 Or use the command-line tool:
 
@@ -66,4 +66,4 @@ dotnet run --project src/Cli -- unread
 
 ## Credits
 
-Parser code and test fixtures, and the article template, stylesheets, scripts and built-in themes in `src/Core/ArticleRendering/Resources`, are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)). The NewsFax theme's ModeSeven font is freeware; see its `License.md`. This project isn't affiliated with or endorsed by NetNewsWire.
+Parser code and test fixtures, and the article template, stylesheets, scripts and built-in themes in `src/Core/ArticleRendering/Resources`, are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)). The NewsFax theme's ModeSeven font is freeware; see its `License.md`. Reader View uses [SmartReader](https://github.com/Strumenta/SmartReader), a C# port of Mozilla's Readability, under the Apache License 2.0. This project isn't affiliated with or endorsed by NetNewsWire.

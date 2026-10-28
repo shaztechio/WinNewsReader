@@ -25,6 +25,9 @@ public sealed class AppSettings
 	/// <summary>The article theme's name; null means NetNewsWire's Default.</summary>
 	public string? ArticleThemeName { get; set; }
 
+	/// <summary>Feeds with NetNewsWire's "Always Use Reader View" on, as <c>accountID|feedID</c>.</summary>
+	public HashSet<string> ReaderViewFeedKeys { get; set; } = [];
+
 	/// <summary>NetNewsWire's article text size, Large by default.</summary>
 	public ArticleRendering.ArticleTextSize ArticleTextSize { get; set; } = ArticleRendering.ArticleTextSize.Large;
 

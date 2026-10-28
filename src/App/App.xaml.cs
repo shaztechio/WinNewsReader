@@ -47,7 +47,7 @@ public partial class App : Application
 		AddDefaultFeedsOnFirstLaunch(accounts.LocalAccount, settings, settingsPath);
 		// NetNewsWire's themes ship with the app; the reader's own go in the Themes folder.
 		var themes = new ArticleThemes(Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources"), Path.Combine(DataDirectory, "Themes"));
-		_window = new MainWindow(new MainViewModel(accounts, favicons, themes, settings, settingsPath));
+		_window = new MainWindow(new MainViewModel(accounts, favicons, themes, new ArticleExtractor(downloader), settings, settingsPath));
 		_window.Closed += (_, _) =>
 		{
 			accounts.Dispose();

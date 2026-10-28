@@ -447,6 +447,8 @@ public sealed partial class MainWindow : Window
 
 	private void OnNextUnread(object sender, RoutedEventArgs e) => ViewModel.SelectNextUnread();
 
+	private void OnToggleReaderView(object sender, RoutedEventArgs e) => ViewModel.ToggleReaderView();
+
 	private void OnOpenInBrowser(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser(ViewModel.SelectedArticle?.LinkUrl);
 
 	// Context menus
@@ -471,6 +473,10 @@ public sealed partial class MainWindow : Window
 			menu.Items.Add(new MenuFlyoutSeparator());
 			menu.Items.Add(MenuItem("Copy Feed URL", () => CopyToClipboard(feed.Url)));
 			menu.Items.Add(MenuItem("Copy Home Page URL", () => CopyToClipboard(feed.HomePageUrl), feed.HomePageUrl is not null));
+			menu.Items.Add(new MenuFlyoutSeparator());
+			var readerView = new ToggleMenuFlyoutItem { Text = "Always Use Reader View", IsChecked = ViewModel.IsReaderViewAlwaysOn(item) };
+			readerView.Click += (_, _) => ViewModel.SetReaderViewAlwaysOn(item, readerView.IsChecked);
+			menu.Items.Add(readerView);
 			menu.Items.Add(new MenuFlyoutSeparator());
 			// Also reachable by keyboard and screen reader, unlike dragging.
 			var moveTo = new MenuFlyoutSubItem { Text = "Move to" };
@@ -905,6 +911,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.K, Ctrl, null, () => ViewModel.MarkAllRead());
 		Add(VirtualKey.U, CtrlShift, null, () => ViewModel.ToggleRead());
 		Add(VirtualKey.L, CtrlShift, null, () => ViewModel.ToggleStarred());
+		Add(VirtualKey.R, CtrlShift, null, () => ViewModel.ToggleReaderView());
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));

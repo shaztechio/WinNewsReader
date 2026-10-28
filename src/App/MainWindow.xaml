@@ -53,6 +53,13 @@
                     <FontIcon Glyph="&#xE70D;" />
                 </AppBarButton.Icon>
             </AppBarButton>
+            <AppBarToggleButton Label="Reader View" ToolTipService.ToolTip="{x:Bind ViewModel.ReaderViewLabel, Mode=OneWay}"
+                                IsChecked="{x:Bind ViewModel.IsShowingReaderView, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanUseReaderView, Mode=OneWay}" Click="OnToggleReaderView">
+                <AppBarToggleButton.Icon>
+                    <FontIcon Glyph="&#xE736;" />
+                </AppBarToggleButton.Icon>
+            </AppBarToggleButton>
             <AppBarButton Label="Open in Browser" ToolTipService.ToolTip="Open in Browser" Click="OnOpenInBrowser"
                           IsEnabled="{x:Bind ViewModel.HasSelectedArticle, Mode=OneWay}">
                 <AppBarButton.Icon>
