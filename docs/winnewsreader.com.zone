@@ -1,0 +1,22 @@
+; DNS for winnewsreader.com, pointing it at the GitHub Pages site (site/ in this repo).
+; Import in Cloudflare: DNS > Records > Import and Export > Import DNS records.
+;
+; Records stay DNS-only (grey cloud) through cf_tags, so GitHub can verify the domain and issue
+; its HTTPS certificate. Leave "Proxy imported DNS records" unticked when importing.
+; GitHub's addresses: https://docs.github.com/pages/configuring-a-custom-domain-for-your-github-pages-site
+
+$ORIGIN winnewsreader.com.
+$TTL 3600
+
+; Apex: GitHub Pages
+@	3600	IN	A	185.199.108.153	; cf_tags=cf-proxied:false
+@	3600	IN	A	185.199.109.153	; cf_tags=cf-proxied:false
+@	3600	IN	A	185.199.110.153	; cf_tags=cf-proxied:false
+@	3600	IN	A	185.199.111.153	; cf_tags=cf-proxied:false
+@	3600	IN	AAAA	2606:50c0:8000::153	; cf_tags=cf-proxied:false
+@	3600	IN	AAAA	2606:50c0:8001::153	; cf_tags=cf-proxied:false
+@	3600	IN	AAAA	2606:50c0:8002::153	; cf_tags=cf-proxied:false
+@	3600	IN	AAAA	2606:50c0:8003::153	; cf_tags=cf-proxied:false
+
+; www redirects to the apex on GitHub's side
+www	3600	IN	CNAME	shaztechio.github.io.	; cf_tags=cf-proxied:false
