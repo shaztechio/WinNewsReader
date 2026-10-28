@@ -7,6 +7,9 @@ namespace WinNewsReader.Store;
 
 public sealed record StoredFeed(string FeedId, string Url, string? Name, string? HomePageUrl, string? IconUrl, string? ETag, string? LastModified);
 
+/// <summary>A folder. As in NetNewsWire, folders are one level deep and hold only feeds.</summary>
+public sealed record StoredFolder(long FolderId, string Name);
+
 public sealed record StoredArticle(
 	string ArticleId,
 	string FeedId,
@@ -24,8 +27,10 @@ public sealed record StoredArticle(
 	bool Starred);
 
 /// <summary>
-/// SQLite store for one account's feeds, articles and statuses. The articles and statuses tables follow
+/// SQLite store for one account's feeds, folders, articles and statuses. The articles and statuses tables follow
 /// NetNewsWire's ArticlesDatabase schema, and article IDs use its formula, so data maps across later.
+/// As in NetNewsWire, a feed can be at the top level and in any number of folders at once, and stays
+/// subscribed while it's in at least one of them.
 /// Safe to use from several threads: each public call holds a lock for its whole transaction.
 /// </summary>
 public sealed class ArticlesStore : IDisposable
@@ -44,38 +49,77 @@ public sealed class ArticlesStore : IDisposable
 		_connection.Open();
 		Execute("""
 			PRAGMA journal_mode = WAL;
-			CREATE TABLE IF NOT EXISTS feeds (feedID TEXT NOT NULL PRIMARY KEY, url TEXT NOT NULL, name TEXT, homePageURL TEXT, iconURL TEXT, etag TEXT, lastModified TEXT, dateAdded DATE NOT NULL);
+			PRAGMA foreign_keys = ON;
+			CREATE TABLE IF NOT EXISTS feeds (feedID TEXT NOT NULL PRIMARY KEY, url TEXT NOT NULL, name TEXT, homePageURL TEXT, iconURL TEXT, etag TEXT, lastModified TEXT, dateAdded DATE NOT NULL, topLevel BOOL NOT NULL DEFAULT 1);
+			CREATE TABLE IF NOT EXISTS folders (folderID INTEGER PRIMARY KEY, name TEXT NOT NULL);
+			CREATE TABLE IF NOT EXISTS folderFeeds (folderID INTEGER NOT NULL REFERENCES folders ON DELETE CASCADE, feedID TEXT NOT NULL REFERENCES feeds ON DELETE CASCADE, PRIMARY KEY (folderID, feedID));
 			CREATE TABLE IF NOT EXISTS articles (articleID TEXT NOT NULL PRIMARY KEY, feedID TEXT NOT NULL, uniqueID TEXT NOT NULL, title TEXT, contentHTML TEXT, contentText TEXT, markdown TEXT, url TEXT, externalURL TEXT, summary TEXT, imageURL TEXT, bannerImageURL TEXT, datePublished DATE, dateModified DATE, authors TEXT, attachments TEXT, thumbnailURL TEXT);
 			CREATE TABLE IF NOT EXISTS statuses (articleID TEXT NOT NULL PRIMARY KEY, read BOOL NOT NULL DEFAULT 0, starred BOOL NOT NULL DEFAULT 0, dateArrived DATE NOT NULL DEFAULT 0);
 			CREATE INDEX IF NOT EXISTS articles_feedID_datePublished_articleID ON articles (feedID, datePublished, articleID);
 			CREATE INDEX IF NOT EXISTS statuses_starred_index ON statuses (starred);
+			CREATE INDEX IF NOT EXISTS folderFeeds_feedID ON folderFeeds (feedID);
 			""");
+		// Databases from before folders: every feed was at the top level.
+		using var hasTopLevel = Command("SELECT COUNT(*) FROM pragma_table_info('feeds') WHERE name = 'topLevel'");
+		if (Convert.ToInt32(hasTopLevel.ExecuteScalar()) == 0)
+		{
+			Execute("ALTER TABLE feeds ADD COLUMN topLevel BOOL NOT NULL DEFAULT 1");
+		}
 	}
 
 	/// <summary>NetNewsWire's <c>Article.calculatedArticleID</c>.</summary>
 	public static string CalculatedArticleId(string feedId, string uniqueId) => SwiftCompat.Md5String($"{feedId} {uniqueId}");
 
-	/// <summary>Adds the feed if it isn't there. For the local account the feed ID is its URL.</summary>
-	public StoredFeed AddFeed(string url, string? name = null, string? homePageUrl = null)
+	/// <summary>
+	/// Adds the feed if it isn't there, and puts it at the top level or in <paramref name="folderId"/>. An existing
+	/// feed keeps its name and stays wherever else it already is. For the local account the feed ID is its URL.
+	/// </summary>
+	public StoredFeed AddFeed(string url, string? name = null, string? homePageUrl = null, long? folderId = null)
 	{
 		lock (_lock)
 		{
+			using var transaction = _connection.BeginTransaction();
 			Execute(
-				"INSERT OR IGNORE INTO feeds (feedID, url, name, homePageURL, dateAdded) VALUES ($id, $url, $name, $home, $now)",
-				("$id", url), ("$url", url), ("$name", name), ("$home", homePageUrl), ("$now", Now()));
+				"INSERT OR IGNORE INTO feeds (feedID, url, name, homePageURL, dateAdded, topLevel) VALUES ($id, $url, $name, $home, $now, $topLevel)",
+				("$id", url), ("$url", url), ("$name", name), ("$home", homePageUrl), ("$now", Now()), ("$topLevel", folderId is null));
+			if (folderId is null)
+			{
+				Execute("UPDATE feeds SET topLevel = 1 WHERE feedID = $id", ("$id", url));
+			}
+			else
+			{
+				Execute("INSERT OR IGNORE INTO folderFeeds (folderID, feedID) VALUES ($folder, $id)", ("$folder", folderId), ("$id", url));
+			}
+			transaction.Commit();
 			return QueryFeeds("WHERE feedID = $id", ("$id", url))[0];
 		}
 	}
 
-	/// <summary>Removes the feed with its articles and statuses. Returns false if it wasn't subscribed.</summary>
+	/// <summary>Removes the feed from everywhere, with its articles and statuses. Returns false if it wasn't subscribed.</summary>
 	public bool RemoveFeed(string feedId)
 	{
 		lock (_lock)
 		{
 			using var transaction = _connection.BeginTransaction();
-			Execute("DELETE FROM statuses WHERE articleID IN (SELECT articleID FROM articles WHERE feedID = $id)", ("$id", feedId));
-			Execute("DELETE FROM articles WHERE feedID = $id", ("$id", feedId));
-			var removed = Execute("DELETE FROM feeds WHERE feedID = $id", ("$id", feedId)) > 0;
+			var removed = DeleteFeedsWhere("feedID = $id", ("$id", feedId)) > 0;
+			transaction.Commit();
+			return removed;
+		}
+	}
+
+	/// <summary>
+	/// Takes the feed out of the top level (null <paramref name="folderId"/>) or out of one folder. A feed left
+	/// nowhere is removed with its articles. Returns false if the feed wasn't there.
+	/// </summary>
+	public bool RemoveFeed(string feedId, long? folderId)
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			var removed = folderId is null
+				? Execute("UPDATE feeds SET topLevel = 0 WHERE feedID = $id AND topLevel = 1", ("$id", feedId)) > 0
+				: Execute("DELETE FROM folderFeeds WHERE folderID = $folder AND feedID = $id", ("$folder", folderId), ("$id", feedId)) > 0;
+			DeleteUnparentedFeeds();
 			transaction.Commit();
 			return removed;
 		}
@@ -94,6 +138,70 @@ public sealed class ArticlesStore : IDisposable
 		lock (_lock)
 		{
 			return QueryFeeds("ORDER BY COALESCE(name, url) COLLATE NOCASE");
+		}
+	}
+
+	public IReadOnlyList<StoredFeed> GetTopLevelFeeds()
+	{
+		lock (_lock)
+		{
+			return QueryFeeds("WHERE topLevel = 1 ORDER BY COALESCE(name, url) COLLATE NOCASE");
+		}
+	}
+
+	public IReadOnlyList<StoredFeed> GetFeeds(long folderId)
+	{
+		lock (_lock)
+		{
+			return QueryFeeds(
+				"WHERE feedID IN (SELECT feedID FROM folderFeeds WHERE folderID = $folder) ORDER BY COALESCE(name, url) COLLATE NOCASE",
+				("$folder", folderId));
+		}
+	}
+
+	/// <summary>The folder named <paramref name="name"/>, created if needed: NetNewsWire's <c>ensureFolder(with:)</c>.</summary>
+	public StoredFolder EnsureFolder(string name)
+	{
+		lock (_lock)
+		{
+			if (QueryFolders("WHERE name = $name", ("$name", name)).FirstOrDefault() is { } existing)
+			{
+				return existing;
+			}
+			using var command = Command("INSERT INTO folders (name) VALUES ($name) RETURNING folderID", ("$name", name));
+			return new StoredFolder(Convert.ToInt64(command.ExecuteScalar()), name);
+		}
+	}
+
+	public IReadOnlyList<StoredFolder> GetFolders()
+	{
+		lock (_lock)
+		{
+			return QueryFolders("ORDER BY name COLLATE NOCASE");
+		}
+	}
+
+	public bool RenameFolder(long folderId, string name)
+	{
+		lock (_lock)
+		{
+			return Execute("UPDATE folders SET name = $name WHERE folderID = $folder", ("$folder", folderId), ("$name", name)) > 0;
+		}
+	}
+
+	/// <summary>
+	/// Removes the folder. Its feeds go too, with their articles, unless they're also at the top level or in another
+	/// folder. Returns false if there was no such folder.
+	/// </summary>
+	public bool RemoveFolder(long folderId)
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			var removed = Execute("DELETE FROM folders WHERE folderID = $folder", ("$folder", folderId)) > 0;
+			DeleteUnparentedFeeds();
+			transaction.Commit();
+			return removed;
 		}
 	}
 
@@ -232,6 +340,29 @@ public sealed class ArticlesStore : IDisposable
 			transaction.Commit();
 			return changed;
 		}
+	}
+
+	/// <summary>Deletes matching feeds with their articles and statuses. Folder memberships cascade.</summary>
+	private int DeleteFeedsWhere(string condition, params (string Name, object? Value)[] parameters)
+	{
+		var feedIds = $"SELECT feedID FROM feeds WHERE {condition}";
+		Execute($"DELETE FROM statuses WHERE articleID IN (SELECT articleID FROM articles WHERE feedID IN ({feedIds}))", parameters);
+		Execute($"DELETE FROM articles WHERE feedID IN ({feedIds})", parameters);
+		return Execute($"DELETE FROM feeds WHERE {condition}", parameters);
+	}
+
+	private void DeleteUnparentedFeeds() => DeleteFeedsWhere("topLevel = 0 AND feedID NOT IN (SELECT feedID FROM folderFeeds)");
+
+	private List<StoredFolder> QueryFolders(string where, params (string Name, object? Value)[] parameters)
+	{
+		using var command = Command($"SELECT folderID, name FROM folders {where}", parameters);
+		using var reader = command.ExecuteReader();
+		var folders = new List<StoredFolder>();
+		while (reader.Read())
+		{
+			folders.Add(new StoredFolder(reader.GetInt64(0), reader.GetString(1)));
+		}
+		return folders;
 	}
 
 	private List<StoredFeed> QueryFeeds(string where, params (string Name, object? Value)[] parameters)

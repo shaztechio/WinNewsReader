@@ -8,6 +8,8 @@ public sealed record FeedRefreshResult(string FeedId, DownloadStatus Status, int
 
 public sealed class SubscribeException(string message) : Exception(message);
 
+public sealed record OpmlImportResult(int FeedsAdded, int FoldersAdded);
+
 /// <summary>
 /// The "On This PC" account: subscriptions and articles live only in the local store, and refreshing
 /// fetches each feed directly.
@@ -23,10 +25,10 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 
 	/// <summary>
 	/// Finds the best feed for <paramref name="userUrl"/>, which may be a feed or a web page, then
-	/// subscribes and stores its articles. Throws <see cref="SubscribeException"/> if no feed is found
-	/// or it can't be fetched.
+	/// subscribes at the top level or in the folder named <paramref name="folderName"/>, creating it if needed,
+	/// and stores its articles. Throws <see cref="SubscribeException"/> if no feed is found or it can't be fetched.
 	/// </summary>
-	public async Task<(StoredFeed Feed, int NewArticles)> SubscribeAsync(string userUrl, CancellationToken cancellationToken = default)
+	public async Task<(StoredFeed Feed, int NewArticles)> SubscribeAsync(string userUrl, string? folderName = null, CancellationToken cancellationToken = default)
 	{
 		var normalizedUrl = userUrl.NormalizedUrl();
 		IReadOnlySet<FeedSpecifier> feedSpecifiers;
@@ -46,26 +48,20 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 			throw new SubscribeException($"Couldn't fetch {url}: {download.Error}");
 		}
 		var parsed = Parse(url, download.Data!) ?? throw new SubscribeException($"{url} isn't a feed.");
-		var feed = Store.AddFeed(url, parsed.Title, parsed.HomePageUrl);
+		var folder = folderName is null ? null : Store.EnsureFolder(folderName);
+		var feed = Store.AddFeed(url, parsed.Title, parsed.HomePageUrl, folder?.FolderId);
 		var newArticles = Save(feed.FeedId, parsed, download);
 		return (Store.GetFeed(feed.FeedId)!, newArticles);
 	}
 
-	/// <summary>Adds every feed in an OPML file without fetching. Returns the number added.</summary>
-	public int ImportOpml(string path)
+	/// <summary>Adds every feed and folder in an OPML file without fetching. Feeds already subscribed are also put in the file's folders.</summary>
+	public OpmlImportResult ImportOpml(string path)
 	{
 		var document = OpmlParser.Parse(new ParserData(new Uri(Path.GetFullPath(path)).AbsoluteUri, File.ReadAllBytes(path)));
-		var existing = Store.GetFeeds().Select(feed => feed.FeedId).ToHashSet();
-		var added = 0;
-		foreach (var specifier in Flatten(document))
-		{
-			if (existing.Add(specifier.FeedUrl))
-			{
-				Store.AddFeed(specifier.FeedUrl, specifier.Title, specifier.HomePageUrl);
-				added++;
-			}
-		}
-		return added;
+		var feedsBefore = Store.GetFeeds().Count;
+		var foldersBefore = Store.GetFolders().Count;
+		LoadOpmlItems(document.Children ?? [], null);
+		return new OpmlImportResult(Store.GetFeeds().Count - feedsBefore, Store.GetFolders().Count - foldersBefore);
 	}
 
 	public async Task<IReadOnlyList<FeedRefreshResult>> RefreshAllAsync(CancellationToken cancellationToken = default)
@@ -118,17 +114,25 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 		}
 	}
 
-	private static IEnumerable<OpmlFeedSpecifier> Flatten(OpmlItem item)
+	/// <summary>
+	/// NetNewsWire's <c>Account.loadOPMLItems</c>. Folders are one level deep, so a nested folder becomes a
+	/// top-level folder of its own, and the items of a folder with no title go one level up.
+	/// </summary>
+	private void LoadOpmlItems(IEnumerable<OpmlItem> items, StoredFolder? parentFolder)
 	{
-		if (item.FeedSpecifier is { } specifier)
+		foreach (var item in items)
 		{
-			yield return specifier;
-		}
-		foreach (var child in item.Children ?? [])
-		{
-			foreach (var descendant in Flatten(child))
+			if (item.FeedSpecifier is { } specifier)
 			{
-				yield return descendant;
+				Store.AddFeed(specifier.FeedUrl, specifier.Title, specifier.HomePageUrl, parentFolder?.FolderId);
+			}
+			else if (item.TitleFromAttributes is { } folderName)
+			{
+				LoadOpmlItems(item.Children ?? [], Store.EnsureFolder(folderName));
+			}
+			else
+			{
+				LoadOpmlItems(item.Children ?? [], parentFolder);
 			}
 		}
 	}

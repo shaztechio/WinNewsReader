@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\Parser.Tests\Resources\Subs.opml" Link="Resources\Subs.opml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Store\WinNewsReader.Store.csproj" />
     <ProjectReference Include="..\..\src\Core\WinNewsReader.Core.csproj" />
   </ItemGroup>

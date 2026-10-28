@@ -236,24 +236,22 @@ public sealed class StoreAndRefreshTests : IDisposable
 	}
 
 	[Fact]
-	public void ImportOpmlAddsFeedsInFolders()
+	public async Task SubscribeIntoFolderCreatesItAndLeavesTopLevelAlone()
 	{
-		var opmlPath = Path.Combine(_directory, "subs.opml");
-		File.WriteAllText(opmlPath, """
-			<?xml version="1.0" encoding="UTF-8"?>
-			<opml version="1.0">
-			  <head><title>Subs</title></head>
-			  <body>
-			    <outline text="A" xmlUrl="https://a.example/feed"/>
-			    <outline text="Folder">
-			      <outline text="B" xmlUrl="https://b.example/feed"/>
-			    </outline>
-			  </body>
-			</opml>
-			""");
-		Assert.Equal(2, _account.ImportOpml(opmlPath));
-		Assert.Equal(0, _account.ImportOpml(opmlPath));
-		Assert.Equal(["A", "B"], _store.GetFeeds().Select(f => f.Name));
+		_handler.Respond(Rss("One"));
+		var (feed, _) = await _account.SubscribeAsync(FeedUrl, "News");
+
+		var folder = Assert.Single(_store.GetFolders());
+		Assert.Equal("News", folder.Name);
+		Assert.Equal(feed.FeedId, Assert.Single(_store.GetFeeds(folder.FolderId)).FeedId);
+		Assert.Empty(_store.GetTopLevelFeeds());
+	}
+
+	[Fact]
+	public async Task FailedSubscribeDoesNotCreateFolder()
+	{
+		await Assert.ThrowsAsync<SubscribeException>(() => _account.SubscribeAsync(FeedUrl, "News"));
+		Assert.Empty(_store.GetFolders());
 	}
 
 	/// <summary>An RSS feed whose items are titled <paramref name="titles"/>, one day apart, oldest first.</summary>

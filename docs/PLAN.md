@@ -134,3 +134,5 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 - [ ] Email Brent Simmons about the port
 - [x] Phase 0: extract menus, preferences, Inspector and shortcuts from `Mac/` into the [parity matrix](parity-matrix.md)
 - [x] Copy NNW test fixtures into `Parser.Tests` and get the first parser passing
+- [x] Phase 1: parsers, feed finder, store with folders, OPML import/export and the `wnr` CLI; all NNW parser tests pass
+- [ ] Phase 2: WinUI 3 shell over the local account

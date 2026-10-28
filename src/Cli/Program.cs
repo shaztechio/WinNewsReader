@@ -8,10 +8,12 @@ const string Usage = """
 	Usage: wnr [--db <path>] <command> [arguments]
 
 	Commands:
-	  subscribe <url>        Subscribe to a feed, or find the feed for a web page
+	  subscribe <url> [--folder <name>]
+	                         Subscribe to a feed, or find the feed for a web page
 	  unsubscribe <url>      Remove a feed and its articles
-	  import <file.opml>     Add every feed in an OPML file (run refresh afterwards)
-	  feeds                  List subscriptions with unread counts
+	  import <file.opml>     Add every feed and folder in an OPML file (run refresh afterwards)
+	  export [<file.opml>]   Write subscriptions as OPML, to standard output by default
+	  feeds                  List subscriptions by folder, with unread counts
 	  refresh                Fetch every feed
 	  unread [<feed url>]    List unread articles, newest first
 	  show <article id>      Print an article
@@ -50,8 +52,8 @@ try
 {
 	switch (command)
 	{
-		case "subscribe" when rest.Count == 1:
-			var (feed, newArticles) = await account.SubscribeAsync(rest[0]);
+		case "subscribe" when rest.Count == 1 || (rest.Count == 3 && rest[1] == "--folder"):
+			var (feed, newArticles) = await account.SubscribeAsync(rest[0], rest.ElementAtOrDefault(2));
 			Console.WriteLine($"Subscribed to {feed.Name ?? feed.Url} ({newArticles} articles).");
 			return 0;
 
@@ -59,15 +61,39 @@ try
 			return store.RemoveFeed(rest[0]) ? 0 : Fail($"Not subscribed to {rest[0]}.");
 
 		case "import" when rest.Count == 1:
-			Console.WriteLine($"Added {account.ImportOpml(rest[0])} feeds.");
+			var imported = account.ImportOpml(rest[0]);
+			Console.WriteLine($"Added {imported.FeedsAdded} feeds and {imported.FoldersAdded} folders.");
+			return 0;
+
+		case "export" when rest.Count <= 1:
+			if (rest.Count == 0)
+			{
+				Console.OutputEncoding = System.Text.Encoding.UTF8;
+				Console.WriteLine(OpmlExporter.OpmlString(store, "Subscriptions-On This PC"));
+			}
+			else
+			{
+				File.WriteAllText(rest[0], OpmlExporter.OpmlString(store, Path.GetFileNameWithoutExtension(rest[0])));
+			}
 			return 0;
 
 		case "feeds" when rest.Count == 0:
-			foreach (var f in store.GetFeeds())
+			foreach (var f in store.GetTopLevelFeeds())
 			{
-				Console.WriteLine($"{store.UnreadCount(f.FeedId),5}  {f.Name ?? "(untitled)"}  {f.Url}");
+				PrintFeed(f, "");
+			}
+			foreach (var folder in store.GetFolders())
+			{
+				Console.WriteLine($"       {folder.Name}/");
+				foreach (var f in store.GetFeeds(folder.FolderId))
+				{
+					PrintFeed(f, "  ");
+				}
 			}
 			return 0;
+
+			void PrintFeed(StoredFeed f, string indent) =>
+				Console.WriteLine($"{store.UnreadCount(f.FeedId),5}  {indent}{f.Name ?? "(untitled)"}  {f.Url}");
 
 		case "refresh" when rest.Count == 0:
 			var results = await account.RefreshAllAsync();
