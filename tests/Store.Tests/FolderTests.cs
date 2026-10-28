@@ -151,6 +151,43 @@ public sealed class FolderTests : IDisposable
 	}
 
 	[Fact]
+	public async Task MoveFeedBetweenTopLevelAndFolders()
+	{
+		var tech = _store.EnsureFolder("Tech");
+		var news = _store.EnsureFolder("News");
+		_store.AddFeed(FeedA);
+		_store.UpsertArticles(FeedA, [Item("x")]);
+		IAccount account = _account;
+
+		await account.MoveFeedAsync(FeedA, null, tech.FolderId, copy: false);
+		Assert.Empty(_store.GetTopLevelFeeds());
+		Assert.Single(_store.GetFeeds(tech.FolderId));
+
+		await account.MoveFeedAsync(FeedA, tech.FolderId, news.FolderId, copy: false);
+		Assert.Empty(_store.GetFeeds(tech.FolderId));
+		Assert.Single(_store.GetFeeds(news.FolderId));
+
+		await account.MoveFeedAsync(FeedA, news.FolderId, null, copy: false);
+		Assert.Single(_store.GetTopLevelFeeds());
+		Assert.Empty(_store.GetFeeds(news.FolderId));
+		// Moving never drops the feed's articles.
+		Assert.Equal(1, _store.UnreadCount(FeedA));
+	}
+
+	[Fact]
+	public async Task CopyFeedLeavesItWhereItWas()
+	{
+		var tech = _store.EnsureFolder("Tech");
+		_store.AddFeed(FeedA);
+		IAccount account = _account;
+
+		await account.MoveFeedAsync(FeedA, null, tech.FolderId, copy: true);
+
+		Assert.Single(_store.GetTopLevelFeeds());
+		Assert.Single(_store.GetFeeds(tech.FolderId));
+	}
+
+	[Fact]
 	public void RenameFolder()
 	{
 		var folder = _store.EnsureFolder("Old");

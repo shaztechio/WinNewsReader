@@ -360,6 +360,43 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool HidesReadArticles(SidebarItem item) =>
 		item.Kind == SidebarItemKind.AllUnread || Settings.HideReadArticlesKeys.Contains(item.Key);
 
+	/// <summary>Where a feed row can move to in its own account: the top level when the account allows it, then the other folders.</summary>
+	public static IReadOnlyList<(string Name, StoredFolder? Folder)> MoveDestinations(SidebarItem feedItem)
+	{
+		var account = feedItem.Account!;
+		var destinations = new List<(string Name, StoredFolder? Folder)>();
+		if (account.FeedsCanBeAtTopLevel && feedItem.ParentFolder is not null)
+		{
+			destinations.Add((account.Name, null));
+		}
+		destinations.AddRange(FoldersOf(account).Where(folder => folder.FolderId != feedItem.ParentFolder?.FolderId).Select(folder => (folder.Name, (StoredFolder?)folder)));
+		return destinations;
+	}
+
+	/// <summary>Whether a dragged feed can be dropped on <paramref name="target"/>: a folder or the account's group, in the same account.</summary>
+	public static bool CanDrop(SidebarItem feedItem, SidebarItem target, bool copy) =>
+		feedItem is { Kind: SidebarItemKind.Feed, Account: { } account } && target.Account == account
+		&& (!copy || account.FeedsCanBeInSeveralFolders)
+		&& target.Kind switch
+		{
+			SidebarItemKind.Folder => target.Folder!.FolderId != feedItem.ParentFolder?.FolderId,
+			SidebarItemKind.AccountGroup => account.FeedsCanBeAtTopLevel && feedItem.ParentFolder is not null,
+			_ => false,
+		};
+
+	/// <summary>Moves or copies a feed row to a folder, or the top level when <paramref name="to"/> is null, keeping it selected.</summary>
+	public async Task MoveFeedAsync(SidebarItem feedItem, StoredFolder? to, bool copy)
+	{
+		var account = feedItem.Account!;
+		var feedId = feedItem.Feed!.FeedId;
+		await account.MoveFeedAsync(feedId, feedItem.ParentFolder?.FolderId, to?.FolderId, copy);
+		if (to is not null)
+		{
+			_expandedKeys.Add(SidebarItem.FolderKey(account, to));
+		}
+		LoadSidebar(select: SelectedSidebarItem == feedItem ? SidebarItem.FeedKey(account, feedId, to) : null);
+	}
+
 	public async Task RenameFolderAsync(SidebarItem item, string name)
 	{
 		await item.Account!.RenameFolderAsync(item.Folder!.FolderId, name);

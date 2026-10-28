@@ -144,9 +144,11 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [ ] Feed icons (larger, from the feed or apple-touch-icon) for the timeline and article header
   - [x] Hide read articles (per row) and hide read feeds, sort order, clean up; dates follow NetNewsWire's logical publish date
   - [x] Remember window, panes, open folders and selection; NetNewsWire's default feeds on first launch
-  - [ ] Search, drag and drop, inline rename, undo, Inspector, preferences, multiple windows
+  - [x] Move feeds between folders: drag and drop (Ctrl copies, local only) and a Move to menu, in both accounts
+  - [ ] Search, dragging URLs and folders, inline rename, undo, Inspector, preferences, multiple windows
 - [ ] Phase 4, started early: FreshRSS
   - [x] Account layer (several accounts, one store each), sync status queue, Credential Manager
   - [x] Reader API client and account: feeds, folders, articles and statuses both ways; subscribe, unsubscribe, rename and delete folders
   - [x] Checked against a real FreshRSS server: 101 feeds, 11 folders, read and unread both ways
-  - [ ] Moving feeds between folders; OPML import into FreshRSS; Inoreader, The Old Reader and BazQux variants
+  - [x] Moving feeds between folders (FreshRSS keeps each feed in one folder, so no top level or copies)
+  - [ ] OPML import into FreshRSS; Inoreader, The Old Reader and BazQux variants

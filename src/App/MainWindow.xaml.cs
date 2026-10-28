@@ -167,6 +167,52 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
+	// Dragging feeds between folders. Only feeds drag; folders and accounts stay put.
+
+	private SidebarItem? _draggedFeed;
+
+	private void OnSidebarDragItemsStarting(TreeView sender, TreeViewDragItemsStartingEventArgs args)
+	{
+		if (args.Items.FirstOrDefault() is SidebarItem { Kind: SidebarItemKind.Feed } feed)
+		{
+			_draggedFeed = feed;
+			args.Data.RequestedOperation = DataPackageOperation.Move | DataPackageOperation.Copy;
+		}
+		else
+		{
+			args.Cancel = true;
+		}
+	}
+
+	private void OnSidebarDragItemsCompleted(TreeView sender, TreeViewDragItemsCompletedEventArgs args) => _draggedFeed = null;
+
+	/// <summary>NetNewsWire's drop rules: a folder or the account's top level, in the same account. Ctrl copies instead of moving.</summary>
+	private void OnSidebarItemDragOver(object sender, DragEventArgs e)
+	{
+		var copy = e.Modifiers.HasFlag(Windows.ApplicationModel.DataTransfer.DragDrop.DragDropModifiers.Control);
+		if (_draggedFeed is { } feed && DataContextOf(sender as FrameworkElement) is SidebarItem target && MainViewModel.CanDrop(feed, target, copy))
+		{
+			e.AcceptedOperation = copy ? DataPackageOperation.Copy : DataPackageOperation.Move;
+			e.DragUIOverride.Caption = $"{(copy ? "Copy" : "Move")} to {target.Title}";
+		}
+		else
+		{
+			e.AcceptedOperation = DataPackageOperation.None;
+		}
+		e.Handled = true;
+	}
+
+	private async void OnSidebarItemDrop(object sender, DragEventArgs e)
+	{
+		e.Handled = true;
+		var copy = e.Modifiers.HasFlag(Windows.ApplicationModel.DataTransfer.DragDrop.DragDropModifiers.Control);
+		if (_draggedFeed is { } feed && DataContextOf(sender as FrameworkElement) is SidebarItem target && MainViewModel.CanDrop(feed, target, copy))
+		{
+			_draggedFeed = null;
+			await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(feed, target.Folder, copy));
+		}
+	}
+
 	private bool _expansionSyncPending;
 
 	private void ScheduleExpansionSync()
@@ -335,6 +381,14 @@ public sealed partial class MainWindow : Window
 			menu.Items.Add(MenuItem("Copy Feed URL", () => CopyToClipboard(feed.Url)));
 			menu.Items.Add(MenuItem("Copy Home Page URL", () => CopyToClipboard(feed.HomePageUrl), feed.HomePageUrl is not null));
 			menu.Items.Add(new MenuFlyoutSeparator());
+			// Also reachable by keyboard and screen reader, unlike dragging.
+			var moveTo = new MenuFlyoutSubItem { Text = "Move to" };
+			foreach (var (name, folder) in MainViewModel.MoveDestinations(item))
+			{
+				moveTo.Items.Add(MenuItem(name, async () => await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(item, folder, copy: false))));
+			}
+			moveTo.IsEnabled = moveTo.Items.Count > 0;
+			menu.Items.Add(moveTo);
 			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteAsync(item)));
 		}
 		else if (item.Folder is not null)

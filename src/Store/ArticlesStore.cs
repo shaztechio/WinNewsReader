@@ -146,6 +146,42 @@ public sealed class ArticlesStore : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Moves the feed from one place to another: the top level when a folder ID is null. Copying, as NetNewsWire's
+	/// Option-drag does, puts it in the new place and leaves it where it was too.
+	/// </summary>
+	public void MoveFeed(string feedId, long? fromFolderId, long? toFolderId, bool copy = false)
+	{
+		if (fromFolderId == toFolderId && !copy)
+		{
+			return;
+		}
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			if (toFolderId is null)
+			{
+				Execute("UPDATE feeds SET topLevel = 1 WHERE feedID = $id", ("$id", feedId));
+			}
+			else
+			{
+				Execute("INSERT OR IGNORE INTO folderFeeds (folderID, feedID) VALUES ($folder, $id)", ("$folder", toFolderId), ("$id", feedId));
+			}
+			if (!copy && fromFolderId != toFolderId)
+			{
+				if (fromFolderId is null)
+				{
+					Execute("UPDATE feeds SET topLevel = 0 WHERE feedID = $id", ("$id", feedId));
+				}
+				else
+				{
+					Execute("DELETE FROM folderFeeds WHERE folderID = $folder AND feedID = $id", ("$folder", fromFolderId), ("$id", feedId));
+				}
+			}
+			transaction.Commit();
+		}
+	}
+
 	/// <summary>Removes the feed from everywhere, with its articles and statuses. Returns false if it wasn't subscribed.</summary>
 	public bool RemoveFeed(string feedId)
 	{

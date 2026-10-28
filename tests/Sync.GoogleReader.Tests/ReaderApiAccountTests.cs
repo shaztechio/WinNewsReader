@@ -190,6 +190,37 @@ public sealed class ReaderApiAccountTests : IDisposable
 	}
 
 	[Fact]
+	public async Task MoveFeedSwapsItsLabelOnTheServer()
+	{
+		var feed = _server.AddFeed("Feed", "https://a.example/feed", "Old");
+		_server.Labels.Add("New");
+		await _account.RefreshAllAsync();
+		var folders = _store.GetFolders().ToDictionary(folder => folder.Name, folder => folder.FolderId);
+
+		await _account.MoveFeedAsync(feed.Id, folders["Old"], folders["New"], copy: false);
+
+		Assert.Equal(["New"], feed.Labels);
+		Assert.Empty(_store.GetFeeds(folders["Old"]));
+		Assert.Single(_store.GetFeeds(folders["New"]));
+		// The next sync agrees.
+		await _account.RefreshAllAsync();
+		Assert.Single(_store.GetFeeds(_store.GetFolders().Single(folder => folder.Name == "New").FolderId));
+	}
+
+	[Fact]
+	public async Task FeedsCantGoToTheTopLevelOrBeCopied()
+	{
+		var feed = _server.AddFeed("Feed", "https://a.example/feed", "Old");
+		_server.Labels.Add("New");
+		await _account.RefreshAllAsync();
+		var folders = _store.GetFolders().ToDictionary(folder => folder.Name, folder => folder.FolderId);
+
+		await Assert.ThrowsAsync<InvalidOperationException>(() => _account.MoveFeedAsync(feed.Id, folders["Old"], null, copy: false));
+		await Assert.ThrowsAsync<InvalidOperationException>(() => _account.MoveFeedAsync(feed.Id, folders["Old"], folders["New"], copy: true));
+		Assert.Equal(["Old"], feed.Labels);
+	}
+
+	[Fact]
 	public async Task RenameFolderRenamesTheLabel()
 	{
 		var feed = _server.AddFeed("Feed", "https://a.example/feed", "Old");

@@ -27,6 +27,18 @@ public interface IAccount
 
 	ArticlesStore Store { get; }
 
+	/// <summary>Whether a feed can sit outside every folder. FreshRSS puts every feed in a category.</summary>
+	bool FeedsCanBeAtTopLevel { get; }
+
+	/// <summary>Whether a feed can be in several folders at once, so it can be copied as well as moved.</summary>
+	bool FeedsCanBeInSeveralFolders { get; }
+
+	/// <summary>
+	/// Moves a feed between folders, null meaning the top level; copying leaves it where it was too. Only within
+	/// this account.
+	/// </summary>
+	Task MoveFeedAsync(string feedId, long? fromFolderId, long? toFolderId, bool copy, CancellationToken cancellationToken = default);
+
 	Task<RefreshSummary> RefreshAllAsync(CancellationToken cancellationToken = default);
 
 	/// <summary>Finds the feed for <paramref name="url"/> and subscribes. Throws <see cref="SubscribeException"/> if it can't.</summary>

@@ -49,6 +49,29 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 
 	public ArticlesStore Store { get; }
 
+	/// <summary>FreshRSS keeps every feed in one category, so feeds are never at the top level or in two folders.</summary>
+	public bool FeedsCanBeAtTopLevel => false;
+
+	public bool FeedsCanBeInSeveralFolders => false;
+
+	/// <summary>NetNewsWire's <c>moveFeed</c>: one edit that takes the old folder's label off and puts the new one on.</summary>
+	public async Task MoveFeedAsync(string feedId, long? fromFolderId, long? toFolderId, bool copy, CancellationToken cancellationToken = default)
+	{
+		if (toFolderId is null || copy)
+		{
+			throw new InvalidOperationException($"{Name} keeps every feed in exactly one folder.");
+		}
+		if (fromFolderId == toFolderId)
+		{
+			return;
+		}
+		var folders = Store.GetFolders();
+		var to = folders.Single(folder => folder.FolderId == toFolderId);
+		var from = fromFolderId is null ? null : folders.Single(folder => folder.FolderId == fromFolderId);
+		await _caller.EditSubscriptionFoldersAsync(feedId, to.Name, from?.Name, cancellationToken);
+		Store.MoveFeed(feedId, fromFolderId, toFolderId);
+	}
+
 	/// <summary>
 	/// NetNewsWire's <c>refreshAll</c>: the feed list, then queued statuses up, then every recent article ID (marked read
 	/// until the unread list says otherwise), then statuses down, then any unread or starred article not yet downloaded.

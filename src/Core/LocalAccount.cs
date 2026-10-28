@@ -30,6 +30,16 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 
 	public string Name => "On This PC";
 
+	public bool FeedsCanBeAtTopLevel => true;
+
+	public bool FeedsCanBeInSeveralFolders => true;
+
+	public Task MoveFeedAsync(string feedId, long? fromFolderId, long? toFolderId, bool copy, CancellationToken cancellationToken = default)
+	{
+		Store.MoveFeed(feedId, fromFolderId, toFolderId, copy);
+		return Task.CompletedTask;
+	}
+
 	async Task<RefreshSummary> IAccount.RefreshAllAsync(CancellationToken cancellationToken)
 	{
 		var results = await RefreshAllAsync(cancellationToken);

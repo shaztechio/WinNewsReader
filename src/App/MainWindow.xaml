@@ -82,7 +82,8 @@
             </Grid.ColumnDefinitions>
 
             <TreeView x:Name="Sidebar" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"
-                      SelectionMode="Single" CanDragItems="False" CanReorderItems="False" AllowDrop="False"
+                      SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="False"
+                      DragItemsStarting="OnSidebarDragItemsStarting" DragItemsCompleted="OnSidebarDragItemsCompleted"
                       SelectionChanged="OnSidebarSelectionChanged"
                       Expanding="OnSidebarExpanding" Collapsed="OnSidebarCollapsed"
                       AutomationProperties.Name="Sidebar">
@@ -90,6 +91,7 @@
                     <DataTemplate x:DataType="vm:SidebarItem">
                         <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded, Mode=OneWay}"
                                       ContextFlyout="{StaticResource SidebarMenu}"
+                                      AllowDrop="True" DragOver="OnSidebarItemDragOver" Drop="OnSidebarItemDrop"
                                       AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
                             <Grid ColumnSpacing="10">
                                 <Grid.ColumnDefinitions>
