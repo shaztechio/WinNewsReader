@@ -82,7 +82,7 @@
             </Grid.ColumnDefinitions>
 
             <TreeView x:Name="Sidebar" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}"
-                      SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="False"
+                      SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="True"
                       DragItemsStarting="OnSidebarDragItemsStarting" DragItemsCompleted="OnSidebarDragItemsCompleted"
                       SelectionChanged="OnSidebarSelectionChanged"
                       Expanding="OnSidebarExpanding" Collapsed="OnSidebarCollapsed"
@@ -91,9 +91,11 @@
                     <DataTemplate x:DataType="vm:SidebarItem">
                         <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded, Mode=OneWay}"
                                       ContextFlyout="{StaticResource SidebarMenu}"
-                                      AllowDrop="True" DragOver="OnSidebarItemDragOver" Drop="OnSidebarItemDrop"
                                       AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
-                            <Grid ColumnSpacing="10">
+                            <!-- Drops land on the row's content, ahead of the tree's own drop handling, which would
+                                 rearrange rows itself. -->
+                            <Grid ColumnSpacing="10" Background="Transparent"
+                                  AllowDrop="True" DragOver="OnSidebarRowDragOver" Drop="OnSidebarRowDrop">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />

@@ -145,6 +145,7 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] Hide read articles (per row) and hide read feeds, sort order, clean up; dates follow NetNewsWire's logical publish date
   - [x] Remember window, panes, open folders and selection; NetNewsWire's default feeds on first launch
   - [x] Move feeds between folders: drag and drop (Ctrl copies, local only) and a Move to menu, in both accounts
+  - [x] Move or copy feeds between accounts, by subscribing in the other account (JSON Feeds can't go to FreshRSS, as in NetNewsWire)
   - [ ] Search, dragging URLs and folders, inline rename, undo, Inspector, preferences, multiple windows
 - [ ] Phase 4, started early: FreshRSS
   - [x] Account layer (several accounts, one store each), sync status queue, Credential Manager

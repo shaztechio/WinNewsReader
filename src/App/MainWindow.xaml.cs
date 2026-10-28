@@ -167,15 +167,19 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	// Dragging feeds between folders. Only feeds drag; folders and accounts stay put.
+	// Dragging feeds between folders and accounts. Only feeds drag; folders and accounts stay put. The rows run the
+	// drag themselves: the tree's built-in item dragging rearranges its own rows on a drop instead of letting the
+	// app decide.
 
 	private SidebarItem? _draggedFeed;
 
 	private void OnSidebarDragItemsStarting(TreeView sender, TreeViewDragItemsStartingEventArgs args)
 	{
-		if (args.Items.FirstOrDefault() is SidebarItem { Kind: SidebarItemKind.Feed } feed)
+		if (args.Items.FirstOrDefault() is SidebarItem { Kind: SidebarItemKind.Feed, Feed: { } feed } item)
 		{
-			_draggedFeed = feed;
+			_draggedFeed = item;
+			// Dropped on another app, the feed is its URL.
+			args.Data.SetText(feed.Url);
 			args.Data.RequestedOperation = DataPackageOperation.Move | DataPackageOperation.Copy;
 		}
 		else
@@ -186,14 +190,18 @@ public sealed partial class MainWindow : Window
 
 	private void OnSidebarDragItemsCompleted(TreeView sender, TreeViewDragItemsCompletedEventArgs args) => _draggedFeed = null;
 
-	/// <summary>NetNewsWire's drop rules: a folder or the account's top level, in the same account. Ctrl copies instead of moving.</summary>
-	private void OnSidebarItemDragOver(object sender, DragEventArgs e)
+	/// <summary>
+	/// NetNewsWire's drop rules: a folder or an account's top level. Within an account its own rules apply; another account
+	/// subscribes to the feed. Ctrl copies instead of moving.
+	/// </summary>
+	private void OnSidebarRowDragOver(object sender, DragEventArgs e)
 	{
 		var copy = e.Modifiers.HasFlag(Windows.ApplicationModel.DataTransfer.DragDrop.DragDropModifiers.Control);
 		if (_draggedFeed is { } feed && DataContextOf(sender as FrameworkElement) is SidebarItem target && MainViewModel.CanDrop(feed, target, copy))
 		{
 			e.AcceptedOperation = copy ? DataPackageOperation.Copy : DataPackageOperation.Move;
-			e.DragUIOverride.Caption = $"{(copy ? "Copy" : "Move")} to {target.Title}";
+			var place = target.Account != feed.Account && target.Kind == SidebarItemKind.Folder ? $"{target.Account!.Name} › {target.Title}" : target.Title;
+			e.DragUIOverride.Caption = $"{(copy ? "Copy" : "Move")} to {place}";
 		}
 		else
 		{
@@ -202,14 +210,14 @@ public sealed partial class MainWindow : Window
 		e.Handled = true;
 	}
 
-	private async void OnSidebarItemDrop(object sender, DragEventArgs e)
+	private async void OnSidebarRowDrop(object sender, DragEventArgs e)
 	{
 		e.Handled = true;
 		var copy = e.Modifiers.HasFlag(Windows.ApplicationModel.DataTransfer.DragDrop.DragDropModifiers.Control);
 		if (_draggedFeed is { } feed && DataContextOf(sender as FrameworkElement) is SidebarItem target && MainViewModel.CanDrop(feed, target, copy))
 		{
 			_draggedFeed = null;
-			await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(feed, target.Folder, copy));
+			await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(feed, target.Account!, target.Folder, copy));
 		}
 	}
 
@@ -385,7 +393,21 @@ public sealed partial class MainWindow : Window
 			var moveTo = new MenuFlyoutSubItem { Text = "Move to" };
 			foreach (var (name, folder) in MainViewModel.MoveDestinations(item))
 			{
-				moveTo.Items.Add(MenuItem(name, async () => await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(item, folder, copy: false))));
+				moveTo.Items.Add(MenuItem(name, async () => await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(item, item.Account!, folder, copy: false))));
+			}
+			// Other accounts get a submenu each: moving there subscribes there.
+			foreach (var (account, destinations) in ViewModel.OtherAccountDestinations(item))
+			{
+				if (moveTo.Items.Count > 0)
+				{
+					moveTo.Items.Add(new MenuFlyoutSeparator());
+				}
+				var accountMenu = new MenuFlyoutSubItem { Text = account.Name };
+				foreach (var (name, folder) in destinations)
+				{
+					accountMenu.Items.Add(MenuItem(name, async () => await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(item, account, folder, copy: false))));
+				}
+				moveTo.Items.Add(accountMenu);
 			}
 			moveTo.IsEnabled = moveTo.Items.Count > 0;
 			menu.Items.Add(moveTo);

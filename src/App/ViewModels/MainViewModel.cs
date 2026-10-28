@@ -373,28 +373,66 @@ public sealed partial class MainViewModel : ObservableObject
 		return destinations;
 	}
 
-	/// <summary>Whether a dragged feed can be dropped on <paramref name="target"/>: a folder or the account's group, in the same account.</summary>
-	public static bool CanDrop(SidebarItem feedItem, SidebarItem target, bool copy) =>
-		feedItem is { Kind: SidebarItemKind.Feed, Account: { } account } && target.Account == account
-		&& (!copy || account.FeedsCanBeInSeveralFolders)
-		&& target.Kind switch
+	/// <summary>
+	/// Where a feed row can go in each other account: its top level, then its folders. For FreshRSS the top level means
+	/// the server's default category.
+	/// </summary>
+	public IEnumerable<(IAccount Account, IReadOnlyList<(string Name, StoredFolder? Folder)> Destinations)> OtherAccountDestinations(SidebarItem feedItem) =>
+		Accounts.Where(account => account != feedItem.Account).Select(account =>
+			(account, (IReadOnlyList<(string, StoredFolder?)>)[(account.Name, null), .. FoldersOf(account).Select(folder => (folder.Name, (StoredFolder?)folder))]));
+
+	/// <summary>
+	/// Whether a dragged feed can be dropped on <paramref name="target"/>, a folder or an account's group. Within an account
+	/// the account's rules apply; dropping on another account subscribes there, as in NetNewsWire.
+	/// </summary>
+	public static bool CanDrop(SidebarItem feedItem, SidebarItem target, bool copy)
+	{
+		if (feedItem is not { Kind: SidebarItemKind.Feed, Account: { } account } || target.Kind is not (SidebarItemKind.Folder or SidebarItemKind.AccountGroup))
+		{
+			return false;
+		}
+		if (target.Account != account)
+		{
+			return target.Account is not null;
+		}
+		return (!copy || account.FeedsCanBeInSeveralFolders) && target.Kind switch
 		{
 			SidebarItemKind.Folder => target.Folder!.FolderId != feedItem.ParentFolder?.FolderId,
-			SidebarItemKind.AccountGroup => account.FeedsCanBeAtTopLevel && feedItem.ParentFolder is not null,
-			_ => false,
+			_ => account.FeedsCanBeAtTopLevel && feedItem.ParentFolder is not null,
 		};
+	}
 
-	/// <summary>Moves or copies a feed row to a folder, or the top level when <paramref name="to"/> is null, keeping it selected.</summary>
-	public async Task MoveFeedAsync(SidebarItem feedItem, StoredFolder? to, bool copy)
+	/// <summary>
+	/// Moves or copies a feed row to a folder, or the top level when <paramref name="to"/> is null, in its own account or
+	/// another one. Another account subscribes to the feed and, for a move, it's then removed here. The feed ends up selected
+	/// if it was, or always when it went to another account.
+	/// </summary>
+	public async Task MoveFeedAsync(SidebarItem feedItem, IAccount toAccount, StoredFolder? to, bool copy)
 	{
 		var account = feedItem.Account!;
-		var feedId = feedItem.Feed!.FeedId;
-		await account.MoveFeedAsync(feedId, feedItem.ParentFolder?.FolderId, to?.FolderId, copy);
-		if (to is not null)
+		var feed = feedItem.Feed!;
+		if (toAccount == account)
 		{
-			_expandedKeys.Add(SidebarItem.FolderKey(account, to));
+			await account.MoveFeedAsync(feed.FeedId, feedItem.ParentFolder?.FolderId, to?.FolderId, copy);
+			if (to is not null)
+			{
+				_expandedKeys.Add(SidebarItem.FolderKey(account, to));
+			}
+			LoadSidebar(select: SelectedSidebarItem == feedItem ? SidebarItem.FeedKey(account, feed.FeedId, to) : null);
+			return;
 		}
-		LoadSidebar(select: SelectedSidebarItem == feedItem ? SidebarItem.FeedKey(account, feedId, to) : null);
+
+		var added = await Task.Run(() => FeedTransfer.TransferAsync(account, feed, feedItem.ParentFolder?.FolderId, toAccount, to?.Name, copy));
+		LoadSidebar();
+		// The server may have put it in a folder of its own choosing, so find where it landed.
+		if (AllSidebarItems().FirstOrDefault(item => item.Account == toAccount && item.Feed?.FeedId == added.FeedId) is { } row)
+		{
+			if (row.ParentFolder is { } folder && FindSidebarItem(SidebarItem.FolderKey(toAccount, folder)) is { } folderRow)
+			{
+				SetExpanded(folderRow, true);
+			}
+			SelectedSidebarItem = row;
+		}
 	}
 
 	public async Task RenameFolderAsync(SidebarItem item, string name)

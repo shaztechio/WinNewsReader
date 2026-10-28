@@ -116,7 +116,20 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 	/// <summary>Finds the feed, as NetNewsWire does skipping JSON feeds, subscribes on the server and downloads its articles.</summary>
 	public async Task<StoredFeed> SubscribeAsync(string url, string? folderName, CancellationToken cancellationToken = default)
 	{
-		var feedUrl = await _finder.FindBestFeedUrlAsync(url, specifier => !specifier.Url.Contains("json", StringComparison.OrdinalIgnoreCase), cancellationToken);
+		var normalizedUrl = url.NormalizedUrl();
+		IReadOnlySet<FeedSpecifier> specifiers;
+		try
+		{
+			specifiers = await _finder.FindAsync(normalizedUrl, cancellationToken);
+		}
+		catch (FeedNotFoundException)
+		{
+			throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+		}
+		var feedUrl = FeedSpecifier.BestFeed([.. specifiers.Where(specifier => !specifier.Url.Contains("json", StringComparison.OrdinalIgnoreCase))])?.Url
+			?? throw new SubscribeException(specifiers.Count > 0
+				? $"{Name} subscribes only to RSS and Atom feeds, as in NetNewsWire, and {normalizedUrl} has only a JSON Feed."
+				: $"Couldn’t find a feed at {normalizedUrl}.");
 		await _syncGate.WaitAsync(cancellationToken);
 		try
 		{
