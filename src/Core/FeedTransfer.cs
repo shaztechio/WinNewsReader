@@ -22,6 +22,12 @@ public static class FeedTransfer
 			throw new ArgumentException("Within one account, use IAccount.MoveFeedAsync.", nameof(target));
 		}
 		var added = await target.SubscribeAsync(feed.Url, toFolderName, cancellationToken);
+		// NetNewsWire's createFeed passes the edited name along, so a renamed feed keeps its name in the other account.
+		if (feed.EditedName is { Length: > 0 } editedName && editedName != added.Name)
+		{
+			await target.RenameFeedAsync(added.FeedId, editedName, cancellationToken);
+			added = added with { EditedName = editedName };
+		}
 		if (!copy)
 		{
 			await source.RemoveFeedAsync(feed.FeedId, fromFolderId, cancellationToken);

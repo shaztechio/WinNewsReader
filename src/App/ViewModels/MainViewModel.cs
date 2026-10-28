@@ -660,6 +660,19 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>NetNewsWire's <c>renameFeedIfNecessary</c>: ignores a blank name or one that's already the feed's.</summary>
+	public async Task RenameFeedAsync(SidebarItem item, string name)
+	{
+		name = name.Trim();
+		if (name.Length == 0 || item.Feed is not { } feed || name == NameSorting.DisplayName(feed))
+		{
+			return;
+		}
+		await item.Account!.RenameFeedAsync(feed.FeedId, name);
+		LoadSidebar();
+		LoadArticles(keepSelection: true);
+	}
+
 	public async Task RenameFolderAsync(SidebarItem item, string name)
 	{
 		await item.Account!.RenameFolderAsync(item.Folder!.FolderId, name);

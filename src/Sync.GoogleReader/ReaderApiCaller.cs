@@ -219,6 +219,10 @@ public sealed class ReaderApiCaller : IDisposable
 		return PostWithTokenAsync("/reader/api/0/subscription/edit", parameters, cancellationToken);
 	}
 
+	/// <summary>NetNewsWire's <c>renameSubscription</c>.</summary>
+	public Task RenameSubscriptionAsync(string subscriptionId, string newName, CancellationToken cancellationToken = default) =>
+		PostWithTokenAsync("/reader/api/0/subscription/edit", [("s", subscriptionId), ("ac", "edit"), ("t", newName)], cancellationToken);
+
 	public Task RenameFolderAsync(string oldName, string newName, CancellationToken cancellationToken = default) =>
 		PostWithTokenAsync("/reader/api/0/rename-tag", [("s", "user/-/label/" + oldName), ("dest", "user/-/label/" + newName)], cancellationToken);
 

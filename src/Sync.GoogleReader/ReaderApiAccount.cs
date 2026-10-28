@@ -162,6 +162,13 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 		Store.RemoveFeed(feedId);
 	}
 
+	/// <summary>NetNewsWire renames the subscription on the server, then keeps the name as the feed's edited name.</summary>
+	public async Task RenameFeedAsync(string feedId, string name, CancellationToken cancellationToken = default)
+	{
+		await _caller.RenameSubscriptionAsync(feedId, name, cancellationToken);
+		Store.SetFeedEditedName(feedId, name);
+	}
+
 	public async Task RenameFolderAsync(long folderId, string name, CancellationToken cancellationToken = default)
 	{
 		var folder = Store.GetFolders().Single(folder => folder.FolderId == folderId);

@@ -7,6 +7,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -611,13 +612,18 @@ public sealed partial class MainWindow : Window
 			}
 			moveTo.IsEnabled = moveTo.Items.Count > 0;
 			menu.Items.Add(moveTo);
+			menu.Items.Add(MenuItem("Rename…", async () => await ShowRenameFeedDialogAsync(item)));
 			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteAsync(item)));
+			menu.Items.Add(new MenuFlyoutSeparator());
+			menu.Items.Add(MenuItem("Get Info", async () => await ShowInspectorAsync(item)));
 		}
 		else if (item.Folder is not null)
 		{
 			menu.Items.Add(new MenuFlyoutSeparator());
 			menu.Items.Add(MenuItem("Rename…", async () => await ShowRenameFolderDialogAsync(item)));
 			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteAsync(item)));
+			menu.Items.Add(new MenuFlyoutSeparator());
+			menu.Items.Add(MenuItem("Get Info", async () => await ShowInspectorAsync(item)));
 		}
 		else if (item is { Kind: SidebarItemKind.AccountGroup, Account: { } account })
 		{
@@ -748,6 +754,103 @@ public sealed partial class MainWindow : Window
 		{
 			ViewModel.AddFolder(name);
 		}
+	}
+
+	private async Task ShowRenameFeedDialogAsync(SidebarItem item)
+	{
+		if (await PromptAsync("Rename Feed", "Rename", "Name", item.Title) is { } name)
+		{
+			await RunReportingErrorsAsync("Couldn’t Rename Feed", () => ViewModel.RenameFeedAsync(item, name));
+		}
+	}
+
+	/// <summary>
+	/// NetNewsWire's Inspector (Window › Info, Cmd+I), as a dialog for the selected sidebar row: a feed's name, home
+	/// page, feed URL and Reader View setting; a folder's name; a smart feed's name. Changes apply on Done.
+	/// </summary>
+	private async Task ShowInspectorAsync(SidebarItem? item)
+	{
+		item ??= ViewModel.SelectedSidebarItem;
+		var panel = new StackPanel { Spacing = 12, Width = 420 };
+		TextBox? nameBox = null;
+		CheckBox? readerView = null;
+		string title;
+		if (item is null or { Kind: SidebarItemKind.SmartFeedsGroup or SidebarItemKind.AccountGroup })
+		{
+			title = "Inspector";
+			panel.Children.Add(new TextBlock { Text = "Nothing to Inspect", Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"], HorizontalAlignment = HorizontalAlignment.Center });
+		}
+		else
+		{
+			var header = new Grid { ColumnSpacing = 12 };
+			header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+			header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			UIElement icon = item.Icon is { } image
+				? new Image { Source = image, Width = 32, Height = 32 }
+				: new FontIcon { Glyph = item.Glyph, FontSize = 28 };
+			header.Children.Add(icon);
+			if (item.Kind is SidebarItemKind.Feed or SidebarItemKind.Folder)
+			{
+				nameBox = new TextBox { Text = item.Feed is { } feed ? NameSorting.DisplayName(feed) : item.Title, VerticalAlignment = VerticalAlignment.Center };
+				AutomationProperties.SetName(nameBox, "Name");
+				Grid.SetColumn(nameBox, 1);
+				header.Children.Add(nameBox);
+			}
+			else
+			{
+				var name = new TextBlock { Text = item.Title, Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"], VerticalAlignment = VerticalAlignment.Center };
+				Grid.SetColumn(name, 1);
+				header.Children.Add(name);
+			}
+			panel.Children.Add(header);
+			if (item.Feed is { } inspected)
+			{
+				title = "Feed Inspector";
+				panel.Children.Add(Field("Home Page", inspected.HomePageUrl));
+				panel.Children.Add(Field("Feed", inspected.Url));
+				readerView = new CheckBox { Content = "Always Use Reader View", IsChecked = ViewModel.IsReaderViewAlwaysOn(item) };
+				panel.Children.Add(readerView);
+			}
+			else
+			{
+				title = item.Folder is not null ? "Folder Inspector" : "Smart Feed Inspector";
+			}
+		}
+		var dialog = new ContentDialog
+		{
+			XamlRoot = Content.XamlRoot,
+			Title = title,
+			Content = panel,
+			CloseButtonText = nameBox is null && readerView is null ? "Close" : "Cancel",
+			DefaultButton = ContentDialogButton.Primary,
+		};
+		if (nameBox is not null || readerView is not null)
+		{
+			dialog.PrimaryButtonText = "Done";
+		}
+		if (await ShowDialogAsync(dialog) != ContentDialogResult.Primary || item is null)
+		{
+			return;
+		}
+		if (readerView is not null)
+		{
+			ViewModel.SetReaderViewAlwaysOn(item, readerView.IsChecked == true);
+		}
+		if (nameBox is { Text: var newName } && newName.Trim().Length > 0 && newName.Trim() != item.Title)
+		{
+			if (item.Feed is not null)
+			{
+				await RunReportingErrorsAsync("Couldn’t Rename Feed", () => ViewModel.RenameFeedAsync(item, newName));
+			}
+			else
+			{
+				await RunReportingErrorsAsync("Couldn’t Rename Folder", () => ViewModel.RenameFolderAsync(item, newName.Trim()));
+			}
+		}
+
+		// A URL that can be selected and copied but not edited, as in NetNewsWire's inspector.
+		static UIElement Field(string header, string? url) =>
+			new TextBox { Header = header, Text = url ?? "", IsReadOnly = true, TextWrapping = TextWrapping.Wrap, PlaceholderText = "None" };
 	}
 
 	private async Task ShowRenameFolderDialogAsync(SidebarItem item)
@@ -1031,6 +1134,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.U, CtrlShift, null, () => ViewModel.ToggleRead());
 		Add(VirtualKey.L, CtrlShift, null, () => ViewModel.ToggleStarred());
 		Add(VirtualKey.R, CtrlShift, null, () => ViewModel.ToggleReaderView());
+		Add(VirtualKey.I, Ctrl, null, () => _ = ShowInspectorAsync(null));
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));

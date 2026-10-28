@@ -146,7 +146,8 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] Remember window, panes, open folders and selection; NetNewsWire's default feeds on first launch
   - [x] Move feeds between folders: drag and drop (Ctrl copies, local only) and a Move to menu, in both accounts
   - [x] Move or copy feeds between accounts, by subscribing in the other account (JSON Feeds can't go to FreshRSS, as in NetNewsWire)
-  - [ ] Search, dragging URLs and folders, inline rename, undo, Inspector, preferences, multiple windows
+  - [x] Inspector (IN-01, IN-03 to IN-06) as a Get Info dialog (Ctrl+I): feed name, home page, feed URL and Always Use Reader View; folder name; smart feed name. Feed rename (SB-11) keeps an edited name, renamed on the server for FreshRSS. New-article notifications (IN-02) wait for notifications
+  - [ ] Search, dragging URLs and folders, inline rename, undo, preferences, multiple windows
 - [x] Phase 3: article view
   - [x] NetNewsWire's template, core and stylesheet CSS, page scripts and special cases (AV-01), its eight bundled themes (AV-02), Open Themes Folder (AV-05), article text size; feed icons in the article header
   - [x] Reader View (AV-08, TB-09): SmartReader extracts the article from its page, on demand (Ctrl+Shift+R) or always for a feed set to Always Use Reader View

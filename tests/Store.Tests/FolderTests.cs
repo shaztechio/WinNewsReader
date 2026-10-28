@@ -196,6 +196,23 @@ public sealed class FolderTests : IDisposable
 	}
 
 	[Fact]
+	public void EditedFeedNameSurvivesRefreshAndCanBeCleared()
+	{
+		var feed = _store.AddFeed(FeedA, "Feed A");
+
+		Assert.True(_store.SetFeedEditedName(feed.FeedId, "  Mine  "));
+		_store.UpdateFeedMetadata(feed.FeedId, "Feed A, Renamed by Its Site", null, null, null, null);
+
+		var stored = _store.GetFeed(feed.FeedId)!;
+		Assert.Equal("Mine", stored.EditedName);
+		Assert.Equal("Feed A, Renamed by Its Site", stored.Name);
+		Assert.Equal("Mine", Core.NameSorting.DisplayName(stored));
+
+		_store.SetFeedEditedName(feed.FeedId, " ");
+		Assert.Equal("Feed A, Renamed by Its Site", Core.NameSorting.DisplayName(_store.GetFeed(feed.FeedId)!));
+	}
+
+	[Fact]
 	public void ExportMatchesNetNewsWireFormat()
 	{
 		var folder = _store.EnsureFolder("Tech & Code");

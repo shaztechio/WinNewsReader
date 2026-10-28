@@ -49,6 +49,9 @@ public interface IAccount
 
 	Task RenameFolderAsync(long folderId, string name, CancellationToken cancellationToken = default);
 
+	/// <summary>NetNewsWire's <c>renameFeed</c>: sets the feed's edited name, on the server too for a sync account.</summary>
+	Task RenameFeedAsync(string feedId, string name, CancellationToken cancellationToken = default);
+
 	/// <summary>Removes the folder; its feeds go too unless they're somewhere else as well.</summary>
 	Task RemoveFolderAsync(long folderId, CancellationToken cancellationToken = default);
 

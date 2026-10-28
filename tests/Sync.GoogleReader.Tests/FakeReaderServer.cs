@@ -190,6 +190,10 @@ internal sealed class FakeReaderServer : HttpMessageHandler
 						{
 							target.Labels.Remove(remove["user/-/label/".Length..]);
 						}
+						if (First(form, "t") is { } title)
+						{
+							target.Title = title;
+						}
 					}
 					return Text("OK");
 				case "/reader/api/0/rename-tag":

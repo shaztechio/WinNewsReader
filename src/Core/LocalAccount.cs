@@ -55,6 +55,12 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 		return Task.CompletedTask;
 	}
 
+	Task IAccount.RenameFeedAsync(string feedId, string name, CancellationToken cancellationToken)
+	{
+		Store.SetFeedEditedName(feedId, name);
+		return Task.CompletedTask;
+	}
+
 	Task IAccount.RenameFolderAsync(long folderId, string name, CancellationToken cancellationToken)
 	{
 		Store.RenameFolder(folderId, name);

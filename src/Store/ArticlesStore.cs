@@ -5,7 +5,11 @@ using WinNewsReader.Parser.Utilities;
 
 namespace WinNewsReader.Store;
 
-public sealed record StoredFeed(string FeedId, string Url, string? Name, string? HomePageUrl, string? IconUrl, string? ETag, string? LastModified);
+public sealed record StoredFeed(string FeedId, string Url, string? Name, string? HomePageUrl, string? IconUrl, string? ETag, string? LastModified)
+{
+	/// <summary>NetNewsWire's <c>editedName</c>: the reader's own name for the feed, which refreshes leave alone.</summary>
+	public string? EditedName { get; init; }
+}
 
 public enum StatusKey
 {
@@ -104,6 +108,11 @@ public sealed class ArticlesStore : IDisposable
 		if (Convert.ToInt32(hasTopLevel.ExecuteScalar()) == 0)
 		{
 			Execute("ALTER TABLE feeds ADD COLUMN topLevel BOOL NOT NULL DEFAULT 1");
+		}
+		using var hasEditedName = Command("SELECT COUNT(*) FROM pragma_table_info('feeds') WHERE name = 'editedName'");
+		if (Convert.ToInt32(hasEditedName.ExecuteScalar()) == 0)
+		{
+			Execute("ALTER TABLE feeds ADD COLUMN editedName TEXT");
 		}
 	}
 
@@ -231,6 +240,15 @@ public sealed class ArticlesStore : IDisposable
 			DeleteUnparentedFeeds();
 			transaction.Commit();
 			return removed;
+		}
+	}
+
+	/// <summary>Sets the reader's name for the feed; null or blank goes back to the feed's own name.</summary>
+	public bool SetFeedEditedName(string feedId, string? editedName)
+	{
+		lock (_lock)
+		{
+			return Execute("UPDATE feeds SET editedName = $name WHERE feedID = $id", ("$id", feedId), ("$name", string.IsNullOrWhiteSpace(editedName) ? null : editedName.Trim())) > 0;
 		}
 	}
 
@@ -714,12 +732,15 @@ public sealed class ArticlesStore : IDisposable
 
 	private List<StoredFeed> QueryFeeds(string where, params (string Name, object? Value)[] parameters)
 	{
-		using var command = Command($"SELECT feedID, url, name, homePageURL, iconURL, etag, lastModified FROM feeds {where}", parameters);
+		using var command = Command($"SELECT feedID, url, name, homePageURL, iconURL, etag, lastModified, editedName FROM feeds {where}", parameters);
 		using var reader = command.ExecuteReader();
 		var feeds = new List<StoredFeed>();
 		while (reader.Read())
 		{
-			feeds.Add(new StoredFeed(reader.GetString(0), reader.GetString(1), Text(reader, 2), Text(reader, 3), Text(reader, 4), Text(reader, 5), Text(reader, 6)));
+			feeds.Add(new StoredFeed(reader.GetString(0), reader.GetString(1), Text(reader, 2), Text(reader, 3), Text(reader, 4), Text(reader, 5), Text(reader, 6))
+			{
+				EditedName = Text(reader, 7),
+			});
 		}
 		return feeds;
 	}

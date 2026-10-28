@@ -235,6 +235,20 @@ public sealed class ReaderApiAccountTests : IDisposable
 	}
 
 	[Fact]
+	public async Task RenameFeedRenamesTheSubscription()
+	{
+		var feed = _server.AddFeed("Feed", "https://a.example/feed", "Folder");
+		await _account.RefreshAllAsync();
+
+		await _account.RenameFeedAsync(feed.Id, "My Feed");
+
+		Assert.Equal("My Feed", feed.Title);
+		Assert.Equal("My Feed", Core.NameSorting.DisplayName(_store.GetFeed(feed.Id)!));
+		await _account.RefreshAllAsync();
+		Assert.Equal("My Feed", Core.NameSorting.DisplayName(_store.GetFeed(feed.Id)!));
+	}
+
+	[Fact]
 	public async Task WrongPasswordIsReported()
 	{
 		using var caller = new ReaderApiCaller(FakeReaderServer.Endpoint, FakeReaderServer.Username, "wrong", _server);
