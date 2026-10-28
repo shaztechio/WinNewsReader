@@ -1284,6 +1284,29 @@ public sealed partial class MainViewModel : ObservableObject
 			};
 			return item.UnreadCount;
 		}
+		UpdateHiddenReadFeeds(counts);
+	}
+
+	/// <summary>
+	/// NetNewsWire's Hide Read Feeds follows the counts: a feed goes as soon as it has nothing unread, and comes back when
+	/// it has, except the selected row, which stays while it's selected.
+	/// </summary>
+	/// <summary>For a new sidebar selection: a feed read through while it was selected goes once it isn't.</summary>
+	public void UpdateHiddenReadFeeds() => UpdateHiddenReadFeeds(Accounts.ToDictionary(account => account, account => account.Store.UnreadCounts()));
+
+	private void UpdateHiddenReadFeeds(Dictionary<IAccount, IReadOnlyDictionary<string, int>> counts)
+	{
+		if (!Settings.HideReadFeeds || _rebuildingSidebar)
+		{
+			return;
+		}
+		var shown = AllSidebarItems().Where(item => item.Feed is not null).Select(item => (item.Account!, item.Feed!.FeedId)).ToHashSet();
+		var selected = SelectedSidebarItem is { Feed: { } feed } row ? (row.Account!, feed.FeedId) : default;
+		var unread = counts.SelectMany(pair => pair.Value.Keys.Select(feedId => (pair.Key, feedId))).ToHashSet();
+		if (unread.Any(key => !shown.Contains(key)) || shown.Any(key => key != selected && !unread.Contains(key)))
+		{
+			LoadSidebar();
+		}
 	}
 
 	/// <summary>

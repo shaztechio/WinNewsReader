@@ -150,6 +150,8 @@ public sealed partial class MainWindow : Window
 					{
 						SyncSelection(() => Sidebar.SelectedItem = ViewModel.SelectedSidebarItem);
 					}
+					// Outside the tree's selection change, since it may rebuild the tree.
+					ViewModel.UpdateHiddenReadFeeds();
 				});
 				break;
 			case nameof(MainViewModel.Articles):
