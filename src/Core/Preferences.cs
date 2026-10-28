@@ -71,7 +71,9 @@ public static partial class InstalledBrowsers
 				{
 					using var browser = key!.OpenSubKey(name);
 					using var command = browser?.OpenSubKey(@"shell\open\command");
-					if (ExecutableFrom(command?.GetValue(null) as string) is { } path && File.Exists(path))
+					// Internet Explorer is retired, and its program only hands the address to Edge.
+					if (ExecutableFrom(command?.GetValue(null) as string) is { } path && File.Exists(path)
+						&& !Path.GetFileName(path).Equals("iexplore.exe", StringComparison.OrdinalIgnoreCase))
 					{
 						browsers.TryAdd(path, new InstalledBrowser(browser?.GetValue(null) as string is { Length: > 0 } display ? display : name, path));
 					}

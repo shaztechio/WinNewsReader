@@ -42,6 +42,7 @@ public sealed class PreferencesTests
 		var browsers = InstalledBrowsers.Find();
 		Assert.Equal(browsers.Count, browsers.Select(browser => browser.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count());
 		Assert.All(browsers, browser => Assert.True(File.Exists(browser.Path)));
+		Assert.DoesNotContain(browsers, browser => Path.GetFileName(browser.Path).Equals("iexplore.exe", StringComparison.OrdinalIgnoreCase));
 		Assert.Equal(browsers.Select(browser => browser.Name).OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase), browsers.Select(browser => browser.Name));
 	}
 }
