@@ -19,7 +19,8 @@
         </Grid.RowDefinitions>
 
         <!-- NetNewsWire's toolbar order: Refresh, New | Mark All as Read | Mark Read, Star, Next Unread, Open in Browser. -->
-        <CommandBar Grid.Row="0" HorizontalAlignment="Left" DefaultLabelPosition="Collapsed" Background="Transparent">
+        <Grid Grid.Row="0">
+        <CommandBar HorizontalAlignment="Left" DefaultLabelPosition="Collapsed" Background="Transparent">
             <AppBarButton Label="Refresh" ToolTipService.ToolTip="Refresh (Ctrl+R)" Icon="Refresh" Click="OnRefresh"
                           IsEnabled="{x:Bind ViewModel.IsNotRefreshing, Mode=OneWay}" />
             <AppBarButton Label="New" ToolTipService.ToolTip="New Feed or Folder" Icon="Add">
@@ -93,6 +94,12 @@
                                     Click="OnToggleArticleJavaScript" />
             </CommandBar.SecondaryCommands>
         </CommandBar>
+        <!-- NetNewsWire's toolbar search field, last in the toolbar: searches every article in every account. -->
+        <TextBox x:Name="SearchBox" HorizontalAlignment="Right" VerticalAlignment="Center" Width="240" Margin="0,0,12,0"
+                 PlaceholderText="Search Articles (Ctrl+Alt+F)" AutomationProperties.Name="Search Articles"
+                 Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
+        </Grid>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>

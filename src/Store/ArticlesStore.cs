@@ -114,6 +114,19 @@ public sealed class ArticlesStore : IDisposable
 		{
 			Execute("ALTER TABLE feeds ADD COLUMN editedName TEXT");
 		}
+		// NetNewsWire's search table: full-text title and body, linked from each article by searchRowID. A null
+		// searchRowID means the article needs indexing; clearing it, or deleting the article, drops the old entry.
+		using var hasSearchRowId = Command("SELECT COUNT(*) FROM pragma_table_info('articles') WHERE name = 'searchRowID'");
+		if (Convert.ToInt32(hasSearchRowId.ExecuteScalar()) == 0)
+		{
+			Execute("ALTER TABLE articles ADD COLUMN searchRowID INTEGER");
+		}
+		Execute("""
+			CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts4(title, body);
+			CREATE TRIGGER IF NOT EXISTS articles_after_delete_trigger_delete_search_text AFTER DELETE ON articles BEGIN DELETE FROM search WHERE rowid = OLD.searchRowID; END;
+			CREATE TRIGGER IF NOT EXISTS articles_after_unindex_delete_search_text AFTER UPDATE OF searchRowID ON articles
+				WHEN OLD.searchRowID IS NOT NULL AND NEW.searchRowID IS NULL BEGIN DELETE FROM search WHERE rowid = OLD.searchRowID; END;
+			""");
 	}
 
 	/// <summary>NetNewsWire's <c>Article.calculatedArticleID</c>.</summary>
@@ -369,7 +382,10 @@ public sealed class ArticlesStore : IDisposable
 					"""
 					INSERT INTO articles (articleID, feedID, uniqueID, title, contentHTML, contentText, markdown, url, externalURL, summary, imageURL, bannerImageURL, datePublished, dateModified, authors, attachments, thumbnailURL)
 					VALUES ($articleID, $feedID, $uniqueID, $title, $contentHTML, $contentText, $markdown, $url, $externalURL, $summary, $imageURL, $bannerImageURL, $datePublished, $dateModified, $authors, $attachments, $thumbnailURL)
-					ON CONFLICT(articleID) DO UPDATE SET title = excluded.title, contentHTML = excluded.contentHTML, contentText = excluded.contentText,
+					ON CONFLICT(articleID) DO UPDATE SET
+						searchRowID = CASE WHEN title IS NOT excluded.title OR contentHTML IS NOT excluded.contentHTML OR contentText IS NOT excluded.contentText
+							OR summary IS NOT excluded.summary OR authors IS NOT excluded.authors THEN NULL ELSE searchRowID END,
+						title = excluded.title, contentHTML = excluded.contentHTML, contentText = excluded.contentText,
 						markdown = excluded.markdown, url = excluded.url, externalURL = excluded.externalURL, summary = excluded.summary,
 						imageURL = excluded.imageURL, bannerImageURL = excluded.bannerImageURL, datePublished = excluded.datePublished,
 						dateModified = excluded.dateModified, authors = excluded.authors, attachments = excluded.attachments, thumbnailURL = excluded.thumbnailURL
@@ -384,8 +400,39 @@ public sealed class ArticlesStore : IDisposable
 				// A sync account may already have the status, from the server's list of IDs.
 				Execute("INSERT OR IGNORE INTO statuses (articleID, read, starred, dateArrived) VALUES ($id, $read, 0, $now)", ("$id", articleId), ("$read", defaultRead), ("$now", now));
 			}
+			IndexUnindexedArticles();
 			transaction.Commit();
 			return newCount;
+		}
+	}
+
+	/// <summary>
+	/// NetNewsWire's <c>fetchArticlesMatching</c>: articles whose title, text or authors have every word of
+	/// <paramref name="searchString"/>, each as a word prefix, newest first.
+	/// </summary>
+	public IReadOnlyList<StoredArticle> Search(string searchString)
+	{
+		if (SearchText.Query(searchString) is not { } query)
+		{
+			return [];
+		}
+		lock (_lock)
+		{
+			// Articles from before the index existed get indexed the first time they're searched.
+			using (var transaction = _connection.BeginTransaction())
+			{
+				IndexUnindexedArticles();
+				transaction.Commit();
+			}
+			try
+			{
+				return QueryArticles("WHERE a.searchRowID IN (SELECT rowid FROM search WHERE search MATCH $query)", ("$query", query));
+			}
+			catch (SqliteException)
+			{
+				// Words that FTS reads as operators in an order it can't parse: nothing matches.
+				return [];
+			}
 		}
 	}
 
@@ -743,6 +790,39 @@ public sealed class ArticlesStore : IDisposable
 			});
 		}
 		return feeds;
+	}
+
+	/// <summary>Indexes any articles not yet in the search index, such as ones saved before it existed.</summary>
+	public void EnsureSearchIndex()
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			IndexUnindexedArticles();
+			transaction.Commit();
+		}
+	}
+
+	/// <summary>Indexes new articles and ones whose text changed. Call inside a transaction.</summary>
+	private void IndexUnindexedArticles()
+	{
+		var pending = new List<(string Id, string? Title, string? Html, string? Text, string? Summary, string? Authors)>();
+		using (var command = Command("SELECT articleID, title, contentHTML, contentText, summary, authors FROM articles WHERE searchRowID IS NULL"))
+		using (var reader = command.ExecuteReader())
+		{
+			while (reader.Read())
+			{
+				pending.Add((reader.GetString(0), Text(reader, 1), Text(reader, 2), Text(reader, 3), Text(reader, 4), Text(reader, 5)));
+			}
+		}
+		foreach (var (id, title, html, text, summary, authors) in pending)
+		{
+			var names = authors is null ? null : JsonSerializer.Deserialize<List<ParsedAuthor>>(authors)?.Select(author => author.Name);
+			Execute("INSERT INTO search (title, body) VALUES ($title, $body)", ("$title", SearchText.Title(title)), ("$body", SearchText.Body(html, text, summary, names)));
+			using var lastRowId = Command("SELECT last_insert_rowid()");
+			var rowId = Convert.ToInt64(lastRowId.ExecuteScalar());
+			Execute("UPDATE articles SET searchRowID = $rowID WHERE articleID = $id", ("$rowID", rowId), ("$id", id));
+		}
 	}
 
 	private List<StoredArticle> QueryArticles(string where, params (string Name, object? Value)[] parameters)

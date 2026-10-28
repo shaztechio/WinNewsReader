@@ -885,8 +885,58 @@ public sealed partial class MainViewModel : ObservableObject
 
 	public static StoredFeed? FeedFor(ArticleItem article) => article.Account.Store.GetFeed(article.Article.FeedId);
 
+	// Search, as NetNewsWire's Mac window runs it: the timeline shows the Search smart feed for what's typed, across
+	// every account, until the field is cleared or a sidebar row is chosen.
+
+	/// <summary>What's in the search field; <see cref="ApplySearch"/> runs it.</summary>
+	[ObservableProperty]
+	public partial string SearchText { get; set; } = "";
+
+	private string? _searchString;
+
+	public bool IsSearching => _searchString is not null;
+
+	/// <summary>NetNewsWire's window title while searching: "Search: …".</summary>
+	public string WindowTitle => _searchString is { } search ? $"Search: {search}" : "WinNewsReader";
+
+	public void ApplySearch()
+	{
+		var search = SearchText.Trim() is { Length: > 0 } text ? text : null;
+		if (search == _searchString)
+		{
+			return;
+		}
+		_searchString = search;
+		OnPropertyChanged(nameof(IsSearching));
+		OnPropertyChanged(nameof(WindowTitle));
+		LoadArticles(keepSelection: false);
+	}
+
+	public void EndSearch()
+	{
+		SearchText = "";
+		ApplySearch();
+	}
+
+	/// <summary>Builds the search index for articles saved before it existed, so the first search isn't slow.</summary>
+	public Task PrepareSearchAsync() => Task.Run(() =>
+	{
+		foreach (var account in Accounts.ToList())
+		{
+			account.Store.EnsureSearchIndex();
+		}
+	});
+
 	partial void OnSelectedSidebarItemChanged(SidebarItem? value)
 	{
+		// Choosing a row ends a search, as in NetNewsWire.
+		if (_searchString is not null && !_rebuildingSidebar)
+		{
+			_searchString = null;
+			SearchText = "";
+			OnPropertyChanged(nameof(IsSearching));
+			OnPropertyChanged(nameof(WindowTitle));
+		}
 		OnPropertyChanged(nameof(IsHidingReadArticles));
 		OnPropertyChanged(nameof(CanHideReadArticles));
 		if (!_rebuildingSidebar)
@@ -933,8 +983,10 @@ public sealed partial class MainViewModel : ObservableObject
 	private void LoadArticles(bool keepSelection)
 	{
 		var selected = keepSelection ? SelectedArticle : null;
-		var pairs = ArticlesFor(SelectedSidebarItem);
-		if (SelectedSidebarItem is { } item && HidesReadArticles(item))
+		var pairs = _searchString is { } search
+			? Accounts.ToList().SelectMany(account => account.Store.Search(search).Select(article => (Account: account, Article: article)))
+			: ArticlesFor(SelectedSidebarItem);
+		if (_searchString is null && SelectedSidebarItem is { } item && HidesReadArticles(item))
 		{
 			pairs = pairs.Where(pair => !pair.Article.Read);
 		}

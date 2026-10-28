@@ -33,6 +33,8 @@ public sealed partial class MainWindow : Window
 	private bool _syncingSelection;
 	private bool _articleViewReady;
 
+	private DispatcherQueueTimer? _searchTimer;
+
 	/// <summary>Navigations the app started and hasn't seen begin yet; the article pane allows only those.</summary>
 	private int _pendingArticleNavigations;
 
@@ -81,6 +83,7 @@ public sealed partial class MainWindow : Window
 		_refreshTimer.Interval = RefreshInterval;
 		_refreshTimer.Tick += (_, _) => _ = ViewModel.RefreshAsync();
 		_refreshTimer.Start();
+		_ = ViewModel.PrepareSearchAsync();
 		_ = ViewModel.RefreshAsync();
 		Closed += (_, _) => _refreshTimer.Stop();
 	}
@@ -119,6 +122,9 @@ public sealed partial class MainWindow : Window
 	{
 		switch (e.PropertyName)
 		{
+			case nameof(MainViewModel.WindowTitle):
+				Title = ViewModel.WindowTitle;
+				break;
 			case nameof(MainViewModel.SelectedSidebarItem):
 				// After layout: when the sidebar was just rebuilt, the new row has no control to highlight yet.
 				DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
@@ -422,6 +428,42 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnCleanUp(object sender, RoutedEventArgs e) => ViewModel.CleanUp();
+
+	/// <summary>Searches once typing pauses, as NetNewsWire's search field does, rather than on every key.</summary>
+	private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+	{
+		_searchTimer ??= CreateSearchTimer();
+		_searchTimer.Stop();
+		_searchTimer.Start();
+	}
+
+	private DispatcherQueueTimer CreateSearchTimer()
+	{
+		var timer = DispatcherQueue.CreateTimer();
+		timer.Interval = TimeSpan.FromMilliseconds(250);
+		timer.IsRepeating = false;
+		timer.Tick += (_, _) => ViewModel.ApplySearch();
+		return timer;
+	}
+
+	/// <summary>Enter searches now and moves to the results; Escape ends the search.</summary>
+	private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
+	{
+		if (e.Key == VirtualKey.Escape)
+		{
+			_searchTimer?.Stop();
+			ViewModel.EndSearch();
+			FocusPane(Pane.Timeline);
+			e.Handled = true;
+		}
+		else if (e.Key == VirtualKey.Enter)
+		{
+			_searchTimer?.Stop();
+			ViewModel.ApplySearch();
+			FocusPane(Pane.Timeline);
+			e.Handled = true;
+		}
+	}
 
 	private void OnToggleArticleJavaScript(object sender, RoutedEventArgs e) => ViewModel.SetArticleJavaScriptEnabled(!ViewModel.IsArticleJavaScriptEnabled);
 
@@ -1135,6 +1177,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.L, CtrlShift, null, () => ViewModel.ToggleStarred());
 		Add(VirtualKey.R, CtrlShift, null, () => ViewModel.ToggleReaderView());
 		Add(VirtualKey.I, Ctrl, null, () => _ = ShowInspectorAsync(null));
+		Add(VirtualKey.F, CtrlAlt, null, () => SearchBox.Focus(FocusState.Keyboard));
 		Add(Slash, Ctrl, null, ViewModel.SelectNextUnread);
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));
