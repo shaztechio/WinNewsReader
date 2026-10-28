@@ -262,6 +262,9 @@ public class ArticleRendererTests
 	}
 
 	[Fact]
+	public void NoSelectionSaysSo() => Assert.Contains("No Article Selected", ArticleRenderer.NoSelection(Themes.Default).Html);
+
+	[Fact]
 	public void MultipleSelectionIsAStackOfTheFirstFewArticles()
 	{
 		var articles = Enumerable.Range(1, 6).Select(i => ("Feed <b>", $"Article {i} & more")).ToList();

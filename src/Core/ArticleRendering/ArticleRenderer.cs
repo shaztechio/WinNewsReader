@@ -76,8 +76,14 @@ public static class ArticleRenderer
 		return new ArticleRendering(theme.Css, html, title, baseUrl ?? "");
 	}
 
-	/// <summary>What NetNewsWire shows with nothing selected: the theme's styling and an empty body.</summary>
-	public static ArticleRendering NoContent(ArticleTheme theme) => new(theme.Css, "", "", "");
+	/// <summary>
+	/// No article selected: NetNewsWire's "No selection", drawn as an empty sheet to match the stack for several.
+	/// </summary>
+	public static ArticleRendering NoSelection(ArticleTheme theme) => new(
+		theme.Css + SelectionStackCss,
+		"<div class='selectionStack' role='img' aria-label='No article selected'><div class='stack'><div class='sheet sheet0 empty'></div></div>"
+			+ "<p class='stackCount'>No Article Selected</p></div>",
+		"", "");
 
 	/// <summary>
 	/// Several articles selected, drawn as a stack of paper: the first few selected articles as cards, the top one in
@@ -123,6 +129,7 @@ public static class ArticleRenderer
 		.selectionStack .sheetLine { height: 8px; margin: 0 0 9px; border-radius: 4px; background: color-mix(in srgb, CanvasText 12%, transparent); }
 		.selectionStack .sheetLine.short { width: 60%; }
 		.selectionStack .stackCount { margin: 0; font-size: 15px; font-weight: 600; opacity: 0.65; }
+		.selectionStack .sheet.empty { background: transparent; box-shadow: none; border: 2px dashed color-mix(in srgb, CanvasText 20%, transparent); }
 		""";
 
 	/// <summary>What NetNewsWire shows while Reader View fetches an article.</summary>

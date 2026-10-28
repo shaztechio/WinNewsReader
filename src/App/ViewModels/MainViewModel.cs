@@ -303,7 +303,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>The article page in the current theme, or the theme's empty page when nothing is selected.</summary>
+	/// <summary>The article page in the current theme; with no article selected, or several, a page that says so.</summary>
 	public string ArticlePageHtml(ArticleItem? item)
 	{
 		var theme = CurrentTheme;
@@ -313,7 +313,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		if (item is null)
 		{
-			return ArticleRenderer.PageHtml(ArticleRenderer.NoContent(theme), Themes.PageTemplate);
+			return ArticleRenderer.PageHtml(ArticleRenderer.NoSelection(theme), Themes.PageTemplate);
 		}
 		if (ReaderView == ReaderViewState.Loading && _extractedArticleId == item.ArticleId)
 		{
