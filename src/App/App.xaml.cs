@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using WinNewsReader.App.ViewModels;
 using WinNewsReader.Core;
+using WinNewsReader.Core.ArticleRendering;
 
 namespace WinNewsReader.App;
 
@@ -44,7 +45,9 @@ public partial class App : Application
 		}
 		var settings = AppSettings.Load(settingsPath);
 		AddDefaultFeedsOnFirstLaunch(accounts.LocalAccount, settings, settingsPath);
-		_window = new MainWindow(new MainViewModel(accounts, favicons, settings, settingsPath));
+		// NetNewsWire's themes ship with the app; the reader's own go in the Themes folder.
+		var themes = new ArticleThemes(Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources"), Path.Combine(DataDirectory, "Themes"));
+		_window = new MainWindow(new MainViewModel(accounts, favicons, themes, settings, settingsPath));
 		_window.Closed += (_, _) =>
 		{
 			accounts.Dispose();

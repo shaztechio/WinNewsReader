@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using WinNewsReader.Core;
+using WinNewsReader.Core.ArticleRendering;
 using WinNewsReader.Store;
 
 namespace WinNewsReader.App.ViewModels;
@@ -18,13 +19,15 @@ public sealed partial class MainViewModel : ObservableObject
 	private readonly string _settingsPath;
 	private readonly HashSet<string> _expandedKeys;
 	private readonly Dictionary<string, ImageSource> _icons = [];
+	private readonly Dictionary<string, string> _iconPaths = [];
 	private bool _rebuildingSidebar;
 	private bool _restoringSelection;
 
-	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, AppSettings settings, string settingsPath)
+	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, AppSettings settings, string settingsPath)
 	{
 		_accounts = accounts;
 		_favicons = favicons;
+		Themes = themes;
 		Settings = settings;
 		_settingsPath = settingsPath;
 		_expandedKeys = settings.ExpandedSidebarKeys is { } keys
@@ -36,6 +39,57 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	public AppSettings Settings { get; }
+
+	/// <summary>The made-up host the article page loads feed icons from, mapped to the favicon cache.</summary>
+	public const string FeedIconsHost = "feed-icons.winnewsreader.example";
+
+	public static string FeedIconsDirectory => Path.Combine(App.DataDirectory, "Favicons");
+
+	/// <summary>Shown when a feed has no icon, so the header doesn't show a broken image.</summary>
+	private const string TransparentPixel = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+	public ArticleThemes Themes { get; }
+
+	public ArticleTheme CurrentTheme => Themes.Named(Settings.ArticleThemeName);
+
+	/// <summary>Raised when the theme or text size changes, so the article view renders the article again.</summary>
+	public event EventHandler? ArticleAppearanceChanged;
+
+	public void SetTheme(string name)
+	{
+		Settings.ArticleThemeName = name == ArticleTheme.DefaultName ? null : name;
+		SaveSettings();
+		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	public void SetTextSize(ArticleTextSize size)
+	{
+		Settings.ArticleTextSize = size;
+		SaveSettings();
+		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>Picks up themes added to or removed from the themes folder.</summary>
+	public void ReloadThemes()
+	{
+		Themes.Reload();
+		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>The article page in the current theme, or the theme's empty page when nothing is selected.</summary>
+	public string ArticlePageHtml(ArticleItem? item)
+	{
+		var theme = CurrentTheme;
+		if (item is null)
+		{
+			return ArticleRenderer.PageHtml(ArticleRenderer.NoContent(theme), Themes.PageTemplate);
+		}
+		var avatar = _iconPaths.TryGetValue(IconKey(item.Account, item.Article.FeedId), out var path)
+			? $"https://{FeedIconsHost}/{Uri.EscapeDataString(Path.GetFileName(path))}"
+			: TransparentPixel;
+		var context = new ArticleRenderContext(FeedFor(item), item.Account.Kind == AccountKind.FreshRss, Settings.ArticleTextSize.CssClass(), avatar);
+		return ArticleRenderer.PageHtml(ArticleRenderer.Render(item.Article, context, theme), Themes.PageTemplate);
+	}
 
 	/// <summary>NetNewsWire's <c>todayCutoffDate</c>: 24 hours ago, so Today doesn't empty out at midnight.</summary>
 	private static DateTimeOffset TodayCutoff => DateTimeOffset.Now.AddHours(-24);
@@ -172,6 +226,7 @@ public sealed partial class MainViewModel : ObservableObject
 		// Decoded at 48 px so 16–24 px icons stay sharp at 200% scaling.
 		var icon = new BitmapImage { DecodePixelWidth = 48, UriSource = new Uri(path) };
 		_icons[key] = icon;
+		_iconPaths[key] = path;
 		foreach (var item in AllSidebarItems().Where(item => item.Feed is not null && IconKey(item.Account!, item.Feed.FeedId) == key))
 		{
 			item.Icon = icon;

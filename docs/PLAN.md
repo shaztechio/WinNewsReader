@@ -147,6 +147,9 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
   - [x] Move feeds between folders: drag and drop (Ctrl copies, local only) and a Move to menu, in both accounts
   - [x] Move or copy feeds between accounts, by subscribing in the other account (JSON Feeds can't go to FreshRSS, as in NetNewsWire)
   - [ ] Search, dragging URLs and folders, inline rename, undo, Inspector, preferences, multiple windows
+- [ ] Phase 3: article view
+  - [x] NetNewsWire's template, core and stylesheet CSS, page scripts and special cases (AV-01), its eight bundled themes (AV-02), Open Themes Folder (AV-05), article text size; feed icons in the article header
+  - [ ] Theme import by opening a `.nnwtheme` (AV-03) and download from a URL (AV-04); Reader View; turning off content JavaScript per site
 - [ ] Phase 4, started early: FreshRSS
   - [x] Account layer (several accounts, one store each), sync status queue, Credential Manager
   - [x] Reader API client and account: feeds, folders, articles and statuses both ways; subscribe, unsubscribe, rename and delete folders

@@ -69,6 +69,18 @@
                 <AppBarSeparator />
                 <AppBarButton Label="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
                               IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
+                <AppBarSeparator />
+                <!-- NetNewsWire's View > Article Theme menu, and the article text size from its preferences. -->
+                <AppBarButton Label="Article Theme">
+                    <AppBarButton.Flyout>
+                        <MenuFlyout Opening="OnThemeMenuOpening" />
+                    </AppBarButton.Flyout>
+                </AppBarButton>
+                <AppBarButton Label="Text Size">
+                    <AppBarButton.Flyout>
+                        <MenuFlyout Opening="OnTextSizeMenuOpening" />
+                    </AppBarButton.Flyout>
+                </AppBarButton>
             </CommandBar.SecondaryCommands>
         </CommandBar>
 

@@ -22,6 +22,12 @@ public sealed class AppSettings
 	/// <summary>NetNewsWire's "Sort Articles By" setting. Newest first by default.</summary>
 	public bool SortOldestFirst { get; set; }
 
+	/// <summary>The article theme's name; null means NetNewsWire's Default.</summary>
+	public string? ArticleThemeName { get; set; }
+
+	/// <summary>NetNewsWire's article text size, Large by default.</summary>
+	public ArticleRendering.ArticleTextSize ArticleTextSize { get; set; } = ArticleRendering.ArticleTextSize.Large;
+
 	public WindowPlacement? Window { get; set; }
 
 	public List<string>? ExpandedSidebarKeys { get; set; }

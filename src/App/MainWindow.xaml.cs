@@ -16,6 +16,7 @@ using Windows.Storage.Pickers;
 using Windows.System;
 using WinNewsReader.App.ViewModels;
 using WinNewsReader.Core;
+using WinNewsReader.Core.ArticleRendering;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 using WinNewsReader.Parser.Opml;
 using WinNewsReader.Store;
@@ -293,7 +294,22 @@ public sealed partial class MainWindow : Window
 		// Browser shortcuts such as Ctrl+R (reload) and Ctrl+P (print) are off; copy and select all still work.
 		core.Settings.AreBrowserAcceleratorKeysEnabled = false;
 		await core.AddScriptToExecuteOnDocumentCreatedAsync(ArticleKeysScript);
+		// NetNewsWire's page scripts tidy up article content. Its Mac script reports scrolling and link hovers to the app
+		// through WebKit message handlers; WebView2 shows hovered links itself, so those messages go nowhere.
+		await core.AddScriptToExecuteOnDocumentCreatedAsync(WebKitMessageHandlersShim);
+		foreach (var script in ViewModel.Themes.Scripts)
+		{
+			await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
+		}
+		// Feed icons for the article header, served from the favicon cache.
+		Directory.CreateDirectory(MainViewModel.FeedIconsDirectory);
+		core.SetVirtualHostNameToFolderMapping(MainViewModel.FeedIconsHost, MainViewModel.FeedIconsDirectory, CoreWebView2HostResourceAccessKind.Allow);
 		core.WebMessageReceived += OnArticleMessage;
+		ViewModel.ArticleAppearanceChanged += (_, _) =>
+		{
+			_shownArticleId = "";
+			ShowArticle(ViewModel.SelectedArticle);
+		};
 		// Links open in the default browser; the pane only ever shows the article.
 		core.NavigationStarting += (_, args) =>
 		{
@@ -322,8 +338,31 @@ public sealed partial class MainWindow : Window
 			return;
 		}
 		_shownArticleId = item?.ArticleId;
-		ArticleView.NavigateToString(item is null ? ArticleHtml.Empty : ArticleHtml.Render(item.Article, MainViewModel.FeedFor(item)));
+		var html = ViewModel.ArticlePageHtml(item);
+		if (html.Length < MaxNavigateToStringLength)
+		{
+			ArticleView.NavigateToString(html);
+		}
+		else
+		{
+			// WebView2 takes at most 2 MB of HTML as a string; a bigger article goes through a file.
+			var path = Path.Combine(Path.GetTempPath(), "WinNewsReader-article.html");
+			File.WriteAllText(path, html);
+			ArticleView.CoreWebView2.Navigate(new Uri(path).AbsoluteUri);
+		}
 	}
+
+	/// <summary>Under WebView2's 2 MB limit for NavigateToString, leaving room for UTF-8 encoding of non-ASCII text.</summary>
+	private const int MaxNavigateToStringLength = 600_000;
+
+	/// <summary>Stands in for the WebKit message handlers NetNewsWire's Mac page script posts to.</summary>
+	private const string WebKitMessageHandlersShim = """
+		window.webkit = { messageHandlers: {
+			windowDidScroll: { postMessage() {} },
+			mouseDidEnter: { postMessage() {} },
+			mouseDidExit: { postMessage() {} },
+		} };
+		""";
 
 	// Toolbar
 
@@ -357,6 +396,50 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnCleanUp(object sender, RoutedEventArgs e) => ViewModel.CleanUp();
+
+	/// <summary>The themes, with the current one checked, then the themes folder, where the reader adds .nnwtheme folders.</summary>
+	private void OnThemeMenuOpening(object? sender, object e)
+	{
+		var menu = (MenuFlyout)sender!;
+		menu.Items.Clear();
+		ViewModel.Themes.Reload();
+		var current = ViewModel.CurrentTheme.Name;
+		foreach (var theme in ViewModel.Themes.All)
+		{
+			var item = new RadioMenuFlyoutItem { Text = theme.Name, GroupName = "ArticleTheme", IsChecked = theme.Name == current };
+			item.Click += (_, _) => ViewModel.SetTheme(theme.Name);
+			menu.Items.Add(item);
+			if (theme == ViewModel.Themes.Default)
+			{
+				menu.Items.Add(new MenuFlyoutSeparator());
+			}
+		}
+		menu.Items.Add(new MenuFlyoutSeparator());
+		menu.Items.Add(MenuItem("Open Themes Folder", () =>
+		{
+			Directory.CreateDirectory(ViewModel.Themes.UserThemesDirectory);
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ViewModel.Themes.UserThemesDirectory) { UseShellExecute = true });
+		}));
+	}
+
+	private void OnTextSizeMenuOpening(object? sender, object e)
+	{
+		var menu = (MenuFlyout)sender!;
+		menu.Items.Clear();
+		foreach (var (size, name) in new[]
+		{
+			(ArticleTextSize.Small, "Small"),
+			(ArticleTextSize.Medium, "Medium"),
+			(ArticleTextSize.Large, "Large"),
+			(ArticleTextSize.ExtraLarge, "Extra Large"),
+			(ArticleTextSize.ExtraExtraLarge, "Extra Extra Large"),
+		})
+		{
+			var item = new RadioMenuFlyoutItem { Text = name, GroupName = "TextSize", IsChecked = ViewModel.Settings.ArticleTextSize == size };
+			item.Click += (_, _) => ViewModel.SetTextSize(size);
+			menu.Items.Add(item);
+		}
+	}
 
 	private void OnToggleRead(object sender, RoutedEventArgs e) => ViewModel.ToggleRead();
 

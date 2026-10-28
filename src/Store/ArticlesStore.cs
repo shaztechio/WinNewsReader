@@ -40,6 +40,28 @@ public sealed record StoredArticle(
 	/// <c>updated</c>), else when the article arrived. Timelines sort and show this date.
 	/// </summary>
 	public DateTimeOffset LogicalDatePublished => DatePublished ?? DateModified ?? DateArrived;
+
+	public string? ImageUrl { get; init; }
+
+	public string? ThumbnailUrl { get; init; }
+
+	/// <summary>As stored; <see cref="Authors"/> decodes it when the article is shown.</summary>
+	public string? AuthorsJson { get; init; }
+
+	/// <summary>As stored; <see cref="Attachments"/> decodes it when the article is shown.</summary>
+	public string? AttachmentsJson { get; init; }
+
+	public IReadOnlyList<ParsedAuthor>? Authors => AuthorsJson is null ? null : JsonSerializer.Deserialize<List<ParsedAuthor>>(AuthorsJson);
+
+	public IReadOnlyList<ParsedAttachment>? Attachments =>
+		AttachmentsJson is null
+			? null
+			: JsonSerializer.Deserialize<List<StoredAttachment>>(AttachmentsJson)?
+				.Select(a => ParsedAttachment.Create(a.Url, a.MimeType, a.Title, a.SizeInBytes, a.DurationInSeconds, a.Width, a.Height, a.Medium))
+				.OfType<ParsedAttachment>().ToList();
+
+	/// <summary>The stored JSON shape of an attachment; <see cref="ParsedAttachment"/> itself can only be made through its factory.</summary>
+	private sealed record StoredAttachment(string Url, string? MimeType, string? Title, int? SizeInBytes, int? DurationInSeconds, int? Width, int? Height, AttachmentMedium? Medium);
 }
 
 /// <summary>
@@ -707,7 +729,7 @@ public sealed class ArticlesStore : IDisposable
 		using var command = Command(
 			$"""
 			SELECT a.articleID, a.feedID, a.uniqueID, a.title, a.url, a.externalURL, a.contentHTML, a.contentText, a.summary,
-				a.datePublished, a.dateModified, s.dateArrived, s.read, s.starred
+				a.datePublished, a.dateModified, s.dateArrived, s.read, s.starred, a.imageURL, a.thumbnailURL, a.authors, a.attachments
 			FROM articles a JOIN statuses s ON s.articleID = a.articleID
 			{where}
 			ORDER BY COALESCE(a.datePublished, a.dateModified, s.dateArrived) DESC, a.articleID
@@ -720,7 +742,13 @@ public sealed class ArticlesStore : IDisposable
 			articles.Add(new StoredArticle(
 				reader.GetString(0), reader.GetString(1), reader.GetString(2), Text(reader, 3), Text(reader, 4), Text(reader, 5),
 				Text(reader, 6), Text(reader, 7), Text(reader, 8), FromDb(reader, 9), FromDb(reader, 10), FromDb(reader, 11) ?? DateTimeOffset.UnixEpoch,
-				reader.GetBoolean(12), reader.GetBoolean(13)));
+				reader.GetBoolean(12), reader.GetBoolean(13))
+			{
+				ImageUrl = Text(reader, 14),
+				ThumbnailUrl = Text(reader, 15),
+				AuthorsJson = Text(reader, 16),
+				AttachmentsJson = Text(reader, 17),
+			});
 		}
 		return articles;
 	}

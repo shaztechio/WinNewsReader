@@ -4,7 +4,7 @@ A native Windows feed reader aiming for feature parity with the [NetNewsWire](ht
 
 <img src="src/App/Assets/AppIcon.png" width="96" align="right" alt="">
 
-Status: Phase 2 (the Windows app) has started. Phase 1 (the core engine) is done. The app has the three-pane window over the local account and FreshRSS sync; the `wnr` command-line tool drives the same engine.
+Status: Phase 2 (the Windows app) has started. Phase 1 (the core engine) is done. The app has the three-pane window over the local account and FreshRSS sync, and Phase 3's article themes are in; the `wnr` command-line tool drives the same engine.
 
 ## Layout
 
@@ -12,7 +12,7 @@ Status: Phase 2 (the Windows app) has started. Phase 1 (the core engine) is done
 | --- | --- |
 | `src/Parser` | RSS, RSS 1.0 (RDF), Atom, JSON Feed, RSS-in-JSON and OPML parsers, plus HTML link and metadata parsers, ported from NetNewsWire's RSParser so the same feed gives the same article IDs |
 | `src/Store` | SQLite store for feeds, folders, articles and read/starred status, following NetNewsWire's schema |
-| `src/Core` | Downloading (conditional GET, per-host limits, redirects), the feed finder, favicons, OPML export, settings, and the account interface with the local "On This PC" account |
+| `src/Core` | Downloading (conditional GET, per-host limits, redirects), the feed finder, favicons, OPML export, settings, the account interface with the local "On This PC" account, and article rendering with NetNewsWire's templates and themes |
 | `src/Sync.GoogleReader` | FreshRSS sync over the Google Reader API, ported from NetNewsWire's ReaderAPI account |
 | `src/App` | The WinUI 3 app (Windows App SDK, unpackaged): sidebar, timeline and article view |
 | `src/Cli` | `wnr`, a headless driver for the core |
@@ -46,7 +46,7 @@ The first launch adds NetNewsWire's starter feeds. The app refreshes at launch a
 - Left and Right move between the sidebar, the timeline and the article. In the sidebar, `,` and `.` collapse and expand a folder, and `;` and `'` collapse and expand all.
 - Ctrl+R refresh, Ctrl+N new feed, Ctrl+K mark all as read, Ctrl+Shift+U and Ctrl+Shift+L toggle read and star, Ctrl+Shift+H hide read articles, Ctrl+Shift+F hide read feeds, Ctrl+' clean up, Ctrl+1, 2 and 3 for the smart feeds.
 
-Feeds show their site's favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`. Pass `-- --data <folder>` to use a different data folder.
+Feeds show their site's favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`. Articles render with NetNewsWire's templates and themes: pick one from **… → Article Theme**, and the text size from **… → Text Size**. To add a theme, put its `.nnwtheme` folder in the folder **Open Themes Folder** opens. Pass `-- --data <folder>` to use a different data folder.
 
 Or use the command-line tool:
 
@@ -66,4 +66,4 @@ dotnet run --project src/Cli -- unread
 
 ## Credits
 
-Parser code and test fixtures are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)). This project isn't affiliated with or endorsed by NetNewsWire.
+Parser code and test fixtures, and the article template, stylesheets, scripts and built-in themes in `src/Core/ArticleRendering/Resources`, are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)). The NewsFax theme's ModeSeven font is freeware; see its `License.md`. This project isn't affiliated with or endorsed by NetNewsWire.
