@@ -31,6 +31,8 @@
                         <MenuFlyoutSeparator />
                         <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
                         <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Add FreshRSS Account…" Click="OnAddFreshRssAccount" />
                     </MenuFlyout>
                 </AppBarButton.Flyout>
             </AppBarButton>

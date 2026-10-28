@@ -13,6 +13,26 @@ public sealed class FeedNotFoundException() : Exception("The feed couldn’t be 
 /// </summary>
 public sealed class FeedFinder(FeedDownloader downloader)
 {
+	/// <summary>
+	/// The best feed URL for what someone typed, a feed or a web page. <paramref name="include"/> can rule out
+	/// candidates, as NetNewsWire's sync accounts skip JSON feeds. Throws <see cref="SubscribeException"/> if there's none.
+	/// </summary>
+	public async Task<string> FindBestFeedUrlAsync(string userUrl, Func<FeedSpecifier, bool>? include = null, CancellationToken cancellationToken = default)
+	{
+		var normalizedUrl = userUrl.NormalizedUrl();
+		IReadOnlySet<FeedSpecifier> feedSpecifiers;
+		try
+		{
+			feedSpecifiers = await FindAsync(normalizedUrl, cancellationToken);
+		}
+		catch (FeedNotFoundException)
+		{
+			throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+		}
+		return FeedSpecifier.BestFeed([.. feedSpecifiers.Where(include ?? (_ => true))])?.Url
+			?? throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+	}
+
 	/// <summary>Throws <see cref="FeedNotFoundException"/> if the URL can't be fetched or isn't a feed or HTML.</summary>
 	public async Task<IReadOnlySet<FeedSpecifier>> FindAsync(string url, CancellationToken cancellationToken = default)
 	{

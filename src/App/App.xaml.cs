@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using WinNewsReader.App.ViewModels;
 using WinNewsReader.Core;
-using WinNewsReader.Store;
 
 namespace WinNewsReader.App;
 
@@ -16,36 +15,40 @@ public partial class App : Application
 		Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", Path.Combine(DataDirectory, "WebView2"));
 	}
 
-	/// <summary><c>%LOCALAPPDATA%\WinNewsReader</c>, shared with the <c>wnr</c> CLI.</summary>
-	public static string DataDirectory { get; } =
-		Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinNewsReader");
+	/// <summary>
+	/// <c>%LOCALAPPDATA%\WinNewsReader</c>, or the folder after <c>--data</c>: settings, <c>accounts.json</c>, the local
+	/// account in <c>OnThisPC\</c> (shared with the <c>wnr</c> CLI) and sync accounts in <c>Accounts\</c>.
+	/// </summary>
+	public static string DataDirectory { get; } = DataDirectoryFromCommandLine()
+		?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinNewsReader");
 
-	/// <summary><c>--db &lt;path&gt;</c> opens another database, as with <c>wnr</c>.</summary>
-	private static string DatabasePath()
+	private static string? DataDirectoryFromCommandLine()
 	{
 		var commandLine = Environment.GetCommandLineArgs();
-		var index = Array.IndexOf(commandLine, "--db");
-		return index >= 0 && index + 1 < commandLine.Length
-			? commandLine[index + 1]
-			: Path.Combine(DataDirectory, "OnThisPC", "articles.db");
+		var index = Array.IndexOf(commandLine, "--data");
+		return index >= 0 && index + 1 < commandLine.Length ? Path.GetFullPath(commandLine[index + 1]) : null;
 	}
 
 	protected override void OnLaunched(LaunchActivatedEventArgs args)
 	{
-		var databasePath = DatabasePath();
-		var store = new ArticlesStore(databasePath);
 		var downloader = new FeedDownloader();
 		var favicons = new FaviconDownloader(downloader, Path.Combine(DataDirectory, "Favicons"));
-		var account = new LocalAccount(store, downloader);
-		// Settings sit next to the database, so --db runs don't disturb the everyday ones.
-		var settingsPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(databasePath))!, "settings.json");
+		var accounts = new AccountManager(DataDirectory, downloader, new WindowsCredentialStore());
+		accounts.LoadAll();
+		var settingsPath = Path.Combine(DataDirectory, "settings.json");
+		// Settings used to sit next to the local database.
+		var oldSettingsPath = Path.Combine(DataDirectory, LocalAccount.LocalAccountId, "settings.json");
+		if (!File.Exists(settingsPath) && File.Exists(oldSettingsPath))
+		{
+			File.Move(oldSettingsPath, settingsPath);
+		}
 		var settings = AppSettings.Load(settingsPath);
-		AddDefaultFeedsOnFirstLaunch(account, settings, settingsPath);
-		_window = new MainWindow(new MainViewModel(account, favicons, settings, settingsPath));
+		AddDefaultFeedsOnFirstLaunch(accounts.LocalAccount, settings, settingsPath);
+		_window = new MainWindow(new MainViewModel(accounts, favicons, settings, settingsPath));
 		_window.Closed += (_, _) =>
 		{
+			accounts.Dispose();
 			downloader.Dispose();
-			store.Dispose();
 		};
 		_window.Activate();
 	}

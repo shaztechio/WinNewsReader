@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Core\WinNewsReader.Core.csproj" />
+    <ProjectReference Include="..\Sync.GoogleReader\WinNewsReader.Sync.GoogleReader.csproj" />
   </ItemGroup>
 
 </Project>

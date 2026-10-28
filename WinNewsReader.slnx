@@ -17,9 +17,15 @@
   <Folder Name="/src/Store/">
     <Project Path="src/Store/WinNewsReader.Store.csproj" />
   </Folder>
+  <Folder Name="/src/Sync.GoogleReader/">
+    <Project Path="src/Sync.GoogleReader/WinNewsReader.Sync.GoogleReader.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Parser.Tests/">
     <Project Path="tests/Parser.Tests/WinNewsReader.Parser.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Sync.GoogleReader.Tests/">
+    <Project Path="tests/Sync.GoogleReader.Tests/WinNewsReader.Sync.GoogleReader.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Store.Tests/">
     <Project Path="tests/Store.Tests/WinNewsReader.Store.Tests.csproj" />

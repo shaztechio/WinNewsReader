@@ -268,7 +268,7 @@ public sealed partial class MainWindow : Window
 			return;
 		}
 		_shownArticleId = item?.ArticleId;
-		ArticleView.NavigateToString(item is null ? ArticleHtml.Empty : ArticleHtml.Render(item.Article, ViewModel.FeedFor(item.Article)));
+		ArticleView.NavigateToString(item is null ? ArticleHtml.Empty : ArticleHtml.Render(item.Article, MainViewModel.FeedFor(item)));
 	}
 
 	// Toolbar
@@ -282,6 +282,8 @@ public sealed partial class MainWindow : Window
 	private async void OnImport(object sender, RoutedEventArgs e) => await ImportAsync();
 
 	private async void OnExport(object sender, RoutedEventArgs e) => await ExportAsync();
+
+	private async void OnAddFreshRssAccount(object sender, RoutedEventArgs e) => await ShowAddFreshRssAccountDialogAsync();
 
 	private void OnMarkAllRead(object sender, RoutedEventArgs e) => ViewModel.MarkAllRead();
 
@@ -341,11 +343,19 @@ public sealed partial class MainWindow : Window
 			menu.Items.Add(MenuItem("Rename…", async () => await ShowRenameFolderDialogAsync(item)));
 			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteAsync(item)));
 		}
-		else if (item.Kind == SidebarItemKind.AccountGroup)
+		else if (item is { Kind: SidebarItemKind.AccountGroup, Account: { } account })
 		{
 			menu.Items.Add(new MenuFlyoutSeparator());
 			menu.Items.Add(MenuItem("New Feed…", async () => await ShowNewFeedDialogAsync()));
-			menu.Items.Add(MenuItem("New Folder…", async () => await ShowNewFolderDialogAsync()));
+			if (account.Kind == AccountKind.Local)
+			{
+				menu.Items.Add(MenuItem("New Folder…", async () => await ShowNewFolderDialogAsync()));
+			}
+			else
+			{
+				menu.Items.Add(new MenuFlyoutSeparator());
+				menu.Items.Add(MenuItem("Remove Account…", async () => await ConfirmRemoveAccountAsync(account)));
+			}
 		}
 	}
 
@@ -395,7 +405,7 @@ public sealed partial class MainWindow : Window
 
 	// Dialogs
 
-	/// <summary>NetNewsWire's Add Feed sheet: URL, prefilled from the clipboard, and a folder.</summary>
+	/// <summary>NetNewsWire's Add Feed sheet: URL, prefilled from the clipboard, then the account and folder.</summary>
 	private async Task ShowNewFeedDialogAsync()
 	{
 		var url = new TextBox { Header = "URL", PlaceholderText = "Feed or website address" };
@@ -404,18 +414,30 @@ public sealed partial class MainWindow : Window
 			url.Text = clipboardUrl;
 			url.SelectAll();
 		}
-		var folders = new List<(string Name, StoredFolder? Folder)> { ("On This PC", null) };
-		folders.AddRange(ViewModel.Folders.Select(folder => (folder.Name, (StoredFolder?)folder)));
-		var folderBox = new ComboBox
+		var accounts = ViewModel.Accounts.ToList();
+		var accountBox = new ComboBox
 		{
-			Header = "Folder",
-			ItemsSource = folders.Select(folder => folder.Name).ToList(),
-			SelectedIndex = Math.Max(0, folders.FindIndex(folder => folder.Folder?.FolderId == ViewModel.DefaultFolderForNewFeed?.FolderId)),
+			Header = "Account",
+			ItemsSource = accounts.Select(account => account.Name).ToList(),
+			SelectedIndex = Math.Max(0, accounts.IndexOf(ViewModel.DefaultAccountForNewFeed)),
 			HorizontalAlignment = HorizontalAlignment.Stretch,
+			Visibility = accounts.Count > 1 ? Visibility.Visible : Visibility.Collapsed,
 		};
+		// The folder list follows the chosen account: its top level first, then its folders.
+		var folders = new List<(string Name, StoredFolder? Folder)>();
+		var folderBox = new ComboBox { Header = "Folder", HorizontalAlignment = HorizontalAlignment.Stretch };
+		void ShowFolders(StoredFolder? select)
+		{
+			var account = accounts[Math.Max(0, accountBox.SelectedIndex)];
+			folders = [(account.Name, null), .. MainViewModel.FoldersOf(account).Select(folder => (folder.Name, (StoredFolder?)folder))];
+			folderBox.ItemsSource = folders.Select(folder => folder.Name).ToList();
+			folderBox.SelectedIndex = Math.Max(0, folders.FindIndex(folder => folder.Folder?.FolderId == select?.FolderId));
+		}
+		ShowFolders(ViewModel.DefaultFolderForNewFeed);
+		accountBox.SelectionChanged += (_, _) => ShowFolders(null);
 		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
 		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Foreground = ThemeBrush("SystemFillColorCriticalBrush") };
-		var dialog = Dialog("New Feed", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { url, folderBox, progress, error } });
+		var dialog = Dialog("New Feed", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { url, accountBox, folderBox, progress, error } });
 		dialog.IsPrimaryButtonEnabled = url.Text.Length > 0;
 		url.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = url.Text.Trim().Length > 0;
 		dialog.PrimaryButtonClick += async (_, args) =>
@@ -426,7 +448,7 @@ public sealed partial class MainWindow : Window
 			dialog.IsPrimaryButtonEnabled = false;
 			try
 			{
-				await ViewModel.SubscribeAsync(url.Text.Trim(), folders[folderBox.SelectedIndex].Folder);
+				await ViewModel.SubscribeAsync(url.Text.Trim(), accounts[Math.Max(0, accountBox.SelectedIndex)], folders[Math.Max(0, folderBox.SelectedIndex)].Folder);
 			}
 			catch (Exception ex)
 			{
@@ -456,17 +478,94 @@ public sealed partial class MainWindow : Window
 	{
 		if (await PromptAsync("Rename Folder", "Rename", "Name", item.Title) is { } name)
 		{
-			ViewModel.RenameFolder(item, name);
+			await RunReportingErrorsAsync("Couldn’t Rename Folder", () => ViewModel.RenameFolderAsync(item, name));
 		}
 	}
 
 	private async Task ConfirmDeleteAsync(SidebarItem item)
 	{
 		var kind = item.Folder is not null ? "folder" : "feed";
-		var dialog = Dialog("Delete", "Delete", new TextBlock { Text = $"Are you sure you want to delete the “{item.Title}” {kind}?", TextWrapping = TextWrapping.Wrap });
+		var text = $"Are you sure you want to delete the “{item.Title}” {kind}?";
+		if (item.Account is { Kind: not AccountKind.Local } account)
+		{
+			text += $" It will be removed from {account.Name} too.";
+		}
+		var dialog = Dialog("Delete", "Delete", new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap });
 		if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
 		{
-			ViewModel.Delete(item);
+			await RunReportingErrorsAsync("Couldn’t Delete", () => ViewModel.DeleteAsync(item));
+		}
+	}
+
+	/// <summary>NetNewsWire's FreshRSS account sheet: server address, username and API password, checked before saving.</summary>
+	private async Task ShowAddFreshRssAccountDialogAsync()
+	{
+		var server = new TextBox { Header = "Server", PlaceholderText = "https://freshrss.example.com" };
+		var username = new TextBox { Header = "Username" };
+		var password = new PasswordBox { Header = "API password" };
+		var help = new TextBlock
+		{
+			Text = "Use the API password from FreshRSS’s Settings → Profile, with “Allow API access” turned on in its authentication settings.",
+			TextWrapping = TextWrapping.Wrap,
+			Foreground = ThemeBrush("TextFillColorSecondaryBrush"),
+		};
+		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
+		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Foreground = ThemeBrush("SystemFillColorCriticalBrush") };
+		var dialog = Dialog("Add FreshRSS Account", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { server, username, password, help, progress, error } });
+		void UpdateEnabled() => dialog.IsPrimaryButtonEnabled = server.Text.Trim().Length > 0 && username.Text.Trim().Length > 0 && password.Password.Length > 0;
+		UpdateEnabled();
+		server.TextChanged += (_, _) => UpdateEnabled();
+		username.TextChanged += (_, _) => UpdateEnabled();
+		password.PasswordChanged += (_, _) => UpdateEnabled();
+		dialog.PrimaryButtonClick += async (_, args) =>
+		{
+			var deferral = args.GetDeferral();
+			progress.Visibility = Visibility.Visible;
+			error.Visibility = Visibility.Collapsed;
+			dialog.IsPrimaryButtonEnabled = false;
+			try
+			{
+				await ViewModel.AddFreshRssAccountAsync(server.Text.Trim(), username.Text.Trim(), password.Password);
+			}
+			catch (Exception ex)
+			{
+				error.Text = ex.Message;
+				error.Visibility = Visibility.Visible;
+				args.Cancel = true;
+			}
+			finally
+			{
+				progress.Visibility = Visibility.Collapsed;
+				UpdateEnabled();
+				deferral.Complete();
+			}
+		};
+		await ShowDialogAsync(dialog);
+	}
+
+	private async Task ConfirmRemoveAccountAsync(IAccount account)
+	{
+		var dialog = Dialog("Remove Account", "Remove", new TextBlock
+		{
+			Text = $"Remove the “{account.Name}” account? Its feeds and articles stay on the server; only this PC’s copy goes.",
+			TextWrapping = TextWrapping.Wrap,
+		});
+		if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
+		{
+			ViewModel.RemoveAccount(account);
+		}
+	}
+
+	/// <summary>Runs a change that may need the network, showing what went wrong instead of failing silently.</summary>
+	private async Task RunReportingErrorsAsync(string title, Func<Task> action)
+	{
+		try
+		{
+			await action();
+		}
+		catch (Exception ex) when (ex is not OutOfMemoryException)
+		{
+			await ShowMessageAsync(title, ex.Message);
 		}
 	}
 

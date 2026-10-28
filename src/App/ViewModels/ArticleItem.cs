@@ -12,8 +12,9 @@ public sealed partial class ArticleItem : ObservableObject
 
 	private string? _summary;
 
-	public ArticleItem(StoredArticle article, string feedName, Microsoft.UI.Xaml.Media.ImageSource? icon)
+	public ArticleItem(Core.IAccount account, StoredArticle article, string feedName, Microsoft.UI.Xaml.Media.ImageSource? icon)
 	{
+		Account = account;
 		Article = article;
 		FeedName = feedName;
 		IsRead = article.Read;
@@ -29,6 +30,9 @@ public sealed partial class ArticleItem : ObservableObject
 	public bool HasIcon => Icon is not null;
 
 	public bool LacksIcon => Icon is null;
+
+	/// <summary>The account the article came from; status changes go through it.</summary>
+	public Core.IAccount Account { get; }
 
 	public StoredArticle Article { get; }
 

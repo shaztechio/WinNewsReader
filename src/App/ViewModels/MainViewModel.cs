@@ -13,7 +13,7 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>Favicon lookups at once; the downloader's per-host limits apply on top.</summary>
 	private const int MaxConcurrentIconLookups = 6;
 
-	private readonly LocalAccount _account;
+	private readonly AccountManager _accounts;
 	private readonly FaviconDownloader _favicons;
 	private readonly string _settingsPath;
 	private readonly HashSet<string> _expandedKeys;
@@ -21,9 +21,9 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool _rebuildingSidebar;
 	private bool _restoringSelection;
 
-	public MainViewModel(LocalAccount account, FaviconDownloader favicons, AppSettings settings, string settingsPath)
+	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, AppSettings settings, string settingsPath)
 	{
-		_account = account;
+		_accounts = accounts;
 		_favicons = favicons;
 		Settings = settings;
 		_settingsPath = settingsPath;
@@ -40,7 +40,9 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>NetNewsWire's <c>todayCutoffDate</c>: 24 hours ago, so Today doesn't empty out at midnight.</summary>
 	private static DateTimeOffset TodayCutoff => DateTimeOffset.Now.AddHours(-24);
 
-	private ArticlesStore Store => _account.Store;
+	public IReadOnlyList<IAccount> Accounts => _accounts.Accounts;
+
+	private LocalAccount LocalAccount => _accounts.LocalAccount;
 
 	public System.Collections.ObjectModel.ObservableCollection<SidebarItem> SidebarItems { get; } = [];
 
@@ -80,13 +82,16 @@ public sealed partial class MainViewModel : ObservableObject
 
 	public bool SortOldestFirst => Settings.SortOldestFirst;
 
-	public IEnumerable<StoredFolder> Folders => Store.GetFolders().SortedByName();
+	public static IEnumerable<StoredFolder> FoldersOf(IAccount account) => account.Store.GetFolders().SortedByName();
+
+	/// <summary>The account a new feed goes in by default: the selected row's, or On This PC.</summary>
+	public IAccount DefaultAccountForNewFeed => SelectedSidebarItem?.Account ?? LocalAccount;
 
 	/// <summary>The folder a new feed goes in by default: the selected folder, or the folder of the selected feed.</summary>
 	public StoredFolder? DefaultFolderForNewFeed => SelectedSidebarItem?.Folder ?? SelectedSidebarItem?.ParentFolder;
 
 	/// <summary>
-	/// Rebuilds the sidebar from the store, keeping expanded folders and the selection, or selecting the row
+	/// Rebuilds the sidebar from the stores, keeping expanded folders and the selection, or selecting the row
 	/// <paramref name="select"/> instead.
 	/// </summary>
 	public void LoadSidebar(string? select = null)
@@ -94,10 +99,10 @@ public sealed partial class MainViewModel : ObservableObject
 		var previousKey = SelectedSidebarItem?.Key;
 		var selectedKey = select ?? previousKey;
 		// Hide Read Feeds leaves out feeds, and folders, with nothing unread, except the selected row.
-		var unreadCounts = Store.UnreadCounts();
+		var unreadCounts = Accounts.ToDictionary(account => account, account => account.Store.UnreadCounts());
 		bool Shown(SidebarItem item) =>
 			!Settings.HideReadFeeds || item.Key == selectedKey
-			|| (item.Feed is { } feed ? unreadCounts.ContainsKey(feed.FeedId) : item.Children.Count > 0);
+			|| (item.Feed is { } feed ? unreadCounts[item.Account!].ContainsKey(feed.FeedId) : item.Children.Count > 0);
 
 		_rebuildingSidebar = true;
 		SidebarItems.Clear();
@@ -107,18 +112,22 @@ public sealed partial class MainViewModel : ObservableObject
 			SidebarItem.SmartFeed(SidebarItemKind.AllUnread, "All Unread"),
 			SidebarItem.SmartFeed(SidebarItemKind.Starred, "Starred"),
 		]));
-		// NetNewsWire sorts feeds alphabetically with folders at the end.
-		SidebarItems.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "On This PC",
-		[
-			.. Store.GetTopLevelFeeds().SortedByName().Select(feed => SidebarItem.ForFeed(feed, null)).Where(Shown),
-			.. Store.GetFolders().SortedByName().Select(folder =>
-				SidebarItem.ForFolder(folder, Store.GetFeeds(folder.FolderId).SortedByName().Select(feed => SidebarItem.ForFeed(feed, folder)).Where(Shown)))
-				.Where(Shown),
-		]));
+		// One group per account. NetNewsWire sorts feeds alphabetically with folders at the end.
+		foreach (var account in Accounts)
+		{
+			var store = account.Store;
+			SidebarItems.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, account.Name,
+			[
+				.. store.GetTopLevelFeeds().SortedByName().Select(feed => SidebarItem.ForFeed(feed, null, account)).Where(Shown),
+				.. store.GetFolders().SortedByName().Select(folder =>
+					SidebarItem.ForFolder(folder, store.GetFeeds(folder.FolderId).SortedByName().Select(feed => SidebarItem.ForFeed(feed, folder, account)).Where(Shown), account))
+					.Where(Shown),
+			], account));
+		}
 		foreach (var item in AllSidebarItems())
 		{
 			item.IsExpanded = _expandedKeys.Contains(item.Key);
-			item.Icon = item.Feed is null ? null : _icons.GetValueOrDefault(item.Feed.FeedId);
+			item.Icon = item.Feed is null ? null : _icons.GetValueOrDefault(IconKey(item.Account!, item.Feed.FeedId));
 		}
 		UpdateUnreadCounts();
 		SidebarExpansionChanged?.Invoke(this, EventArgs.Empty);
@@ -131,11 +140,12 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>Fetches favicons for feeds that don't have one yet. Misses are remembered by the downloader, so this is cheap to repeat.</summary>
 	public async Task LoadIconsAsync()
 	{
-		var feeds = AllSidebarItems().Select(item => item.Feed).OfType<StoredFeed>()
-			.DistinctBy(feed => feed.FeedId).Where(feed => !_icons.ContainsKey(feed.FeedId)).ToList();
+		var feeds = AllSidebarItems().Where(item => item.Feed is not null).Select(item => (Key: IconKey(item.Account!, item.Feed!.FeedId), Feed: item.Feed!))
+			.DistinctBy(pair => pair.Key).Where(pair => !_icons.ContainsKey(pair.Key)).ToList();
 		using var gate = new SemaphoreSlim(MaxConcurrentIconLookups);
-		await Task.WhenAll(feeds.Select(async feed =>
+		await Task.WhenAll(feeds.Select(async pair =>
 		{
+			var (key, feed) = pair;
 			if ((feed.HomePageUrl ?? FaviconDownloader.SiteRoot(feed.Url)) is not { } site)
 			{
 				return;
@@ -152,25 +162,28 @@ public sealed partial class MainViewModel : ObservableObject
 			}
 			if (path is not null)
 			{
-				SetIcon(feed.FeedId, path);
+				SetIcon(key, path);
 			}
 		}));
 	}
 
-	private void SetIcon(string feedId, string path)
+	private void SetIcon(string key, string path)
 	{
 		// Decoded at 48 px so 16–24 px icons stay sharp at 200% scaling.
 		var icon = new BitmapImage { DecodePixelWidth = 48, UriSource = new Uri(path) };
-		_icons[feedId] = icon;
-		foreach (var item in AllSidebarItems().Where(item => item.Feed?.FeedId == feedId))
+		_icons[key] = icon;
+		foreach (var item in AllSidebarItems().Where(item => item.Feed is not null && IconKey(item.Account!, item.Feed.FeedId) == key))
 		{
 			item.Icon = icon;
 		}
-		foreach (var article in Articles.Where(article => article.Article.FeedId == feedId))
+		foreach (var article in Articles.Where(article => IconKey(article.Account, article.Article.FeedId) == key))
 		{
 			article.Icon = icon;
 		}
 	}
+
+	/// <summary>Feed IDs are only unique within an account.</summary>
+	private static string IconKey(IAccount account, string feedId) => $"{account.AccountId}|{feedId}";
 
 	public SidebarItem? FindSidebarItem(string? key) => key is null ? null : AllSidebarItems().FirstOrDefault(item => item.Key == key);
 
@@ -186,16 +199,16 @@ public sealed partial class MainViewModel : ObservableObject
 		StatusText = "Refreshing…";
 		try
 		{
-			// Parsing is CPU-bound, so keep the whole refresh off the UI thread.
-			var results = await Task.Run(() => _account.RefreshAllAsync());
-			if (Settings.HideReadFeeds)
+			// Parsing is CPU-bound, so keep the whole refresh off the UI thread. Accounts refresh side by side.
+			var results = await Task.WhenAll(Accounts.ToList().Select(account => Task.Run(() => account.RefreshAllAsync())));
+			if (Settings.HideReadFeeds || Accounts.Any(account => account.Kind != AccountKind.Local))
 			{
-				// Feeds with new articles may need to come back.
+				// Feeds with new articles may need to come back, and a sync account's feed list may have changed.
 				LoadSidebar();
 			}
 			else
 			{
-				var feeds = Store.GetFeeds().ToDictionary(feed => feed.FeedId);
+				var feeds = LocalAccount.Store.GetFeeds().ToDictionary(feed => feed.FeedId);
 				foreach (var item in AllSidebarItems().Where(item => item.Feed is not null))
 				{
 					if (feeds.TryGetValue(item.Feed!.FeedId, out var feed))
@@ -209,14 +222,16 @@ public sealed partial class MainViewModel : ObservableObject
 				_ = LoadIconsAsync();
 			}
 
-			var failed = results.Count(result => result.Status == DownloadStatus.Failed);
+			var failed = results.Sum(result => result.FailedFeeds);
 			var newArticles = results.Sum(result => result.NewArticles);
-			StatusText = string.Join(" · ", new[]
-			{
+			string?[] parts =
+			[
 				newArticles == 1 ? "1 new article" : $"{newArticles:N0} new articles",
 				failed == 0 ? null : failed == 1 ? "1 feed failed" : $"{failed} feeds failed",
+				.. results.Select(result => result.Error),
 				$"Updated {DateTime.Now:t}",
-			}.Where(part => part is not null));
+			];
+			StatusText = string.Join(" · ", parts.Where(part => part is not null));
 		}
 		finally
 		{
@@ -225,20 +240,39 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	/// <summary>Throws <see cref="SubscribeException"/> when no feed is found.</summary>
-	public async Task SubscribeAsync(string url, StoredFolder? folder)
+	public async Task SubscribeAsync(string url, IAccount account, StoredFolder? folder)
 	{
-		var (feed, _) = await Task.Run(() => _account.SubscribeAsync(url, folder?.Name));
-		if (folder is not null)
+		var feed = await Task.Run(() => account.SubscribeAsync(url, folder?.Name));
+		// A sync account may have made the folder itself, so look it up again by name.
+		var placedFolder = folder is null ? null : account.Store.GetFolders().FirstOrDefault(f => f.Name == folder.Name);
+		if (placedFolder is not null)
 		{
-			_expandedKeys.Add($"folder:{folder.FolderId}");
+			_expandedKeys.Add(SidebarItem.FolderKey(account, placedFolder));
 		}
-		LoadSidebar(select: $"feed:{folder?.FolderId}:{feed.FeedId}");
+		LoadSidebar(select: SidebarItem.FeedKey(account, feed.FeedId, placedFolder));
 	}
 
+	/// <summary>New folders are for On This PC; a sync account's folders come from its server.</summary>
 	public void AddFolder(string name)
 	{
-		var folder = Store.EnsureFolder(name);
-		LoadSidebar(select: $"folder:{folder.FolderId}");
+		var folder = LocalAccount.Store.EnsureFolder(name);
+		LoadSidebar(select: SidebarItem.FolderKey(LocalAccount, folder));
+	}
+
+	/// <summary>Checks the login, adds the account, and refreshes so its feeds arrive.</summary>
+	public async Task AddFreshRssAccountAsync(string serverUrl, string username, string password)
+	{
+		var account = await _accounts.AddFreshRssAccountAsync(serverUrl, username, password);
+		_expandedKeys.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "", [], account).Key);
+		LoadSidebar();
+		_ = RefreshAsync();
+	}
+
+	/// <summary>Removes a sync account and its local copy; nothing changes on the server.</summary>
+	public void RemoveAccount(IAccount account)
+	{
+		_accounts.RemoveAccount(account);
+		LoadSidebar();
 	}
 
 	/// <summary>Shows or hides read articles in the selected row's timeline; NetNewsWire remembers this per row.</summary>
@@ -326,37 +360,40 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool HidesReadArticles(SidebarItem item) =>
 		item.Kind == SidebarItemKind.AllUnread || Settings.HideReadArticlesKeys.Contains(item.Key);
 
-	public void RenameFolder(SidebarItem item, string name)
+	public async Task RenameFolderAsync(SidebarItem item, string name)
 	{
-		Store.RenameFolder(item.Folder!.FolderId, name);
+		await item.Account!.RenameFolderAsync(item.Folder!.FolderId, name);
 		LoadSidebar();
 	}
 
-	/// <summary>A feed is removed from the folder or top level it's shown in; a folder goes with its feeds.</summary>
-	public void Delete(SidebarItem item)
+	/// <summary>
+	/// A local feed is removed from the folder or top level it's shown in; a sync feed is unsubscribed, as in
+	/// NetNewsWire. A folder goes with its feeds.
+	/// </summary>
+	public async Task DeleteAsync(SidebarItem item)
 	{
 		if (item.Feed is { } feed)
 		{
-			Store.RemoveFeed(feed.FeedId, item.ParentFolder?.FolderId);
+			await item.Account!.RemoveFeedAsync(feed.FeedId, item.ParentFolder?.FolderId);
 		}
 		else if (item.Folder is { } folder)
 		{
-			Store.RemoveFolder(folder.FolderId);
+			await item.Account!.RemoveFolderAsync(folder.FolderId);
 		}
 		LoadSidebar();
 	}
 
-	/// <summary>Imports, then refreshes so the new feeds fill in, as NetNewsWire does.</summary>
+	/// <summary>Imports into On This PC, then refreshes so the new feeds fill in, as NetNewsWire does.</summary>
 	public async Task<OpmlImportResult> ImportOpmlAsync(string path)
 	{
-		var result = await Task.Run(() => _account.ImportOpml(path));
+		var result = await Task.Run(() => LocalAccount.ImportOpml(path));
 		LoadSidebar();
 		_ = RefreshAsync();
 		return result;
 	}
 
 	public void ExportOpml(string path) =>
-		File.WriteAllText(path, OpmlExporter.OpmlString(Store, Path.GetFileNameWithoutExtension(path)));
+		File.WriteAllText(path, OpmlExporter.OpmlString(LocalAccount.Store, Path.GetFileNameWithoutExtension(path)));
 
 	/// <summary>Marks every article in <paramref name="item"/> read: the selected sidebar item by default.</summary>
 	public void MarkAllRead(SidebarItem? item = null)
@@ -366,13 +403,17 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			return;
 		}
-		var ids = (item == SelectedSidebarItem
-			? Articles.Where(article => !article.IsRead).Select(article => article.ArticleId)
-			: ArticlesFor(item).Where(article => !article.Read).Select(article => article.ArticleId)).ToHashSet();
-		Store.MarkRead(ids);
-		foreach (var article in Articles.Where(article => ids.Contains(article.ArticleId)))
+		var unread = item == SelectedSidebarItem
+			? Articles.Where(article => !article.IsRead).Select(article => (article.Account, article.ArticleId))
+			: ArticlesFor(item).Where(pair => !pair.Article.Read).Select(pair => (pair.Account, pair.Article.ArticleId));
+		foreach (var group in unread.ToList().GroupBy(pair => pair.Account, pair => pair.ArticleId))
 		{
-			article.IsRead = true;
+			var ids = group.ToHashSet();
+			group.Key.SetArticleStatus(ids, StatusKey.Read, true);
+			foreach (var article in Articles.Where(article => article.Account == group.Key && ids.Contains(article.ArticleId)))
+			{
+				article.IsRead = true;
+			}
 		}
 		ArticleStatusChanged();
 	}
@@ -389,7 +430,7 @@ public sealed partial class MainViewModel : ObservableObject
 	{
 		if ((article ?? SelectedArticle) is { } target)
 		{
-			Store.MarkStarred([target.ArticleId], !target.IsStarred);
+			target.Account.SetArticleStatus([target.ArticleId], StatusKey.Starred, !target.IsStarred);
 			target.IsStarred = !target.IsStarred;
 			ArticleStatusChanged();
 		}
@@ -430,7 +471,10 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		var cutoff = selected.Article.LogicalDatePublished;
 		var older = Articles.Where(article => !article.IsRead && article.Article.LogicalDatePublished < cutoff).ToList();
-		Store.MarkRead(older.Select(article => article.ArticleId));
+		foreach (var group in older.GroupBy(article => article.Account))
+		{
+			group.Key.SetArticleStatus([.. group.Select(article => article.ArticleId)], StatusKey.Read, true);
+		}
 		foreach (var article in older)
 		{
 			article.IsRead = true;
@@ -476,16 +520,16 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>Expands or collapses every folder; the two groups stay open so the selection stays visible.</summary>
+	/// <summary>Expands or collapses every folder; the groups stay open so the selection stays visible.</summary>
 	public void SetAllExpanded(bool expanded)
 	{
 		foreach (var item in AllSidebarItems().Where(item => item.Kind == SidebarItemKind.Folder))
 		{
 			SetExpanded(item, expanded);
 		}
-		if (!expanded && SelectedSidebarItem?.ParentFolder is not null)
+		if (!expanded && SelectedSidebarItem is { ParentFolder: { } parent, Account: { } account })
 		{
-			SelectedSidebarItem = FindSidebarItem($"folder:{SelectedSidebarItem.ParentFolder.FolderId}");
+			SelectedSidebarItem = FindSidebarItem(SidebarItem.FolderKey(account, parent));
 		}
 	}
 
@@ -512,7 +556,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		if (feed.ParentFolder is { } folder)
 		{
-			SetExpanded(FindSidebarItem($"folder:{folder.FolderId}")!, true);
+			SetExpanded(FindSidebarItem(SidebarItem.FolderKey(feed.Account!, folder))!, true);
 		}
 		SelectedSidebarItem = feed;
 		SelectedArticle = forward ? Articles.FirstOrDefault(article => !article.IsRead) : Articles.LastOrDefault(article => !article.IsRead);
@@ -526,10 +570,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	public string FeedNameFor(StoredArticle article) =>
-		Store.GetFeed(article.FeedId) is { } feed ? NameSorting.DisplayName(feed) : "";
-
-	public StoredFeed? FeedFor(StoredArticle article) => Store.GetFeed(article.FeedId);
+	public static StoredFeed? FeedFor(ArticleItem article) => article.Account.Store.GetFeed(article.Article.FeedId);
 
 	partial void OnSelectedSidebarItemChanged(SidebarItem? value)
 	{
@@ -552,7 +593,7 @@ public sealed partial class MainViewModel : ObservableObject
 
 	private void SetRead(ArticleItem article, bool read)
 	{
-		Store.MarkRead([article.ArticleId], read);
+		article.Account.SetArticleStatus([article.ArticleId], StatusKey.Read, read);
 		article.IsRead = read;
 		ArticleStatusChanged();
 	}
@@ -579,38 +620,62 @@ public sealed partial class MainViewModel : ObservableObject
 	private void LoadArticles(bool keepSelection)
 	{
 		var selected = keepSelection ? SelectedArticle : null;
-		IEnumerable<StoredArticle> articles = ArticlesFor(SelectedSidebarItem);
+		var pairs = ArticlesFor(SelectedSidebarItem);
 		if (SelectedSidebarItem is { } item && HidesReadArticles(item))
 		{
-			articles = articles.Where(article => !article.Read);
+			pairs = pairs.Where(pair => !pair.Article.Read);
 		}
-		var list = articles.ToList();
+		var list = pairs.ToList();
 		// Keep the article being read in view even when it no longer matches, as when All Unread refreshes.
-		if (selected is not null && !list.Any(article => article.ArticleId == selected.ArticleId) && Store.GetArticle(selected.ArticleId) is { } current)
+		if (selected is not null && !list.Any(pair => pair.Account == selected.Account && pair.Article.ArticleId == selected.ArticleId)
+			&& selected.Account.Store.GetArticle(selected.ArticleId) is { } current)
 		{
-			list.Add(current);
+			list.Add((selected.Account, current));
 		}
-		var newestFirst = list.OrderByDescending(article => article.LogicalDatePublished).ThenBy(article => article.ArticleId, StringComparer.Ordinal);
-		articles = Settings.SortOldestFirst ? newestFirst.Reverse() : newestFirst;
-		var feedNames = Store.GetFeeds().ToDictionary(feed => feed.FeedId, NameSorting.DisplayName);
-		Articles = [.. articles.Select(article => new ArticleItem(article, feedNames.GetValueOrDefault(article.FeedId, ""), _icons.GetValueOrDefault(article.FeedId)))];
-		SelectedArticle = selected is null ? null : Articles.FirstOrDefault(article => article.ArticleId == selected.ArticleId);
+		var newestFirst = list.OrderByDescending(pair => pair.Article.LogicalDatePublished).ThenBy(pair => pair.Article.ArticleId, StringComparer.Ordinal);
+		var ordered = Settings.SortOldestFirst ? newestFirst.Reverse() : newestFirst;
+		var feedNames = list.Select(pair => pair.Account).Distinct()
+			.ToDictionary(account => account, account => account.Store.GetFeeds().ToDictionary(feed => feed.FeedId, NameSorting.DisplayName));
+		Articles = [.. ordered.Select(pair => new ArticleItem(pair.Account, pair.Article,
+			feedNames[pair.Account].GetValueOrDefault(pair.Article.FeedId, ""), _icons.GetValueOrDefault(IconKey(pair.Account, pair.Article.FeedId))))];
+		// Keeping the selection across a reload isn't the reader choosing the article again, so it doesn't mark it
+		// read; otherwise an article marked unread would turn read at the next refresh.
+		_restoringSelection = true;
+		try
+		{
+			SelectedArticle = selected is null ? null
+				: Articles.FirstOrDefault(article => article.Account == selected.Account && article.ArticleId == selected.ArticleId);
+		}
+		finally
+		{
+			_restoringSelection = false;
+		}
 	}
 
-	private IReadOnlyList<StoredArticle> ArticlesFor(SidebarItem? item) => item?.Kind switch
+	/// <summary>The articles a row shows, each with its account. Smart feeds gather from every account.</summary>
+	private IEnumerable<(IAccount Account, StoredArticle Article)> ArticlesFor(SidebarItem? item)
 	{
-		SidebarItemKind.Today => Store.GetArticlesSince(TodayCutoff),
-		SidebarItemKind.AllUnread => Store.GetUnreadArticles(),
-		SidebarItemKind.Starred => Store.GetStarredArticles(),
-		SidebarItemKind.Folder => Store.GetArticles(item.Children.Select(child => child.Feed!.FeedId)),
-		SidebarItemKind.Feed => Store.GetArticles(item.Feed!.FeedId),
-		_ => [],
-	};
+		return item?.Kind switch
+		{
+			SidebarItemKind.Today => FromAll(store => store.GetArticlesSince(TodayCutoff)),
+			SidebarItemKind.AllUnread => FromAll(store => store.GetUnreadArticles()),
+			SidebarItemKind.Starred => FromAll(store => store.GetStarredArticles()),
+			SidebarItemKind.Folder => From(item.Account!, item.Account!.Store.GetArticles(item.Children.Select(child => child.Feed!.FeedId))),
+			SidebarItemKind.Feed => From(item.Account!, item.Account!.Store.GetArticles(item.Feed!.FeedId)),
+			_ => [],
+		};
+
+		IEnumerable<(IAccount, StoredArticle)> FromAll(Func<ArticlesStore, IReadOnlyList<StoredArticle>> query) =>
+			Accounts.ToList().SelectMany(account => From(account, query(account.Store)));
+
+		static IEnumerable<(IAccount, StoredArticle)> From(IAccount account, IEnumerable<StoredArticle> articles) =>
+			articles.Select(article => (account, article));
+	}
 
 	private void UpdateUnreadCounts()
 	{
-		var counts = Store.UnreadCounts();
-		var total = counts.Values.Sum();
+		var counts = Accounts.ToDictionary(account => account, account => account.Store.UnreadCounts());
+		var allUnread = counts.Values.Sum(accountCounts => accountCounts.Values.Sum());
 		foreach (var group in SidebarItems)
 		{
 			Update(group);
@@ -621,11 +686,12 @@ public sealed partial class MainViewModel : ObservableObject
 			var childTotal = item.Children.Sum(Update);
 			item.UnreadCount = item.Kind switch
 			{
-				SidebarItemKind.Feed => counts.GetValueOrDefault(item.Feed!.FeedId),
+				SidebarItemKind.Feed => counts[item.Account!].GetValueOrDefault(item.Feed!.FeedId),
 				SidebarItemKind.Folder => childTotal,
-				SidebarItemKind.AccountGroup or SidebarItemKind.AllUnread => total,
-				SidebarItemKind.Today => Store.UnreadCountSince(TodayCutoff),
-				SidebarItemKind.Starred => Store.StarredUnreadCount(),
+				SidebarItemKind.AccountGroup => counts[item.Account!].Values.Sum(),
+				SidebarItemKind.AllUnread => allUnread,
+				SidebarItemKind.Today => Accounts.Sum(account => account.Store.UnreadCountSince(TodayCutoff)),
+				SidebarItemKind.Starred => Accounts.Sum(account => account.Store.StarredUnreadCount()),
 				_ => 0,
 			};
 			return item.UnreadCount;

@@ -30,6 +30,9 @@ public sealed partial class SidebarItem : ObservableObject
 	/// <summary>Identifies the row across sidebar rebuilds. A feed in two folders has two keys.</summary>
 	public string Key { get; }
 
+	/// <summary>The account a group, folder or feed belongs to; null for smart feeds, which span every account.</summary>
+	public Core.IAccount? Account { get; private init; }
+
 	public StoredFolder? Folder { get; private init; }
 
 	public StoredFeed? Feed { get; private set; }
@@ -77,9 +80,9 @@ public sealed partial class SidebarItem : ObservableObject
 
 	public Windows.UI.Text.FontWeight TitleWeight => IsGroup ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
 
-	public static SidebarItem Group(SidebarItemKind kind, string title, IEnumerable<SidebarItem> children)
+	public static SidebarItem Group(SidebarItemKind kind, string title, IEnumerable<SidebarItem> children, Core.IAccount? account = null)
 	{
-		var item = new SidebarItem(kind, kind.ToString(), title);
+		var item = new SidebarItem(kind, KeyPrefix(account) + kind, title) { Account = account };
 		foreach (var child in children)
 		{
 			item.Children.Add(child);
@@ -89,9 +92,9 @@ public sealed partial class SidebarItem : ObservableObject
 
 	public static SidebarItem SmartFeed(SidebarItemKind kind, string title) => new(kind, kind.ToString(), title);
 
-	public static SidebarItem ForFolder(StoredFolder folder, IEnumerable<SidebarItem> children)
+	public static SidebarItem ForFolder(StoredFolder folder, IEnumerable<SidebarItem> children, Core.IAccount account)
 	{
-		var item = new SidebarItem(SidebarItemKind.Folder, $"folder:{folder.FolderId}", folder.Name) { Folder = folder };
+		var item = new SidebarItem(SidebarItemKind.Folder, FolderKey(account, folder), folder.Name) { Folder = folder, Account = account };
 		foreach (var child in children)
 		{
 			item.Children.Add(child);
@@ -99,12 +102,20 @@ public sealed partial class SidebarItem : ObservableObject
 		return item;
 	}
 
-	public static SidebarItem ForFeed(StoredFeed feed, StoredFolder? parentFolder) =>
-		new(SidebarItemKind.Feed, $"feed:{parentFolder?.FolderId}:{feed.FeedId}", Core.NameSorting.DisplayName(feed))
+	public static SidebarItem ForFeed(StoredFeed feed, StoredFolder? parentFolder, Core.IAccount account) =>
+		new(SidebarItemKind.Feed, FeedKey(account, feed.FeedId, parentFolder), Core.NameSorting.DisplayName(feed))
 		{
 			Feed = feed,
 			ParentFolder = parentFolder,
+			Account = account,
 		};
+
+	public static string FolderKey(Core.IAccount account, StoredFolder folder) => $"{KeyPrefix(account)}folder:{folder.FolderId}";
+
+	public static string FeedKey(Core.IAccount account, string feedId, StoredFolder? parentFolder) => $"{KeyPrefix(account)}feed:{parentFolder?.FolderId}:{feedId}";
+
+	/// <summary>Sync accounts' rows are keyed by account. The local account's keys have no prefix, as before there were accounts.</summary>
+	private static string KeyPrefix(Core.IAccount? account) => account is null or { Kind: Core.AccountKind.Local } ? "" : account.AccountId + "/";
 
 	/// <summary>Takes a refreshed copy of the feed, whose name may have changed.</summary>
 	public void Update(StoredFeed feed)

@@ -7,6 +7,15 @@ namespace WinNewsReader.Store;
 
 public sealed record StoredFeed(string FeedId, string Url, string? Name, string? HomePageUrl, string? IconUrl, string? ETag, string? LastModified);
 
+public enum StatusKey
+{
+	Read,
+	Starred,
+}
+
+/// <summary>A local status change waiting to be sent to a sync service: NetNewsWire's <c>SyncStatus</c>.</summary>
+public sealed record SyncStatus(string ArticleId, StatusKey Key, bool Flag);
+
 /// <summary>A folder. As in NetNewsWire, folders are one level deep and hold only feeds.</summary>
 public sealed record StoredFolder(long FolderId, string Name);
 
@@ -65,6 +74,8 @@ public sealed class ArticlesStore : IDisposable
 			CREATE INDEX IF NOT EXISTS articles_feedID_datePublished_articleID ON articles (feedID, datePublished, articleID);
 			CREATE INDEX IF NOT EXISTS statuses_starred_index ON statuses (starred);
 			CREATE INDEX IF NOT EXISTS folderFeeds_feedID ON folderFeeds (feedID);
+			CREATE TABLE IF NOT EXISTS syncStatus (articleID TEXT NOT NULL, key TEXT NOT NULL, flag BOOL NOT NULL DEFAULT 0, selected BOOL NOT NULL DEFAULT 0, PRIMARY KEY (articleID, key));
+			CREATE TABLE IF NOT EXISTS metadata (key TEXT NOT NULL PRIMARY KEY, value TEXT);
 			""");
 		// Databases from before folders: every feed was at the top level.
 		using var hasTopLevel = Command("SELECT COUNT(*) FROM pragma_table_info('feeds') WHERE name = 'topLevel'");
@@ -99,6 +110,39 @@ public sealed class ArticlesStore : IDisposable
 			}
 			transaction.Commit();
 			return QueryFeeds("WHERE feedID = $id", ("$id", url))[0];
+		}
+	}
+
+	/// <summary>
+	/// For sync accounts, whose feed IDs come from the service: adds the feed or updates its URL, name and home page.
+	/// A null or empty name keeps the stored one. Placement is left to <see cref="SetFeedPlacement"/>.
+	/// </summary>
+	public void SyncFeed(string feedId, string url, string? name, string? homePageUrl)
+	{
+		lock (_lock)
+		{
+			Execute(
+				"""
+				INSERT INTO feeds (feedID, url, name, homePageURL, dateAdded, topLevel) VALUES ($id, $url, $name, $home, $now, 1)
+				ON CONFLICT(feedID) DO UPDATE SET url = excluded.url, name = COALESCE(NULLIF(excluded.name, ''), name), homePageURL = excluded.homePageURL
+				""",
+				("$id", feedId), ("$url", url), ("$name", name), ("$home", homePageUrl), ("$now", Now()));
+		}
+	}
+
+	/// <summary>Puts the feed exactly at the top level, in the given folders, or both, replacing where it was.</summary>
+	public void SetFeedPlacement(string feedId, bool topLevel, IEnumerable<long> folderIds)
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			Execute("UPDATE feeds SET topLevel = $topLevel WHERE feedID = $id", ("$id", feedId), ("$topLevel", topLevel));
+			Execute("DELETE FROM folderFeeds WHERE feedID = $id", ("$id", feedId));
+			foreach (var folderId in folderIds)
+			{
+				Execute("INSERT OR IGNORE INTO folderFeeds (folderID, feedID) VALUES ($folder, $id)", ("$folder", folderId), ("$id", feedId));
+			}
+			transaction.Commit();
 		}
 	}
 
@@ -230,7 +274,7 @@ public sealed class ArticlesStore : IDisposable
 	/// Inserts new articles as unread and updates changed ones. Articles missing from the feed are kept.
 	/// Returns the number of new articles.
 	/// </summary>
-	public int UpsertArticles(string feedId, IEnumerable<ParsedItem> items)
+	public int UpsertArticles(string feedId, IEnumerable<ParsedItem> items, bool defaultRead = false)
 	{
 		lock (_lock)
 		{
@@ -239,7 +283,12 @@ public sealed class ArticlesStore : IDisposable
 			var newCount = 0;
 			foreach (var item in items)
 			{
-				var articleId = CalculatedArticleId(feedId, item.UniqueId);
+				// Sync services name their own articles, as in NetNewsWire.
+				var articleId = item.SyncServiceId ?? CalculatedArticleId(feedId, item.UniqueId);
+				using (var exists = Command("SELECT EXISTS (SELECT 1 FROM articles WHERE articleID = $id)", ("$id", articleId)))
+				{
+					newCount += Convert.ToInt32(exists.ExecuteScalar()) == 0 ? 1 : 0;
+				}
 				Execute(
 					"""
 					INSERT INTO articles (articleID, feedID, uniqueID, title, contentHTML, contentText, markdown, url, externalURL, summary, imageURL, bannerImageURL, datePublished, dateModified, authors, attachments, thumbnailURL)
@@ -256,7 +305,8 @@ public sealed class ArticlesStore : IDisposable
 					("$authors", item.Authors is null ? null : JsonSerializer.Serialize(item.Authors)),
 					("$attachments", item.Attachments is null ? null : JsonSerializer.Serialize(item.Attachments)),
 					("$thumbnailURL", item.ThumbnailUrl));
-				newCount += Execute("INSERT OR IGNORE INTO statuses (articleID, read, starred, dateArrived) VALUES ($id, 0, 0, $now)", ("$id", articleId), ("$now", now));
+				// A sync account may already have the status, from the server's list of IDs.
+				Execute("INSERT OR IGNORE INTO statuses (articleID, read, starred, dateArrived) VALUES ($id, $read, 0, $now)", ("$id", articleId), ("$read", defaultRead), ("$now", now));
 			}
 			transaction.Commit();
 			return newCount;
@@ -373,6 +423,147 @@ public sealed class ArticlesStore : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Sets read or starred for each article, creating statuses for articles not downloaded yet, as sync accounts need.
+	/// Returns the IDs whose stored value changed.
+	/// </summary>
+	public IReadOnlySet<string> SetStatuses(IEnumerable<string> articleIds, StatusKey key, bool flag)
+	{
+		var column = key == StatusKey.Read ? "read" : "starred";
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			var now = Now();
+			var changed = new HashSet<string>();
+			foreach (var id in articleIds)
+			{
+				Execute("INSERT OR IGNORE INTO statuses (articleID, read, starred, dateArrived) VALUES ($id, 0, 0, $now)", ("$id", id), ("$now", now));
+				if (Execute($"UPDATE statuses SET {column} = $flag WHERE articleID = $id AND {column} != $flag", ("$id", id), ("$flag", flag)) > 0)
+				{
+					changed.Add(id);
+				}
+			}
+			transaction.Commit();
+			return changed;
+		}
+	}
+
+	/// <summary>IDs with read or starred set to <paramref name="flag"/>, including statuses whose articles aren't downloaded.</summary>
+	public IReadOnlySet<string> StatusArticleIds(StatusKey key, bool flag)
+	{
+		lock (_lock)
+		{
+			return QueryStrings($"SELECT articleID FROM statuses WHERE {(key == StatusKey.Read ? "read" : "starred")} = $flag", ("$flag", flag)).ToHashSet();
+		}
+	}
+
+	/// <summary>
+	/// NetNewsWire's <c>fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDate</c>: unread or starred articles a
+	/// sync account knows about but hasn't downloaded.
+	/// </summary>
+	public IReadOnlyList<string> ArticleIdsMissingContent(DateTimeOffset cutoff)
+	{
+		lock (_lock)
+		{
+			return QueryStrings(
+				"""
+				SELECT s.articleID FROM statuses s WHERE (s.read = 0 OR s.starred = 1) AND s.dateArrived > $cutoff
+				AND NOT EXISTS (SELECT 1 FROM articles a WHERE a.articleID = s.articleID)
+				""",
+				("$cutoff", ToDb(cutoff)));
+		}
+	}
+
+	// The sync status queue: NetNewsWire's SyncDatabase, kept in the account's own database.
+
+	/// <summary>Queues local status changes to send. A newer change to the same article and key replaces the queued one.</summary>
+	public void QueueSyncStatuses(IEnumerable<string> articleIds, StatusKey key, bool flag)
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			foreach (var id in articleIds)
+			{
+				Execute("INSERT OR REPLACE INTO syncStatus (articleID, key, flag, selected) VALUES ($id, $key, $flag, 0)", ("$id", id), ("$key", key.ToString()), ("$flag", flag));
+			}
+			transaction.Commit();
+		}
+	}
+
+	/// <summary>Marks every unsent queued status as being sent, and returns them.</summary>
+	public IReadOnlyList<SyncStatus> SelectSyncStatusesForProcessing()
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			Execute("UPDATE syncStatus SET selected = 1 WHERE selected = 0");
+			var statuses = new List<SyncStatus>();
+			using (var command = Command("SELECT articleID, key, flag FROM syncStatus WHERE selected = 1"))
+			using (var reader = command.ExecuteReader())
+			{
+				while (reader.Read())
+				{
+					statuses.Add(new SyncStatus(reader.GetString(0), Enum.Parse<StatusKey>(reader.GetString(1)), reader.GetBoolean(2)));
+				}
+			}
+			transaction.Commit();
+			return statuses;
+		}
+	}
+
+	/// <summary>Removes statuses that were sent. Changes queued since they were selected stay.</summary>
+	public void DeleteSelectedSyncStatuses(IEnumerable<string> articleIds, StatusKey key) =>
+		ForEachSyncStatus("DELETE FROM syncStatus WHERE articleID = $id AND key = $key AND selected = 1", articleIds, key);
+
+	/// <summary>Puts statuses that failed to send back in the queue.</summary>
+	public void ResetSelectedSyncStatuses(IEnumerable<string> articleIds, StatusKey key) =>
+		ForEachSyncStatus("UPDATE syncStatus SET selected = 0 WHERE articleID = $id AND key = $key AND selected = 1", articleIds, key);
+
+	/// <summary>Puts every in-flight status back in the queue, after a send was cut short by the app closing.</summary>
+	public void ResetAllSelectedSyncStatuses()
+	{
+		lock (_lock)
+		{
+			Execute("UPDATE syncStatus SET selected = 0 WHERE selected = 1");
+		}
+	}
+
+	/// <summary>Articles with a queued change for <paramref name="key"/>, sent or not: the local change wins over the server's.</summary>
+	public IReadOnlySet<string> PendingSyncArticleIds(StatusKey key)
+	{
+		lock (_lock)
+		{
+			return QueryStrings("SELECT articleID FROM syncStatus WHERE key = $key", ("$key", key.ToString())).ToHashSet();
+		}
+	}
+
+	public int PendingSyncStatusCount()
+	{
+		lock (_lock)
+		{
+			using var command = Command("SELECT COUNT(*) FROM syncStatus WHERE selected = 0");
+			return Convert.ToInt32(command.ExecuteScalar());
+		}
+	}
+
+	/// <summary>A small per-account value, such as when a sync account last fetched article IDs.</summary>
+	public string? GetMetadata(string key)
+	{
+		lock (_lock)
+		{
+			using var command = Command("SELECT value FROM metadata WHERE key = $key", ("$key", key));
+			return command.ExecuteScalar() as string;
+		}
+	}
+
+	public void SetMetadata(string key, string? value)
+	{
+		lock (_lock)
+		{
+			Execute("INSERT OR REPLACE INTO metadata (key, value) VALUES ($key, $value)", ("$key", key), ("$value", value));
+		}
+	}
+
 	public int MarkRead(IEnumerable<string> articleIds, bool read = true) => SetStatus("read", articleIds, read);
 
 	public int MarkStarred(IEnumerable<string> articleIds, bool starred = true) => SetStatus("starred", articleIds, starred);
@@ -394,6 +585,31 @@ public sealed class ArticlesStore : IDisposable
 		{
 			_connection.Dispose();
 		}
+	}
+
+	private void ForEachSyncStatus(string sql, IEnumerable<string> articleIds, StatusKey key)
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			foreach (var id in articleIds)
+			{
+				Execute(sql, ("$id", id), ("$key", key.ToString()));
+			}
+			transaction.Commit();
+		}
+	}
+
+	private List<string> QueryStrings(string sql, params (string Name, object? Value)[] parameters)
+	{
+		using var command = Command(sql, parameters);
+		using var reader = command.ExecuteReader();
+		var values = new List<string>();
+		while (reader.Read())
+		{
+			values.Add(reader.GetString(0));
+		}
+		return values;
 	}
 
 	private int SetStatus(string column, IEnumerable<string> articleIds, bool value)

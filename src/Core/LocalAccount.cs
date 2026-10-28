@@ -14,14 +14,50 @@ public sealed record OpmlImportResult(int FeedsAdded, int FoldersAdded);
 /// The "On This PC" account: subscriptions and articles live only in the local store, and refreshing
 /// fetches each feed directly.
 /// </summary>
-public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
+public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader) : IAccount
 {
+	public const string LocalAccountId = "OnThisPC";
 	/// <summary>Feeds refreshed at once across all hosts. Per-host limits apply on top.</summary>
 	public const int MaxConcurrentRefreshes = 8;
 
 	private readonly FeedFinder _feedFinder = new(downloader);
 
 	public ArticlesStore Store { get; } = store;
+
+	public string AccountId => LocalAccountId;
+
+	public AccountKind Kind => AccountKind.Local;
+
+	public string Name => "On This PC";
+
+	async Task<RefreshSummary> IAccount.RefreshAllAsync(CancellationToken cancellationToken)
+	{
+		var results = await RefreshAllAsync(cancellationToken);
+		return new RefreshSummary(results.Sum(result => result.NewArticles), results.Count(result => result.Status == DownloadStatus.Failed));
+	}
+
+	async Task<StoredFeed> IAccount.SubscribeAsync(string url, string? folderName, CancellationToken cancellationToken) =>
+		(await SubscribeAsync(url, folderName, cancellationToken)).Feed;
+
+	Task IAccount.RemoveFeedAsync(string feedId, long? folderId, CancellationToken cancellationToken)
+	{
+		Store.RemoveFeed(feedId, folderId);
+		return Task.CompletedTask;
+	}
+
+	Task IAccount.RenameFolderAsync(long folderId, string name, CancellationToken cancellationToken)
+	{
+		Store.RenameFolder(folderId, name);
+		return Task.CompletedTask;
+	}
+
+	Task IAccount.RemoveFolderAsync(long folderId, CancellationToken cancellationToken)
+	{
+		Store.RemoveFolder(folderId);
+		return Task.CompletedTask;
+	}
+
+	public void SetArticleStatus(IReadOnlyCollection<string> articleIds, StatusKey key, bool flag) => Store.SetStatuses(articleIds, key, flag);
 
 	/// <summary>
 	/// Finds the best feed for <paramref name="userUrl"/>, which may be a feed or a web page, then
@@ -30,18 +66,7 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 	/// </summary>
 	public async Task<(StoredFeed Feed, int NewArticles)> SubscribeAsync(string userUrl, string? folderName = null, CancellationToken cancellationToken = default)
 	{
-		var normalizedUrl = userUrl.NormalizedUrl();
-		IReadOnlySet<FeedSpecifier> feedSpecifiers;
-		try
-		{
-			feedSpecifiers = await _feedFinder.FindAsync(normalizedUrl, cancellationToken);
-		}
-		catch (FeedNotFoundException)
-		{
-			throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
-		}
-		var url = FeedSpecifier.BestFeed([.. feedSpecifiers])?.Url ?? throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
-
+		var url = await _feedFinder.FindBestFeedUrlAsync(userUrl, cancellationToken: cancellationToken);
 		var download = await downloader.DownloadAsync(url, null, null, cancellationToken);
 		if (download.Status != DownloadStatus.Ok)
 		{
