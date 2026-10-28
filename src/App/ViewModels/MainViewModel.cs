@@ -328,10 +328,12 @@ public sealed partial class MainViewModel : ObservableObject
 	{
 		var previousKey = SelectedSidebarItem?.Key;
 		var selectedKey = select ?? previousKey;
-		// Hide Read Feeds leaves out feeds, and folders, with nothing unread, except the selected row.
+		// Hide Read Feeds leaves out feeds, and folders, with nothing unread, except the selected row. At launch,
+		// before the last session's selection is restored, that's the row it had selected, so it's there to restore.
+		var keptKey = selectedKey ?? (_selectionRestored ? null : Settings.SelectedSidebarKey);
 		var unreadCounts = Accounts.ToDictionary(account => account, account => account.Store.UnreadCounts());
 		bool Shown(SidebarItem item) =>
-			!Settings.HideReadFeeds || item.Key == selectedKey
+			!Settings.HideReadFeeds || item.Key == keptKey
 			|| (item.Feed is { } feed ? unreadCounts[item.Account!].ContainsKey(feed.FeedId) : item.Children.Count > 0);
 
 		_rebuildingSidebar = true;
@@ -554,6 +556,7 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>Selects what was selected when the app last closed, without marking the article read again.</summary>
 	public void RestoreSelection()
 	{
+		_selectionRestored = true;
 		_restoringSelection = true;
 		try
 		{
@@ -565,6 +568,8 @@ public sealed partial class MainViewModel : ObservableObject
 			_restoringSelection = false;
 		}
 	}
+
+	private bool _selectionRestored;
 
 	/// <summary>Records the window and the sidebar's state for the next launch.</summary>
 	public void SaveState(WindowPlacement? window)
