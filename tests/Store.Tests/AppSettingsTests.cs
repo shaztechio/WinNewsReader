@@ -72,6 +72,24 @@ public sealed class AppSettingsTests : IDisposable
 	}
 
 	[Fact]
+	public void ToolbarAndHiddenPreferencesDefaultOffAndRoundTrip()
+	{
+		var defaults = new AppSettings();
+		Assert.False(defaults.ToolbarHidden);
+		Assert.False(defaults.SuppressRefreshOnLaunch);
+		Assert.False(defaults.ArticleTitleInWindowTitle);
+		Assert.False(defaults.DoubleClickFeedMarksRead);
+
+		new AppSettings { ToolbarHidden = true, SuppressRefreshOnLaunch = true, ArticleTitleInWindowTitle = true, DoubleClickFeedMarksRead = true }.Save(SettingsPath);
+		var loaded = AppSettings.Load(SettingsPath);
+
+		Assert.True(loaded.ToolbarHidden);
+		Assert.True(loaded.SuppressRefreshOnLaunch);
+		Assert.True(loaded.ArticleTitleInWindowTitle);
+		Assert.True(loaded.DoubleClickFeedMarksRead);
+	}
+
+	[Fact]
 	public void MissingFileGivesDefaults()
 	{
 		var settings = AppSettings.Load(SettingsPath);

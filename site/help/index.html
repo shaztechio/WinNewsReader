@@ -155,6 +155,13 @@
 				<img src="images/preferences-accounts.png" width="684" height="612" alt="The Accounts preferences, listing the On This PC account with an On switch, and the Add, Edit and Remove buttons below." loading="lazy">
 				<figcaption>Accounts.</figcaption>
 			</figure>
+			<h3>Hidden settings</h3>
+			<p>NetNewsWire has a few preferences with no window. Here they are in <code>settings.json</code> in the app data folder (<strong>+▾ → Help → Open App Data Folder</strong>); close WinNewsReader before editing it. Each is <code>true</code> or <code>false</code>, and off by default.</p>
+			<ul>
+				<li><code>SuppressRefreshOnLaunch</code>: don't refresh when the app starts.</li>
+				<li><code>ArticleTitleInWindowTitle</code>: the window's title is the selected article's title.</li>
+				<li><code>DoubleClickFeedMarksRead</code>: double-clicking a feed in the sidebar marks it read, instead of opening its home page.</li>
+			</ul>
 		</section>
 
 		<section id="inspector">
@@ -225,6 +232,7 @@
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd></td><td>Copy the article URL / external URL</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>→</kbd></td><td>Open in browser (with the article focused)</td></tr>
 				<tr><td><kbd>F11</kbd></td><td>Full screen</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd></td><td>Hide or show the toolbar (with it hidden, right-click empty space in the sidebar for Show Toolbar)</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Bring the main window forward</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close the window</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Get Info</td></tr>

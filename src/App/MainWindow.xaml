@@ -106,6 +106,7 @@
                                 <MenuFlyoutItem x:Name="UndoItem" Text="Undo" IsEnabled="False" Click="OnUndo" KeyboardAcceleratorTextOverride="Ctrl+Z" />
                                 <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="False" Click="OnRedo" KeyboardAcceleratorTextOverride="Ctrl+Y" />
                                 <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Hide Toolbar" Click="OnToggleToolbar" KeyboardAcceleratorTextOverride="Ctrl+Alt+T" />
                                 <MenuFlyoutItem Text="Find in Article…" Click="OnFindInArticle" KeyboardAcceleratorTextOverride="Ctrl+F" />
                                 <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
                                 <MenuFlyoutSeparator />
@@ -118,6 +119,9 @@
                                     <MenuFlyoutItem Text="Website" Click="OnWebsite" />
                                     <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
                                     <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="Open App Data Folder" Click="OnOpenAppDataFolder" />
+                                    <MenuFlyoutItem Text="About WinNewsReader" Click="OnAbout" />
                                 </MenuFlyoutSubItem>
                             </MenuFlyout>
                         </Button.Flyout>
@@ -126,7 +130,7 @@
             </Grid>
 
             <!-- Over the timeline: Mark All as Read and Hide Read Articles. -->
-            <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="2" Padding="8,6,8,6"
+            <StackPanel x:Name="TimelineToolbar" Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="2" Padding="8,6,8,6"
                         HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnMarkAllRead"
                         ToolTipService.ToolTip="Mark All as Read (Ctrl+K)" AutomationProperties.Name="Mark All as Read">
@@ -140,7 +144,7 @@
             </StackPanel>
 
             <!-- Over the article: Mark Read, Star, Next Unread, Reader View, Share, Open in Browser, then Search. -->
-            <Grid Grid.Row="0" Grid.Column="4" Padding="8,6,12,6" ColumnSpacing="12">
+            <Grid x:Name="ArticleToolbar" Grid.Row="0" Grid.Column="4" Padding="8,6,12,6" ColumnSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />

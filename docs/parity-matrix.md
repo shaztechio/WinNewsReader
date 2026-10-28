@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 137 |
+| Done | 140 |
 | Partial | 17 |
-| Open | 40 |
-| Unchecked | 16 |
+| Open | 33 |
+| Unchecked | 20 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -40,7 +40,7 @@ By section:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 13 |  | 1 |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
-| Main window and layout | 4 | 2 | 5 |  |  |  | 1 |
+| Main window and layout | 5 | 2 | 4 |  |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
 | Sidebar | 13 | 2 | 2 | 3 |  |  |  |
 | Smart feeds and timeline | 9 | 1 | 5 |  |  |  |  |
@@ -49,13 +49,13 @@ By section:
 | Feed management and import/export | 1 | 3 | 3 |  |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
-| Preferences | 7 | 1 | 5 |  | 3 |  | 2 |
-| Utility windows |  | 1 | 5 |  | 1 |  | 1 |
-| Other | 2 | 3 | 2 |  | 2 |  |  |
+| Preferences | 7 | 1 | 2 | 3 | 3 |  | 2 |
+| Utility windows | 1 | 1 | 4 |  | 1 |  | 1 |
+| Other | 3 | 3 | 1 |  | 2 |  |  |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
-| Menu shortcuts | 22 | 1 | 7 | 12 |  |  |  |
+| Menu shortcuts | 22 | 1 | 6 | 13 |  |  |  |
 
 ## Findings that change the plan
 
@@ -114,7 +114,7 @@ By section:
 | MW-08 | Window state restore (panes, selection, layout) | `*WindowState.swift` | Port | Done | UI: restart restores layout and selected feed |
 | MW-09 | Sidebar/timeline/article font sizes (hidden defaults) | `sidebarFontSize` etc. | Port | Open: font sizes are fixed | Unit: setting is applied on launch |
 | MW-10 | Full screen | `toggleFullScreen:` | Port | Done | F11. UI: toggles full screen |
-| MW-11 | Show/hide toolbar | `toggleToolbarShown:` | Port | Open: toolbar always shown | UI: toolbar hides and shows |
+| MW-11 | Show/hide toolbar | `toggleToolbarShown:` | Port | Done | UI: toolbar hides and shows |
 | MW-12 | Toolbar customization palette | `runToolbarCustomizationPalette:` | Drop | Dropped | No native WinUI equivalent; default toolbar ships fixed. Revisit after 1.0 |
 
 ### Toolbar items
@@ -261,9 +261,9 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | PR-13 | Advanced | Privacy policy link | Port | Installer: needs the installer | Needs own policy |
 | PR-14 | Hidden | `ShowDebugMenu` | Port | Open | Unit |
 | PR-15 | Hidden | `CorreiaSeparators` (timeline separators) | Port | Open | See TL-07 |
-| PR-16 | Hidden | `KafasisTitleMode` (title on main window) | Port | Open | UI |
-| PR-17 | Hidden | `GruberFeedDoubleClickMarkAsRead` | Port | Open | See SB-09 |
-| PR-18 | Hidden | `DevroeSuppressSyncOnLaunch` | Port | Open | Unit: no refresh at launch |
+| PR-16 | Hidden | `KafasisTitleMode` (title on main window) | Port | Unchecked: ArticleTitleInWindowTitle in settings.json; setting tested, behavior not run | UI |
+| PR-17 | Hidden | `GruberFeedDoubleClickMarkAsRead` | Port | Unchecked: DoubleClickFeedMarksRead in settings.json; setting tested, behavior not run | See SB-09 |
+| PR-18 | Hidden | `DevroeSuppressSyncOnLaunch` | Port | Unchecked: SuppressRefreshOnLaunch in settings.json; setting tested, behavior not run | Unit: no refresh at launch |
 
 ## Utility windows
 
@@ -275,7 +275,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | UW-04 | Account Stats | `Mac/AccountStats` | Port | Open | UI |
 | UW-05 | iCloud Storage Stats | `Mac/CloudKitStats` | Drop | Dropped | iCloud dropped |
 | UW-06 | Keyboard Shortcuts window | `KeyboardShortcuts.html` | Port | Partial: a section of the help page, not a window | Regenerate from this app's map |
-| UW-07 | About window, credits | `Mac/About`, `Credits.rtf` | Port | Open: no About window | Credit NetNewsWire and MIT notice |
+| UW-07 | About window, credits | `Mac/About`, `Credits.rtf` | Port | Done | Credit NetNewsWire and MIT notice |
 | UW-08 | Crash reporter window and sender | `Mac/CrashReporter` | Port | Installer: tool choice open | Infrastructure; tool choice open |
 
 ## Other
@@ -287,7 +287,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | OT-03 | `feed:`, `feeds:`, app-named scheme URLs open Add Feed | Port | Installer: needs the installer | HKCU registration. UI: launching URL opens sheet |
 | OT-04 | Register as default feed reader | Port | Installer: needs the installer | Installer writes handler; removed on uninstall |
 | OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Partial: no release notes or forum yet | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
-| OT-06 | Open Application Support folder | Port | Open: no Application Support command | Opens `%LOCALAPPDATA%\<AppName>` |
+| OT-06 | Open Application Support folder | Port | Done | Opens `%LOCALAPPDATA%\<AppName>` |
 | OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Open: no debug menu | Behind PR-14 |
 | OT-08 | Accessibility | Port | Partial: names on the controls; no Narrator pass yet | Narrator / UI Automation names on every control |
 | SH-01 | Share (macOS sharing services on the Mac) | Port | Done | Windows' share sheet with the article's title and link; see TB-10 |
@@ -378,7 +378,7 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | View | Hide Read Articles | Shift+Cmd+H | Ctrl+Shift+H | Done |
 | View | Hide Read Feeds | Shift+Cmd+F | Ctrl+Shift+F | Done |
 | View | Show Sidebar | Ctrl+Cmd+S | Ctrl+Alt+S | Done |
-| View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Open: toolbar always shown |
+| View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Unchecked: Ctrl+Alt+T built, not pressed; the +▾ menu item hides it |
 | View | Full Screen | Ctrl+Cmd+F | F11 | Unchecked: F11 built; the +▾ menu item works |
 | View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Partial: sort by date only |
 | Go | Next Unread | Cmd+/ | Ctrl+/ | Done |

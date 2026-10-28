@@ -103,7 +103,11 @@ public sealed partial class MainWindow : Window
 		ApplyRefreshInterval();
 		ViewModel.RefreshIntervalChanged += (_, _) => ApplyRefreshInterval();
 		_ = ViewModel.PrepareSearchAsync();
-		_ = ViewModel.RefreshAsync();
+		if (!ViewModel.Settings.SuppressRefreshOnLaunch)
+		{
+			_ = ViewModel.RefreshAsync();
+		}
+		ApplyToolbarVisibility();
 
 		_badge = new TaskbarBadge(this);
 		ViewModel.UnreadBadgeChanged += (_, _) => _badge.Update(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts);
@@ -871,9 +875,16 @@ public sealed partial class MainWindow : Window
 	/// <summary>NetNewsWire's double-click on a feed: its home page opens in the browser.</summary>
 	private void OnSidebarDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
 	{
-		if ((e.OriginalSource as FrameworkElement)?.DataContext is SidebarItem { Feed: { HomePageUrl: { } homePage } })
+		if ((e.OriginalSource as FrameworkElement)?.DataContext is SidebarItem { Feed: not null } item)
 		{
-			MainViewModel.OpenInBrowser(homePage);
+			if (ViewModel.Settings.DoubleClickFeedMarksRead)
+			{
+				ViewModel.MarkAllRead(item);
+			}
+			else if (item.Feed!.HomePageUrl is { } homePage)
+			{
+				MainViewModel.OpenInBrowser(homePage);
+			}
 			e.Handled = true;
 		}
 	}
@@ -884,10 +895,64 @@ public sealed partial class MainWindow : Window
 		var menu = new MenuFlyout();
 		menu.Items.Add(MenuItem("New Feed…", () => _ = ShowNewFeedDialogAsync()));
 		menu.Items.Add(MenuItem("New Folder…", () => _ = ShowNewFolderDialogAsync()));
+		if (ViewModel.Settings.ToolbarHidden)
+		{
+			menu.Items.Add(new MenuFlyoutSeparator());
+			menu.Items.Add(MenuItem("Show Toolbar", ToggleToolbar));
+		}
 		return menu;
 	}
 
 	private void OnToggleSidebar(object sender, RoutedEventArgs e) => ToggleSidebar();
+
+	/// <summary>NetNewsWire's Hide Toolbar / Show Toolbar (Ctrl+Alt+T). With it hidden, the sidebar's empty-space menu still has Show Toolbar.</summary>
+	private void ToggleToolbar()
+	{
+		ViewModel.Settings.ToolbarHidden = !ViewModel.Settings.ToolbarHidden;
+		ViewModel.SaveSettings();
+		ApplyToolbarVisibility();
+	}
+
+	private void ApplyToolbarVisibility()
+	{
+		var visibility = ViewModel.Settings.ToolbarHidden ? Visibility.Collapsed : Visibility.Visible;
+		SidebarToolbar.Visibility = visibility;
+		TimelineToolbar.Visibility = visibility;
+		ArticleToolbar.Visibility = visibility;
+	}
+
+	private void OnToggleToolbar(object sender, RoutedEventArgs e) => ToggleToolbar();
+
+	private void OnOpenAppDataFolder(object sender, RoutedEventArgs e)
+	{
+		Directory.CreateDirectory(App.DataDirectory);
+		System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(App.DataDirectory) { UseShellExecute = true });
+	}
+
+	/// <summary>NetNewsWire's About window: the version, and credit to NetNewsWire, whose code and design this app ports.</summary>
+	private void OnAbout(object sender, RoutedEventArgs e) => _ = ShowAboutAsync();
+
+	private async Task ShowAboutAsync()
+	{
+		var version = typeof(MainWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "";
+		var panel = new StackPanel { Spacing = 8, MaxWidth = 420 };
+		panel.Children.Add(new TextBlock { Text = $"Version {version}", Style = (Style)Application.Current.Resources["SecondaryTextStyle"] });
+		panel.Children.Add(new TextBlock
+		{
+			Text = "A Windows port of NetNewsWire, the free and open source feed reader by Brent Simmons and the NetNewsWire team. "
+				+ "The parser, store, article themes and design follow NetNewsWire's.",
+			TextWrapping = TextWrapping.Wrap,
+		});
+		panel.Children.Add(new TextBlock
+		{
+			Text = "NetNewsWire is Copyright © 2002–present Brent Simmons, released under the MIT License.",
+			TextWrapping = TextWrapping.Wrap,
+			Style = (Style)Application.Current.Resources["SecondaryCaptionStyle"],
+		});
+		var link = new HyperlinkButton { Content = "winnewsreader.com", NavigateUri = new Uri("https://winnewsreader.com/"), Padding = new Thickness(0) };
+		panel.Children.Add(link);
+		await ShowDialogAsync(new ContentDialog { XamlRoot = Content.XamlRoot, Title = "About WinNewsReader", Content = panel, CloseButtonText = "OK" });
+	}
 
 	// NetNewsWire's Help menu (HelpURL), with this project's pages: help on the website, the repository and its issues.
 	private const string HelpUrl = "https://winnewsreader.com/help/";
@@ -1615,6 +1680,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.C, CtrlAlt, null, () => CopyToClipboard(ViewModel.SelectedArticle is { } article && article.Article.ExternalUrl is { } external && external != article.LinkUrl ? external : null));
 		Add(VirtualKey.W, Ctrl, null, Close);
 		Add(VirtualKey.F11, None, null, ToggleFullScreen);
+		Add(VirtualKey.T, CtrlAlt, null, ToggleToolbar);
 		Add(VirtualKey.Z, Ctrl, null, () => _ = UndoAsync());
 		Add(VirtualKey.Y, Ctrl, null, () => _ = RedoAsync());
 		Add(VirtualKey.Z, CtrlShift, null, () => _ = RedoAsync());

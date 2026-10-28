@@ -1295,7 +1295,8 @@ public sealed partial class MainViewModel : ObservableObject
 	public bool HasNoFeedSelected => !IsSearching && SelectedSidebarItem is null or { IsGroup: true };
 
 	/// <summary>NetNewsWire's window title while searching: "Search: …".</summary>
-	public string WindowTitle => _searchString is { } search ? $"Search: {search}" : "WinNewsReader";
+	public string WindowTitle => _searchString is { } search ? $"Search: {search}"
+		: Settings.ArticleTitleInWindowTitle && SelectedArticle?.Title is { Length: > 0 } title ? title : "WinNewsReader";
 
 	public void ApplySearch()
 	{
@@ -1348,6 +1349,10 @@ public sealed partial class MainViewModel : ObservableObject
 	/// <summary>Selecting an article marks it read, as in NetNewsWire.</summary>
 	partial void OnSelectedArticleChanged(ArticleItem? value)
 	{
+		if (Settings.ArticleTitleInWindowTitle)
+		{
+			OnPropertyChanged(nameof(WindowTitle));
+		}
 		if (value is { IsRead: false } && !_restoringSelection)
 		{
 			SetRead(value, true);

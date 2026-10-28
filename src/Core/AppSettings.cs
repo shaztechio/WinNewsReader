@@ -36,6 +36,20 @@ public sealed class AppSettings
 	/// <summary>Accounts the reader has turned off: hidden from the sidebar and skipped when refreshing.</summary>
 	public HashSet<string> DisabledAccountIds { get; set; } = [];
 
+	/// <summary>NetNewsWire's Hide Toolbar state.</summary>
+	public bool ToolbarHidden { get; set; }
+
+	// NetNewsWire's hidden preferences, which its users set with `defaults write`; here they're edited in settings.json.
+
+	/// <summary><c>DevroeSuppressSyncOnLaunch</c>: don't refresh when the app starts.</summary>
+	public bool SuppressRefreshOnLaunch { get; set; }
+
+	/// <summary><c>KafasisTitleMode</c>: the window's title is the selected article's title.</summary>
+	public bool ArticleTitleInWindowTitle { get; set; }
+
+	/// <summary><c>GruberFeedDoubleClickMarkAsRead</c>: double-clicking a feed in the sidebar marks it read instead of opening its home page.</summary>
+	public bool DoubleClickFeedMarksRead { get; set; }
+
 	/// <summary>NetNewsWire's Toggle Sidebar state.</summary>
 	public bool SidebarHidden { get; set; }
 
