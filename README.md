@@ -44,4 +44,7 @@ dotnet run --project src/App
 
 ## Credits
 
-Parser code and test fixtures, and the article template, stylesheets, scripts and built-in themes in `src/Core/ArticleRendering/Resources`, are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)). The NewsFax theme's ModeSeven font is freeware; see its `License.md`. Reader View uses [SmartReader](https://github.com/Strumenta/SmartReader), a C# port of Mozilla's Readability, under the Apache License 2.0. This project isn't affiliated with or endorsed by NetNewsWire.
+- Parser code and test fixtures, and the article template, stylesheets, scripts and built-in themes in `src/Core/ArticleRendering/Resources`, are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)).
+- The NewsFax theme's ModeSeven font is freeware; see its `License.md`.
+- Reader View uses [SmartReader](https://github.com/Strumenta/SmartReader), a C# port of Mozilla's Readability, under the Apache License 2.0.
+- This project isn't affiliated with or endorsed by NetNewsWire.
