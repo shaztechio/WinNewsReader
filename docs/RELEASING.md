@@ -22,6 +22,13 @@ vpk pack -u WinNewsReaderApp -v 0.1.0 -c release -p artifacts/publish -e WinNews
 `artifacts/releases/WinNewsReaderApp-release-Setup.exe` installs it for the current user, with no administrator rights, and the
 `-Portable.zip` runs from any folder. Both install the WebView2 runtime first if the PC lacks it.
 
+## Size
+
+The app is self-contained, so the installer carries the .NET runtime and the Windows App SDK: about 80 MB (the app itself is a few
+megabytes). The project references only the Windows App SDK parts it uses (`Base`, `Foundation`, `InteractiveExperiences`, `WinUI`,
+`DWrite`, `Runtime`) rather than the `Microsoft.WindowsAppSDK` metapackage, which also brings AI, ML, Search and Widgets (ONNX
+Runtime, DirectML and more) and added about 27 MB to the installer. Updates after the first install are deltas, so much smaller.
+
 ## Notes
 
 - The install folder is `%LOCALAPPDATA%\WinNewsReaderApp`. The reader's data lives in `%LOCALAPPDATA%\WinNewsReader`, so
