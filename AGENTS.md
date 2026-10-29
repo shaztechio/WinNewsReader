@@ -25,5 +25,5 @@ The website is in `site/` (GitHub Pages): the help page is `site/help/index.html
 - Run all tests with `dotnet test` from the repository root. Sync accounts are tested against in-memory fake servers in `tests/Sync.*.Tests`.
 - The app locks its own DLLs while it runs: close `WinNewsReader.exe` before building.
 - Commit only when asked, and push right after every commit. End commit messages with the `Co-Authored-By` line the tooling gives.
-- Keep the repository private for now.
+- The repository is public and MIT licensed: keep personal paths, credentials and anything private out of commits and docs.
 - Never commit secrets (API keys, passwords). Release-time keys belong in GitHub Actions repository secrets.

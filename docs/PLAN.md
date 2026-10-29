@@ -1,6 +1,6 @@
 # NetNewsWire for Windows — Port Plan
 
-Oct 27, 2026 · Shazron · [Source doc](https://claude.ai/artifact/PMhsodLRm8pCExdGHzmDm5)
+Oct 27, 2026 · Shazron
 
 ## Summary
 

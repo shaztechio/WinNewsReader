@@ -38,6 +38,10 @@ dotnet run --project src/App
 - [docs/FUTURE-SYNC-SERVICES.md](docs/FUTURE-SYNC-SERVICES.md): Inoreader and Feedly
 - [AGENTS.md](AGENTS.md): an index of all the documents for people and tools working in the repository
 
+## License
+
+[MIT](LICENSE). Parts ported from NetNewsWire keep its own MIT license, noted in Credits below.
+
 ## Credits
 
 Parser code and test fixtures, and the article template, stylesheets, scripts and built-in themes in `src/Core/ArticleRendering/Resources`, are ported from NetNewsWire by Brent Simmons and contributors, under the MIT license ([src/Parser/LICENSE-NetNewsWire.txt](src/Parser/LICENSE-NetNewsWire.txt)). The NewsFax theme's ModeSeven font is freeware; see its `License.md`. Reader View uses [SmartReader](https://github.com/Strumenta/SmartReader), a C# port of Mozilla's Readability, under the Apache License 2.0. This project isn't affiliated with or endorsed by NetNewsWire.
