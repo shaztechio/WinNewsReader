@@ -5,8 +5,15 @@
 	<link rel="self" type="application/atom+xml" href="https://winnewsreader.com/feed.xml"/>
 	<link rel="alternate" type="text/html" href="https://winnewsreader.com/"/>
 	<id>https://winnewsreader.com/feed.xml</id>
-	<updated>2026-10-29T12:00:00Z</updated>
+	<updated>2026-10-29T18:00:00Z</updated>
 	<author><name>WinNewsReader</name></author>
+	<entry>
+		<title>Feedbin, NewsBlur, The Old Reader and BazQux, and a mail-style column layout</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/help/#freshrss"/>
+		<id>https://winnewsreader.com/news/2026-10-29-more-accounts</id>
+		<updated>2026-10-29T18:00:00Z</updated>
+		<summary type="html">&lt;p&gt;Sync with Feedbin, NewsBlur, The Old Reader and BazQux, as well as FreshRSS: File → Add Account… lists the services and asks for your sign-in. The column layout now puts the table across the top with the article below it, both full width, like a mail reader. In the status bar the gear has an arrow, and the theme menu moves to the right with the theme's name.&lt;/p&gt;</summary>
+	</entry>
 	<entry>
 		<title>Utility windows, a column layout and a status bar</title>
 		<link rel="alternate" type="text/html" href="https://winnewsreader.com/help/#windows"/>
