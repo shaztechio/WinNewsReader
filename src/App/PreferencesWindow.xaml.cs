@@ -284,7 +284,7 @@ public sealed partial class PreferencesWindow : Window
 			text.Children.Add(new TextBlock { Text = account.Name });
 			text.Children.Add(new TextBlock
 			{
-				Text = account is ReaderApiAccount sync ? $"{sync.Record.Username} on {ServerName(sync.Record.Endpoint)}" : "Stored on this PC",
+				Text = account is ISyncAccount sync ? $"{sync.Record.Username} on {ServerName(sync.Record.Endpoint)}" : "Stored on this PC",
 				Style = (Style)Application.Current.Resources["SecondaryCaptionStyle"],
 			});
 			var row = new Grid { ColumnSpacing = 12, Padding = new Thickness(4, 6, 4, 6) };
@@ -312,20 +312,20 @@ public sealed partial class PreferencesWindow : Window
 
 	private void UpdateAccountButtons()
 	{
-		var sync = AccountsList.SelectedItem is ListViewItem { Tag: ReaderApiAccount };
+		var sync = AccountsList.SelectedItem is ListViewItem { Tag: ISyncAccount };
 		EditButton.IsEnabled = sync;
 		RemoveButton.IsEnabled = sync;
 	}
 
 	private async void OnEditAccount(object sender, RoutedEventArgs e)
 	{
-		if (AccountsList.SelectedItem is ListViewItem { Tag: ReaderApiAccount account })
+		if (AccountsList.SelectedItem is ListViewItem { Tag: ISyncAccount account })
 		{
-			await AccountDialogs.ShowEditFreshRssAsync(Content.XamlRoot, _viewModel, account);
+			await AccountDialogs.ShowEditAsync(Content.XamlRoot, _viewModel, account);
 		}
 	}
 
-	private async void OnAddAccount(object sender, RoutedEventArgs e) => await AccountDialogs.ShowAddFreshRssAsync(Content.XamlRoot, _viewModel);
+	private async void OnAddAccount(object sender, RoutedEventArgs e) => await AccountDialogs.ShowAddAsync(Content.XamlRoot, _viewModel);
 
 	private async void OnRemoveAccount(object sender, RoutedEventArgs e)
 	{

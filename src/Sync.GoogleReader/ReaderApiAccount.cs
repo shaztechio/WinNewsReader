@@ -9,7 +9,7 @@ namespace WinNewsReader.Sync.GoogleReader;
 /// A FreshRSS account (or another Google Reader API server), ported from NetNewsWire's <c>ReaderAPIAccountDelegate</c>.
 /// The server is the source of truth for feeds, folders and statuses; local status changes are queued and sent.
 /// </summary>
-public sealed class ReaderApiAccount : IAccount, IDisposable
+public sealed class ReaderApiAccount : ISyncAccount, IDisposable
 {
 	/// <summary>How far back the first sync, and a new subscription, fetch article IDs: NetNewsWire's three months.</summary>
 	private static readonly TimeSpan InitialFetchWindow = TimeSpan.FromDays(91);
@@ -45,6 +45,8 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 
 	public AccountKind Kind => _record.Kind;
 
+	private ReaderApiVariant Variant => ReaderApiVariants.For(_record.Kind);
+
 	public string Name => _record.Name;
 
 	/// <summary>The account's saved settings: its name, server address and username.</summary>
@@ -54,6 +56,9 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 	/// NetNewsWire's account sheet, applied: a new name, server address, username or password. Waits for a sync in
 	/// progress to finish, so none is cut off halfway, then uses the new login from the next request.
 	/// </summary>
+	public Task ReconfigureAsync(AccountRecord record, string password, CancellationToken cancellationToken = default) =>
+		ReconfigureAsync(record, new ReaderApiCaller(record.Endpoint, record.Username, password, variant: ReaderApiVariants.For(record.Kind)), cancellationToken);
+
 	public async Task ReconfigureAsync(AccountRecord record, ReaderApiCaller caller, CancellationToken cancellationToken = default)
 	{
 		if (record.AccountId != _record.AccountId)
@@ -226,7 +231,11 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 				await _caller.UnsubscribeAsync(feed.FeedId, cancellationToken);
 			}
 		}
-		await _caller.DeleteFolderAsync(folder.Name, cancellationToken);
+		// The Old Reader has no call to delete a label; with its feeds gone, the folder is simply forgotten, as NetNewsWire does.
+		if (Variant != ReaderApiVariant.TheOldReader)
+		{
+			await _caller.DeleteFolderAsync(folder.Name, cancellationToken);
+		}
 		Store.RemoveFolder(folderId);
 	}
 
@@ -306,9 +315,9 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 	internal static string? DecodeFullwidth(string? text) =>
 		text?.Replace('＆', '&').Replace('＜', '<').Replace('＞', '>');
 
-	internal static ParsedItem ToParsedItem(ReaderApiEntry entry, string feedId)
+	internal static ParsedItem ToParsedItem(ReaderApiEntry entry, string feedId, ReaderApiVariant variant = ReaderApiVariant.FreshRss)
 	{
-		var articleId = ReaderApiCaller.ArticleIdFromEntryId(entry.Id);
+		var articleId = ReaderApiCaller.ArticleIdFromEntryId(entry.Id, variant);
 		return new ParsedItem
 		{
 			SyncServiceId = articleId,
@@ -343,7 +352,7 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 		{
 			var (key, flag) = group.Key;
 			var ids = group.Select(status => status.ArticleId).ToList();
-			var unsendable = ids.Where(id => ReaderApiCaller.LongItemId(id) is null).ToList();
+			var unsendable = ids.Where(id => !_caller.CanSend(id)).ToList();
 			Store.DeleteSelectedSyncStatuses(unsendable, key);
 			foreach (var chunk in ids.Except(unsendable).Chunk(StatusesPerRequest))
 			{
@@ -398,7 +407,7 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 			var entries = await _caller.GetEntriesAsync(chunk, cancellationToken);
 			foreach (var feedEntries in entries.Where(entry => entry.Origin?.StreamId is { } feedId && feedIds.Contains(feedId)).GroupBy(entry => entry.Origin!.StreamId!))
 			{
-				newArticles += Store.UpsertArticles(feedEntries.Key, feedEntries.Select(entry => ToParsedItem(entry, feedEntries.Key)), defaultRead: true);
+				newArticles += Store.UpsertArticles(feedEntries.Key, feedEntries.Select(entry => ToParsedItem(entry, feedEntries.Key, Variant)), defaultRead: true);
 			}
 		}
 		return newArticles;

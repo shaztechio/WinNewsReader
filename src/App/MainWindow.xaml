@@ -70,7 +70,7 @@
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
                 <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
-                <MenuFlyoutItem Text="Add FreshRSS Account…" Click="OnAddFreshRssAccount" />
+                <MenuFlyoutItem Text="Add Account…" Click="OnAddAccount" />
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem Text="Close Window" Click="OnCloseWindow" KeyboardAcceleratorTextOverride="Ctrl+W" />
                 <MenuFlyoutSeparator />

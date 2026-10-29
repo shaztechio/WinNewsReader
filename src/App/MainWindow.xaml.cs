@@ -663,7 +663,7 @@ public sealed partial class MainWindow : Window
 
 	private async void OnExport(object sender, RoutedEventArgs e) => await ExportAsync();
 
-	private async void OnAddFreshRssAccount(object sender, RoutedEventArgs e) => await ShowAddFreshRssAccountDialogAsync();
+	private async void OnAddAccount(object sender, RoutedEventArgs e) => await ShowAddAccountDialogAsync();
 
 	private void OnMarkAllRead(object sender, RoutedEventArgs e) => ViewModel.MarkAllRead();
 
@@ -2109,7 +2109,7 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	private Task ShowAddFreshRssAccountDialogAsync() => ShowSharedDialogAsync(() => AccountDialogs.ShowAddFreshRssAsync(Content.XamlRoot, ViewModel));
+	private Task ShowAddAccountDialogAsync() => ShowSharedDialogAsync(() => AccountDialogs.ShowAddAsync(Content.XamlRoot, ViewModel));
 
 	private Task ConfirmRemoveAccountAsync(IAccount account) => ShowSharedDialogAsync(() => AccountDialogs.ConfirmRemoveAsync(Content.XamlRoot, ViewModel, account));
 

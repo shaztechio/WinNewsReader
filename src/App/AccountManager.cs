@@ -31,18 +31,32 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 
 	public LocalAccount LocalAccount => (LocalAccount)_accounts[0];
 
-	/// <summary>Checks the login, then saves the account. Throws <see cref="ReaderApiException"/> if the server says no.</summary>
-	public async Task<IAccount> AddFreshRssAccountAsync(string serverUrl, string username, string password, CancellationToken cancellationToken = default)
+	public Task<IAccount> AddFreshRssAccountAsync(string serverUrl, string username, string password, CancellationToken cancellationToken = default) =>
+		AddAccountAsync(AccountKind.FreshRss, serverUrl, username, password, cancellationToken);
+
+	/// <summary>The API address: FreshRSS's is the server the reader typed, the hosted services' are fixed.</summary>
+	private static string EndpointFor(AccountKind kind, string serverUrl) => kind switch
 	{
-		var endpoint = ReaderApiCaller.NormalizedEndpoint(serverUrl);
+		_ when ReaderApiVariants.IsReaderApi(kind) => ReaderApiVariants.Host(ReaderApiVariants.For(kind)) ?? ReaderApiCaller.NormalizedEndpoint(serverUrl),
+		_ => throw new NotSupportedException($"{AccountKinds.DisplayName(kind)} accounts aren't supported yet."),
+	};
+
+	/// <summary>Checks that the service accepts the login. Throws if it doesn't.</summary>
+	private static async Task CheckLoginAsync(AccountKind kind, string endpoint, string username, string password, CancellationToken cancellationToken)
+	{
+		using var check = new ReaderApiCaller(endpoint, username, password, variant: ReaderApiVariants.For(kind));
+		await check.LoginAsync(cancellationToken);
+	}
+
+	/// <summary>Checks the login, then saves the account. Throws if the service says no.</summary>
+	public async Task<IAccount> AddAccountAsync(AccountKind kind, string serverUrl, string username, string password, CancellationToken cancellationToken = default)
+	{
+		var endpoint = EndpointFor(kind, serverUrl);
 		RejectDuplicateLogin(endpoint, username, exceptAccountId: null);
-		using (var check = new ReaderApiCaller(endpoint, username, password))
-		{
-			await check.LoginAsync(cancellationToken);
-		}
+		await CheckLoginAsync(kind, endpoint, username, password, cancellationToken);
 		// A second FreshRSS account is "FreshRSS 2", so the two can be told apart.
-		var name = AccountRules.UniqueName("FreshRSS", _accounts.Select(account => account.Name));
-		var record = new AccountRecord(Guid.NewGuid().ToString("N"), AccountKind.FreshRss, name, endpoint, username);
+		var name = AccountRules.UniqueName(AccountKinds.DisplayName(kind), _accounts.Select(account => account.Name));
+		var record = new AccountRecord(Guid.NewGuid().ToString("N"), kind, name, endpoint, username);
 		credentials.SetSecret(CredentialTarget(record.AccountId), username, password);
 		AccountsFile.Save(AccountsPath, [.. AccountsFile.Load(AccountsPath), record]);
 		var account = OpenSyncAccount(record, password);
@@ -54,12 +68,12 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 	/// NetNewsWire's credentials sheet: checks the login if the server, username or password changed (a blank password
 	/// keeps the saved one), then saves the new name, server, username and password. The account keeps its data.
 	/// </summary>
-	public async Task UpdateFreshRssAccountAsync(
-		ReaderApiAccount account, string name, string serverUrl, string username, string password, CancellationToken cancellationToken = default)
+	public async Task UpdateAccountAsync(
+		ISyncAccount account, string name, string serverUrl, string username, string password, CancellationToken cancellationToken = default)
 	{
-		var endpoint = ReaderApiCaller.NormalizedEndpoint(serverUrl);
-		var target = CredentialTarget(account.AccountId);
 		var current = account.Record;
+		var endpoint = EndpointFor(current.Kind, serverUrl);
+		var target = CredentialTarget(account.AccountId);
 		if (AccountRules.NameIsTaken(name, _accounts.Where(other => other.AccountId != account.AccountId).Select(other => other.Name)))
 		{
 			throw new InvalidOperationException($"There’s already an account named “{name}”. Choose a different name.");
@@ -69,8 +83,7 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 		var loginChanged = password.Length > 0 || endpoint != current.Endpoint || username != current.Username;
 		if (loginChanged)
 		{
-			using var check = new ReaderApiCaller(endpoint, username, secret);
-			await check.LoginAsync(cancellationToken);
+			await CheckLoginAsync(current.Kind, endpoint, username, secret, cancellationToken);
 		}
 		var record = current with { Name = name, Endpoint = endpoint, Username = username };
 		if (loginChanged)
@@ -78,13 +91,13 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 			credentials.SetSecret(target, username, secret);
 		}
 		AccountsFile.Save(AccountsPath, AccountsFile.Load(AccountsPath).Select(saved => saved.AccountId == record.AccountId ? record : saved));
-		await account.ReconfigureAsync(record, new ReaderApiCaller(endpoint, username, secret), cancellationToken);
+		await account.ReconfigureAsync(record, secret, cancellationToken);
 	}
 
 	/// <summary>NetNewsWire's <c>duplicateServiceAccount</c>: the same server and username can't be two accounts.</summary>
 	private void RejectDuplicateLogin(string endpoint, string username, string? exceptAccountId)
 	{
-		if (AccountRules.FindDuplicateLogin(_accounts.OfType<ReaderApiAccount>().Select(account => account.Record), endpoint, username, exceptAccountId) is { } existing)
+		if (AccountRules.FindDuplicateLogin(_accounts.OfType<ISyncAccount>().Select(account => account.Record), endpoint, username, exceptAccountId) is { } existing)
 		{
 			throw new InvalidOperationException($"You already have an account for “{username}” on {new Uri(endpoint).Host}: “{existing.Name}”.");
 		}
@@ -130,10 +143,10 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 
 	private string AccountDirectory(string accountId) => Path.Combine(dataRoot, "Accounts", accountId);
 
-	private ReaderApiAccount OpenSyncAccount(AccountRecord record, string password)
+	private IAccount OpenSyncAccount(AccountRecord record, string password)
 	{
 		var store = new ArticlesStore(Path.Combine(AccountDirectory(record.AccountId), "articles.db"));
 		_stores.Add(store);
-		return new ReaderApiAccount(record, store, new ReaderApiCaller(record.Endpoint, record.Username, password), downloader);
+		return new ReaderApiAccount(record, store, new ReaderApiCaller(record.Endpoint, record.Username, password, variant: ReaderApiVariants.For(record.Kind)), downloader);
 	}
 }

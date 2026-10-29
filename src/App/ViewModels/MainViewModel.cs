@@ -714,9 +714,9 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	/// <summary>Checks the login, adds the account, and refreshes so its feeds arrive.</summary>
-	public async Task AddFreshRssAccountAsync(string serverUrl, string username, string password)
+	public async Task AddAccountAsync(AccountKind kind, string serverUrl, string username, string password)
 	{
-		var account = await _accounts.AddFreshRssAccountAsync(serverUrl, username, password);
+		var account = await _accounts.AddAccountAsync(kind, serverUrl, username, password);
 		AccountsChanged?.Invoke(this, EventArgs.Empty);
 		_expandedKeys.Add(SidebarItem.Group(SidebarItemKind.AccountGroup, "", [], account).Key);
 		LoadSidebar();
@@ -724,10 +724,10 @@ public sealed partial class MainViewModel : ObservableObject
 	}
 
 	/// <summary>Saves the changes to a sync account's name, server, username or password, then syncs it with them.</summary>
-	public async Task EditFreshRssAccountAsync(ReaderApiAccount account, string name, string serverUrl, string username, string password)
+	public async Task EditAccountAsync(ISyncAccount account, string name, string serverUrl, string username, string password)
 	{
 		var before = account.Record;
-		await _accounts.UpdateFreshRssAccountAsync(account, name, serverUrl, username, password);
+		await _accounts.UpdateAccountAsync(account, name, serverUrl, username, password);
 		AccountsChanged?.Invoke(this, EventArgs.Empty);
 		// The sidebar names the account.
 		LoadSidebar();

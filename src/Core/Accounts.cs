@@ -8,6 +8,45 @@ public enum AccountKind
 {
 	Local,
 	FreshRss,
+	TheOldReader,
+	BazQux,
+	Feedbin,
+	NewsBlur,
+}
+
+/// <summary>What the Add Account list and the preferences show for each kind of account.</summary>
+public static class AccountKinds
+{
+	public static string DisplayName(AccountKind kind) => kind switch
+	{
+		AccountKind.Local => "On This PC",
+		AccountKind.FreshRss => "FreshRSS",
+		AccountKind.TheOldReader => "The Old Reader",
+		AccountKind.BazQux => "BazQux",
+		AccountKind.Feedbin => "Feedbin",
+		AccountKind.NewsBlur => "NewsBlur",
+		_ => kind.ToString(),
+	};
+
+	/// <summary>The services you add: web services first, then ones you run yourself, as NetNewsWire's Add Account list groups them.</summary>
+	public static IReadOnlyList<(string Group, IReadOnlyList<AccountKind> Kinds)> Addable { get; } =
+	[
+		("Web", [AccountKind.TheOldReader, AccountKind.BazQux]),
+		("Self-hosted", [AccountKind.FreshRss]),
+	];
+
+	/// <summary>Whether signing in asks for a server address: only FreshRSS, which you host yourself. The others have one fixed address.</summary>
+	public static bool NeedsServerAddress(AccountKind kind) => kind == AccountKind.FreshRss;
+
+	/// <summary>What the sign-in form calls the first field.</summary>
+	public static string UsernameLabel(AccountKind kind) => kind switch
+	{
+		AccountKind.FreshRss => "Username",
+		AccountKind.NewsBlur => "Username",
+		_ => "Email",
+	};
+
+	public static string PasswordLabel(AccountKind kind) => kind == AccountKind.FreshRss ? "API password" : "Password";
 }
 
 /// <summary>What a refresh did, for the status bar.</summary>
@@ -60,6 +99,16 @@ public interface IAccount
 
 	/// <summary>Marks articles read or unread, starred or not.</summary>
 	void SetArticleStatus(IReadOnlyCollection<string> articleIds, StatusKey key, bool flag);
+}
+
+/// <summary>An account on a sync service: it has saved settings, and they can be changed after it's added.</summary>
+public interface ISyncAccount : IAccount
+{
+	/// <summary>The account's saved settings: its name, server address and username.</summary>
+	AccountRecord Record { get; }
+
+	/// <summary>Applies new settings and the password that goes with them, waiting for a sync in progress to finish.</summary>
+	Task ReconfigureAsync(AccountRecord record, string password, CancellationToken cancellationToken = default);
 }
 
 /// <summary>A sync account as listed in <c>accounts.json</c>. Its password is in the credential store, not here.</summary>

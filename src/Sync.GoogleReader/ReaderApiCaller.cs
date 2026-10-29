@@ -45,8 +45,12 @@ public sealed class ReaderApiCaller : IDisposable
 	private string? _auth;
 	private string? _writeToken;
 
-	public ReaderApiCaller(string endpoint, string username, string password, HttpMessageHandler? handler = null)
+	/// <summary>Which service this talks to; The Old Reader numbers articles differently.</summary>
+	public ReaderApiVariant Variant { get; }
+
+	public ReaderApiCaller(string endpoint, string username, string password, HttpMessageHandler? handler = null, ReaderApiVariant variant = ReaderApiVariant.FreshRss)
 	{
+		Variant = variant;
 		_endpoint = endpoint.TrimEnd('/');
 		_username = username;
 		_password = password;
@@ -73,15 +77,31 @@ public sealed class ReaderApiCaller : IDisposable
 	/// The long form of an article ID for requests: zero-padded 16-digit hex, two's complement for negative IDs.
 	/// Null for an ID that isn't a number, which this server can't take.
 	/// </summary>
-	public static string? LongItemId(string articleId) =>
-		long.TryParse(articleId, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var id)
+	public static string? LongItemId(string articleId, ReaderApiVariant variant = ReaderApiVariant.FreshRss)
+	{
+		// The Old Reader's article IDs are its own text, used as they are.
+		if (variant == ReaderApiVariant.TheOldReader)
+		{
+			return "tag:google.com,2005:reader/item/" + articleId;
+		}
+		return long.TryParse(articleId, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var id)
 			? "tag:google.com,2005:reader/item/" + id.ToString("x16", CultureInfo.InvariantCulture)
 			: null;
+	}
+
+	private string? ItemId(string articleId) => LongItemId(articleId, Variant);
+
+	/// <summary>Whether this server can take <paramref name="articleId"/> in a request.</summary>
+	public bool CanSend(string articleId) => ItemId(articleId) is not null;
 
 	/// <summary>NetNewsWire's <c>uniqueID</c>: the article ID, in decimal, from an entry's long-form hex ID.</summary>
-	public static string ArticleIdFromEntryId(string entryId)
+	public static string ArticleIdFromEntryId(string entryId, ReaderApiVariant variant = ReaderApiVariant.FreshRss)
 	{
 		var hex = entryId[(entryId.LastIndexOf('/') + 1)..];
+		if (variant == ReaderApiVariant.TheOldReader)
+		{
+			return hex;
+		}
 		return ulong.TryParse(hex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value)
 			? unchecked((long)value).ToString(CultureInfo.InvariantCulture)
 			: entryId;
@@ -162,7 +182,7 @@ public sealed class ReaderApiCaller : IDisposable
 	/// <summary>The articles with these IDs. IDs that aren't numbers are skipped.</summary>
 	public async Task<IReadOnlyList<ReaderApiEntry>> GetEntriesAsync(IReadOnlyCollection<string> articleIds, CancellationToken cancellationToken = default)
 	{
-		var itemParameters = articleIds.Select(LongItemId).OfType<string>().Select(id => ("i", id)).ToList();
+		var itemParameters = articleIds.Select(ItemId).OfType<string>().Select(id => ("i", id)).ToList();
 		if (itemParameters.Count == 0)
 		{
 			return [];
@@ -182,7 +202,7 @@ public sealed class ReaderApiCaller : IDisposable
 	/// <summary>Marks articles read or unread, starred or unstarred.</summary>
 	public Task SetStateAsync(IReadOnlyCollection<string> articleIds, bool starred, bool add, CancellationToken cancellationToken = default)
 	{
-		var itemParameters = articleIds.Select(LongItemId).OfType<string>().Select(id => ("i", id)).ToList();
+		var itemParameters = articleIds.Select(ItemId).OfType<string>().Select(id => ("i", id)).ToList();
 		return itemParameters.Count == 0
 			? Task.CompletedTask
 			: PostWithTokenAsync("/reader/api/0/edit-tag", [.. itemParameters, (add ? "a" : "r", starred ? StarredState : ReadState)], cancellationToken);
