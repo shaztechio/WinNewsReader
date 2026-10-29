@@ -1,6 +1,6 @@
 # WinNewsReader
 
-A native Windows feed reader (.NET 10, WinUI 3, WebView2, SQLite) aiming for feature parity with NetNewsWire for Mac. See [README.md](README.md) for the layout of the repository and how to build and run it.
+A native Windows feed reader (.NET 10, WinUI 3, WebView2, SQLite) aiming for feature parity with NetNewsWire for Mac. See [README.md](README.md) for an overview and how to build and run it.
 
 ## Documents
 
@@ -8,6 +8,8 @@ Read the one that matches the task before starting.
 
 | File | What it is |
 | --- | --- |
+| [docs/FEATURES.md](docs/FEATURES.md) | How the app is used: window, accounts, preferences, shortcuts and the `wnr` tool. Update it when behavior changes |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | What each project holds, and where data is stored |
 | [docs/PLAN.md](docs/PLAN.md) | The plan, with a checkbox per piece of work. Tick boxes as work lands |
 | [docs/parity-matrix.md](docs/parity-matrix.md) | Every NetNewsWire feature, its status (Done, Unchecked, Keys, Dropped and so on) and how it is tested. Keep the status and the counts at the top current |
 | [docs/MANUAL-TEST-CHECKLIST.md](docs/MANUAL-TEST-CHECKLIST.md) | Steps for the features that are built but not yet confirmed by hand, and the real-account checks for the sync services |
