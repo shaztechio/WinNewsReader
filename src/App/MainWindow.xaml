@@ -140,6 +140,7 @@
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="New Window" Click="OnNewWindow" KeyboardAcceleratorTextOverride="Ctrl+Alt+N" />
                                 <MenuFlyoutItem Text="Hide Toolbar" Click="OnToggleToolbar" KeyboardAcceleratorTextOverride="Ctrl+Alt+T" />
+                                <ToggleMenuFlyoutItem x:Name="StatusBarItem" Text="Show Status Bar" IsChecked="True" Click="OnToggleStatusBar" />
                                 <!-- NetNewsWire's Window menu: its small utility windows. -->
                                 <MenuFlyoutSubItem Text="Window">
                                     <MenuFlyoutItem Text="Dinosaurs" Tag="Dinosaurs" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+6" />
@@ -164,6 +165,7 @@
                                     <MenuFlyoutItem Text="Keyboard Shortcuts" Click="OnKeyboardShortcutsHelp" />
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Website" Click="OnWebsite" />
+                                    <MenuFlyoutItem Text="Release Notes" Click="OnReleaseNotes" />
                                     <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
                                     <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
                                     <MenuFlyoutItem Text="Add WinNewsReader News Feed" Click="OnAddNewsFeed" />
@@ -408,7 +410,7 @@
 
         <!-- NetNewsWire's status bar: a gear menu for the selected sidebar row, a theme menu, and a line of text that
              changes between the last refresh, the unread count, and the feed and folder counts when it's clicked. -->
-        <Grid Grid.Row="2" ColumnSpacing="8" Padding="8,2,12,2">
+        <Grid x:Name="StatusBar" Grid.Row="2" ColumnSpacing="8" Padding="8,2,12,2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />

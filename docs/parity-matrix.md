@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 159 |
-| Partial | 16 |
+| Done | 162 |
+| Partial | 12 |
 | Open | 4 |
-| Unchecked | 31 |
+| Unchecked | 32 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -46,16 +46,16 @@ By section:
 | Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 12 | 1 |  | 1 |  |  |  |
-| Feed management and import/export | 4 | 3 |  |  |  |  | 1 |
+| Feed management and import/export | 4 | 2 |  | 1 |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
 | Preferences | 9 | 1 |  | 3 | 3 |  | 2 |
-| Utility windows | 3 | 1 |  | 2 | 1 |  | 1 |
-| Other | 3 | 4 |  |  | 2 |  |  |
+| Utility windows | 4 |  |  | 2 | 1 |  | 1 |
+| Other | 4 | 3 |  |  | 2 |  |  |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
-| Menu shortcuts | 23 | 1 |  | 18 |  |  |  |
+| Menu shortcuts | 24 |  |  | 18 |  |  |  |
 
 ## Findings that change the plan
 
@@ -213,7 +213,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 
 | ID | Feature | Mac source | Decision | Status | Test / reason |
 | --- | --- | --- | --- | --- | --- |
-| FD-01 | Add Feed sheet (URL, name, account, folder; remembers last account/folder) | `AddFeed/` | Port | Partial: defaults to the selection, not the last used account and folder | UI: adds feed; defaults remembered |
+| FD-01 | Add Feed sheet (URL, name, account, folder; remembers last account/folder) | `AddFeed/` | Port | Unchecked: with no row selected, New Feed offers the account and folder last used (kept in settings.json); needs a second account or folder to see, not driven | UI: adds feed; defaults remembered |
 | FD-02 | Add Feed from list | `AddFeedFromListSheet.xib` | Port | Done | UI: picks one of several discovered feeds |
 | FD-03 | Add Folder sheet | `AddFolder/` | Port | Done | UI |
 | FD-04 | Import OPML into chosen account | `importOPMLFromFile:` | Port | Partial: On This PC only; importing into FreshRSS is open | Unit: `Subs.opml` round trip |
@@ -274,7 +274,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | UW-03 | Error Log | `Mac/ErrorLog` | Port | Unchecked: window opens; a logged failure wasn't shown on screen (unit tested) | UI: parse failure logged |
 | UW-04 | Account Stats | `Mac/AccountStats` | Port | Done | UI |
 | UW-05 | iCloud Storage Stats | `Mac/CloudKitStats` | Drop | Dropped | iCloud dropped |
-| UW-06 | Keyboard Shortcuts window | `KeyboardShortcuts.html` | Port | Partial: a section of the help page, not a window | Regenerate from this app's map |
+| UW-06 | Keyboard Shortcuts window | `KeyboardShortcuts.html` | Port | Done | Regenerate from this app's map |
 | UW-07 | About window, credits | `Mac/About`, `Credits.rtf` | Port | Done | Credit NetNewsWire and MIT notice |
 | UW-08 | Crash reporter window and sender | `Mac/CrashReporter` | Port | Installer: tool choice open | Infrastructure; tool choice open |
 
@@ -286,7 +286,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | OT-02 | Open in browser, foreground or background | Port | Partial: foreground only | UI |
 | OT-03 | `feed:`, `feeds:`, app-named scheme URLs open Add Feed | Port | Installer: needs the installer | HKCU registration. UI: launching URL opens sheet |
 | OT-04 | Register as default feed reader | Port | Installer: needs the installer | Installer writes handler; removed on uninstall |
-| OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Partial: no release notes or forum yet | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
+| OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Done: help, keyboard shortcuts, website, release notes (the site's news page), source code and bug tracker; no forum, since the repository has no discussions | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
 | OT-06 | Open Application Support folder | Port | Done | Opens `%LOCALAPPDATA%\<AppName>` |
 | OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Partial: Web Inspector, icon cache folder and rebuild search index; no crash tests (nothing to test them against) | Behind PR-14 |
 | OT-08 | Accessibility | Port | Partial: names on the controls; no Narrator pass yet | Narrator / UI Automation names on every control |
@@ -380,7 +380,7 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | View | Show Sidebar | Ctrl+Cmd+S | Ctrl+Alt+S | Done |
 | View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Unchecked: Ctrl+Alt+T built, not pressed; the +▾ menu item hides it |
 | View | Full Screen | Ctrl+Cmd+F | F11 | Unchecked: F11 built; the +▾ menu item works |
-| View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Partial: Sort Articles By and Use Column Layout are in the +▾ menu; no status bar toggle |
+| View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Done |
 | Go | Next Unread | Cmd+/ | Ctrl+/ | Done |
 | Go | Today / All Unread / Starred | Cmd+1 / 2 / 3 | Ctrl+1 / 2 / 3 | Done |
 | Article | Mark as Read | Shift+Cmd+U | Ctrl+Shift+U | Done |

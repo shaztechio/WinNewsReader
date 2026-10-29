@@ -321,3 +321,39 @@ public sealed class DinosaursWindow : UtilityWindow
 		_list.ItemsSource = rows;
 	}
 }
+
+/// <summary>NetNewsWire's Keyboard Shortcuts window, with this app's keys, grouped as the help page groups them.</summary>
+public sealed class KeyboardShortcutsWindow : UtilityWindow
+{
+	public KeyboardShortcutsWindow(MainViewModel viewModel) : base(viewModel, "Keyboard Shortcuts", 620, 640)
+	{
+		Root.Children.Add(Heading("Single keys work from any pane, but not while you're typing in a box. Ctrl stands where NetNewsWire uses Cmd."));
+		var panel = new StackPanel { Spacing = 4 };
+		foreach (var section in KeyboardShortcuts.All.GroupBy(entry => entry.Section))
+		{
+			panel.Children.Add(new TextBlock { Text = section.Key, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 14, 0, 4) });
+			foreach (var entry in section)
+			{
+				var row = new Grid { ColumnSpacing = 16, Padding = new Thickness(0, 2, 0, 2) };
+				row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+				row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				var keys = new TextBlock { Text = entry.Keys, FontFamily = new FontFamily("Consolas"), TextWrapping = TextWrapping.Wrap };
+				var action = new TextBlock { Text = entry.Action, TextWrapping = TextWrapping.Wrap };
+				Grid.SetColumn(action, 1);
+				row.Children.Add(keys);
+				row.Children.Add(action);
+				AutomationProperties.SetName(row, $"{entry.Keys}: {entry.Action}");
+				panel.Children.Add(row);
+			}
+		}
+		var scroller = new ScrollViewer { Content = panel };
+		Grid.SetRow(scroller, 1);
+		Root.Children.Add(scroller);
+		Start();
+	}
+
+	// The list does not change while the window is open.
+	protected override void Refresh()
+	{
+	}
+}

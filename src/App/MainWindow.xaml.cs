@@ -114,6 +114,7 @@ public sealed partial class MainWindow : Window
 			StartBackgroundWork(refreshNow: !ViewModel.Settings.SuppressRefreshOnLaunch);
 		}
 		ApplyToolbarVisibility();
+		ApplyStatusBarVisibility();
 		ApplyPaneStyles();
 		ViewModel.ColumnLayoutChanged += (_, _) => ApplyColumnLayout();
 		ApplyColumnLayout();
@@ -1111,6 +1112,7 @@ public sealed partial class MainWindow : Window
 				"CurrentActivity" => new CurrentActivityWindow(ViewModel),
 				"ActivityLog" => new ActivityLogWindow(ViewModel, errorsOnly: false),
 				"ErrorLog" => new ActivityLogWindow(ViewModel, errorsOnly: true),
+				"Shortcuts" => new KeyboardShortcutsWindow(ViewModel),
 				_ => new AccountStatsWindow(ViewModel),
 			};
 			_utilityWindows[key] = window;
@@ -1169,6 +1171,20 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnToggleToolbar(object sender, RoutedEventArgs e) => ToggleToolbar();
+
+	/// <summary>NetNewsWire's Show Status Bar / Hide Status Bar.</summary>
+	private void OnToggleStatusBar(object sender, RoutedEventArgs e)
+	{
+		ViewModel.Settings.StatusBarHidden = !((ToggleMenuFlyoutItem)sender).IsChecked;
+		ViewModel.SaveSettings();
+		ApplyStatusBarVisibility();
+	}
+
+	private void ApplyStatusBarVisibility()
+	{
+		StatusBar.Visibility = ViewModel.Settings.StatusBarHidden ? Visibility.Collapsed : Visibility.Visible;
+		StatusBarItem.IsChecked = !ViewModel.Settings.StatusBarHidden;
+	}
 
 	private void OnNewWindow(object sender, RoutedEventArgs e) => NewWindowRequested?.Invoke(this, EventArgs.Empty);
 
@@ -1233,7 +1249,10 @@ public sealed partial class MainWindow : Window
 
 	private void OnHelp(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser(HelpUrl);
 
-	private void OnKeyboardShortcutsHelp(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser(HelpUrl + "#keyboard");
+	/// <summary>NetNewsWire's Keyboard Shortcuts window: the shortcuts, listed in a window of their own.</summary>
+	private void OnKeyboardShortcutsHelp(object sender, RoutedEventArgs e) => OpenUtilityWindow("Shortcuts");
+
+	private void OnReleaseNotes(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://winnewsreader.com/news/");
 
 	private void OnWebsite(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://winnewsreader.com/");
 

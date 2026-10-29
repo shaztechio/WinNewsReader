@@ -508,10 +508,13 @@ public sealed partial class MainViewModel : ObservableObject
 	public static IEnumerable<StoredFolder> FoldersOf(IAccount account) => account.Store.GetFolders().SortedByName();
 
 	/// <summary>The account a new feed goes in by default: the selected row's, or On This PC.</summary>
-	public IAccount DefaultAccountForNewFeed => SelectedSidebarItem?.Account ?? LocalAccount;
+	public IAccount DefaultAccountForNewFeed => SelectedSidebarItem?.Account
+		?? Accounts.FirstOrDefault(account => account.AccountId == Settings.LastFeedAccountId) ?? LocalAccount;
 
 	/// <summary>The folder a new feed goes in by default: the selected folder, or the folder of the selected feed.</summary>
-	public StoredFolder? DefaultFolderForNewFeed => SelectedSidebarItem?.Folder ?? SelectedSidebarItem?.ParentFolder;
+	public StoredFolder? DefaultFolderForNewFeed => SelectedSidebarItem?.Account is not null
+		? SelectedSidebarItem.Folder ?? SelectedSidebarItem.ParentFolder
+		: FoldersOf(DefaultAccountForNewFeed).FirstOrDefault(folder => folder.Name == Settings.LastFeedFolderName);
 
 	/// <summary>
 	/// Rebuilds the sidebar from the stores, keeping expanded folders and the selection, or selecting the row
@@ -690,6 +693,10 @@ public sealed partial class MainViewModel : ObservableObject
 	public async Task SubscribeAsync(string url, IAccount account, StoredFolder? folder)
 	{
 		var feed = await Task.Run(() => account.SubscribeAsync(url, folder?.Name));
+		// Remembered for next time, as NetNewsWire's Add Feed does when no row is selected.
+		Settings.LastFeedAccountId = account.AccountId;
+		Settings.LastFeedFolderName = folder?.Name;
+		SaveSettings();
 		// A sync account may have made the folder itself, so look it up again by name.
 		var placedFolder = folder is null ? null : account.Store.GetFolders().FirstOrDefault(f => f.Name == folder.Name);
 		if (placedFolder is not null)

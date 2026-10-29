@@ -60,6 +60,14 @@ public sealed class AppSettings
 
 	public double TimelineFontSize { get; set; }
 
+	/// <summary>The account and folder the last feed was added to, which New Feed offers when nothing in the sidebar says otherwise.</summary>
+	public string? LastFeedAccountId { get; set; }
+
+	public string? LastFeedFolderName { get; set; }
+
+	/// <summary>NetNewsWire's Hide Status Bar state.</summary>
+	public bool StatusBarHidden { get; set; }
+
 	/// <summary>NetNewsWire's Hide Toolbar state.</summary>
 	public bool ToolbarHidden { get; set; }
 
