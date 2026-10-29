@@ -31,7 +31,7 @@ public static class AccountKinds
 	/// <summary>The services you add: web services first, then ones you run yourself, as NetNewsWire's Add Account list groups them.</summary>
 	public static IReadOnlyList<(string Group, IReadOnlyList<AccountKind> Kinds)> Addable { get; } =
 	[
-		("Web", [AccountKind.TheOldReader, AccountKind.BazQux]),
+		("Web", [AccountKind.Feedbin, AccountKind.TheOldReader, AccountKind.BazQux]),
 		("Self-hosted", [AccountKind.FreshRss]),
 	];
 

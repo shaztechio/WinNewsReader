@@ -20,7 +20,13 @@
   <Folder Name="/src/Sync.GoogleReader/">
     <Project Path="src/Sync.GoogleReader/WinNewsReader.Sync.GoogleReader.csproj" />
   </Folder>
+  <Folder Name="/src/Sync.Feedbin/">
+    <Project Path="src/Sync.Feedbin/WinNewsReader.Sync.Feedbin.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Sync.Feedbin.Tests/">
+    <Project Path="tests/Sync.Feedbin.Tests/WinNewsReader.Sync.Feedbin.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Parser.Tests/">
     <Project Path="tests/Parser.Tests/WinNewsReader.Parser.Tests.csproj" />
   </Folder>

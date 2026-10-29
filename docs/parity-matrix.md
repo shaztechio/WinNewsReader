@@ -87,11 +87,11 @@ By section:
 | ID | Feature | Mac source | Decision | Status | Test / reason |
 | --- | --- | --- | --- | --- | --- |
 | AC-01 | Local account ("On This PC") | `Account/LocalAccount` | Port | Done | Unit: add, refresh, delete feed; state survives restart |
-| AC-02 | Feedbin | `Account/Feedbin` | Port | Open: Feedbin | Unit: recorded HTTP; side-by-side round trip |
+| AC-02 | Feedbin | `Account/Feedbin` | Port | Done: Feedbin API v2, tags as folders | Unit: fake Feedbin server |
 | AC-03 | NewsBlur | `Account/NewsBlur`, `Modules/NewsBlur` | Port | Open: NewsBlur | Unit: recorded HTTP; side-by-side round trip |
 | AC-04 | Inoreader | `Account/ReaderAPI` | Port | Keys: needs Inoreader app keys | Needs Inoreader app key (finding 1). Unit + side-by-side |
 | AC-05 | The Old Reader | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host; Old Reader ID rules | Unit: fake Reader API server |
-| AC-06 | BazQux | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host; Old Reader ID rules | Unit: fake Reader API server |
+| AC-06 | BazQux | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host | Unit: fake Reader API server |
 | AC-07 | FreshRSS (self-hosted URL) | `Account/ReaderAPI` | Port | Done | Unit: recorded HTTP; side-by-side against a FreshRSS container |
 | AC-08 | Feedly (OAuth in browser) | `Account/Feedly` | Port | Keys: needs Feedly API access | Only if Feedly grants API access. Unit + side-by-side |
 | AC-09 | iCloud (CloudKit) account | `Account/CloudKit`, `Modules/CloudKitSync` | Drop | Dropped | Data lives in Ranchero's private CloudKit container |

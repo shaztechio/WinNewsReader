@@ -47,6 +47,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Core\WinNewsReader.Core.csproj" />
     <ProjectReference Include="..\Sync.GoogleReader\WinNewsReader.Sync.GoogleReader.csproj" />
+    <ProjectReference Include="..\Sync.Feedbin\WinNewsReader.Sync.Feedbin.csproj" />
   </ItemGroup>
 
   <!-- An unpackaged WinUI app's publish leaves out its compiled XAML and resource index, which the build puts beside the
