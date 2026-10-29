@@ -75,7 +75,9 @@ src/
   Core/              models, account abstraction, refresh scheduler
   Parser/            RSS, Atom, JSON Feed, RSS-in-JSON, OPML, FeedFinder
   Store/             SQLite articles + sync-status DBs
-  Sync.GoogleReader/ Inoreader, FreshRSS, The Old Reader, BazQux
+  Sync.GoogleReader/ FreshRSS, The Old Reader, BazQux (Inoreader later)
+  Sync.Feedbin/      Feedbin
+  Sync.NewsBlur/     NewsBlur
   Sync.Feedbin/
   Sync.NewsBlur/
   Sync.Feedly/       only if API access is granted
@@ -188,4 +190,8 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
   - [x] Checked against a real FreshRSS server: 101 feeds, 11 folders, read and unread both ways
   - [x] Moving feeds between folders (FreshRSS keeps each feed in one folder, so no top level or copies)
   - [x] OPML import into a sync account, subscribing feed by feed (tested with a fake account; the file picker not driven)
-  - [ ] Inoreader, The Old Reader and BazQux variants
+  - [x] The Old Reader and BazQux, as Reader API variants with a fixed host (The Old Reader keeps its own article IDs and has no call to delete a label)
+  - [x] Feedbin account: API v2 client, tags as folders (a feed can have several), paged entries, unread and starred lists
+  - [x] NewsBlur account: session login that renews itself, folders by name, story hashes, status sends
+  - [x] Add Account: a service list grouped as web and self-hosted, then that service's sign-in sheet; Edit and Remove for any sync account
+  - [ ] Inoreader and Feedly, which need API keys or access

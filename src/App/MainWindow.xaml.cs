@@ -92,11 +92,13 @@ public sealed partial class MainWindow : Window
 		RefreshViewMenu();
 		ViewMenuBarItem.PointerEntered += (_, _) => RefreshViewMenu();
 		ViewMenuBarItem.GotFocus += (_, _) => RefreshViewMenu();
-		ViewModel.ArticleAppearanceChanged += (_, _) => RefreshViewMenu();
+		ViewModel.ArticleAppearanceChanged += (_, _) => { RefreshViewMenu(); ShowThemeName(); };
+		ShowThemeName();
 		// Ctrl+click and Shift+click add to the selection; the tree has already handled the click by the time it bubbles here.
 		Sidebar.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSidebarPointerPressed), true);
 		ViewModel.Undo.Changed += (_, _) => UpdateUndoMenu();
 		SidebarSplitter.Column = SidebarColumn;
+		ArticleSplitter.Row = TimelineRow;
 		TimelineSplitter.Column = TimelineColumn;
 		Timeline.ItemsSource = ViewModel.Articles;
 		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -684,9 +686,8 @@ public sealed partial class MainWindow : Window
 
 	private DataTemplate? _rowTemplate;
 
-	private const double ColumnLayoutWidth = 560;
-
-	private double? _widthBeforeColumns;
+	/// <summary>How tall the table is in the column layout, kept for the next time it is turned on.</summary>
+	private double _tableHeight = 280;
 
 	private void OnToggleColumnLayout(object sender, RoutedEventArgs e) => ViewModel.SetColumnLayout(((ToggleMenuFlyoutItem)sender).IsChecked);
 
@@ -702,16 +703,31 @@ public sealed partial class MainWindow : Window
 		Timeline.ItemTemplate = on ? (DataTemplate)Root.Resources["ColumnRowTemplate"] : _rowTemplate;
 		ColumnHeader.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
 		Timeline.Margin = new Thickness(0, on ? ColumnHeader.Height : 0, 0, 0);
-		// A table needs more room than a list of cards: widen the timeline for it, and put it back after.
-		if (on && TimelineColumn.ActualWidth is > 0 and < ColumnLayoutWidth && _widthBeforeColumns is null)
+		// NetNewsWire's column layout, as a mail reader has it: the table across the top and the article below it,
+		// both as wide as everything right of the sidebar.
+		var span = on ? 3 : 1;
+		Grid.SetColumnSpan(Timeline, span);
+		Grid.SetColumnSpan(ColumnHeader, span);
+		Grid.SetColumnSpan(NoFeedPanel, span);
+		Grid.SetRow(ArticlePane, on ? 3 : 1);
+		Grid.SetColumn(ArticlePane, on ? 2 : 4);
+		Grid.SetColumnSpan(ArticlePane, span);
+		TimelineSplitter.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+		ArticleSplitter.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		SplitterRow.Height = new GridLength(on ? 6 : 0);
+		if (on)
 		{
-			_widthBeforeColumns = TimelineColumn.ActualWidth;
-			TimelineColumn.Width = new GridLength(ColumnLayoutWidth);
+			TimelineRow.Height = new GridLength(_tableHeight);
+			ArticleRow.Height = new GridLength(1, GridUnitType.Star);
 		}
-		else if (!on && _widthBeforeColumns is { } before)
+		else
 		{
-			TimelineColumn.Width = new GridLength(before);
-			_widthBeforeColumns = null;
+			if (TimelineRow.ActualHeight > 0 && ArticleRow.Height.IsStar)
+			{
+				_tableHeight = TimelineRow.ActualHeight;
+			}
+			TimelineRow.Height = new GridLength(1, GridUnitType.Star);
+			ArticleRow.Height = new GridLength(0);
 		}
 		UpdateColumnHeaders();
 	}
@@ -1563,6 +1579,8 @@ public sealed partial class MainWindow : Window
 		var menu = (MenuFlyout)sender!;
 		FillThemeMenu(menu.Items);
 	}
+
+	private void ShowThemeName() => StatusThemeText.Text = ViewModel.CurrentTheme.Name;
 
 	private void OnStatusClicked(object sender, RoutedEventArgs e) => ViewModel.CycleStatus();
 

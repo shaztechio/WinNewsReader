@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>WinNewsReader Help</title>
-	<meta name="description" content="How to use WinNewsReader: subscribing to feeds, reading, keyboard shortcuts, themes, Reader View, search and FreshRSS sync.">
+	<meta name="description" content="How to use WinNewsReader: subscribing to feeds, reading, keyboard shortcuts, themes, Reader View, search and syncing with Feedbin, NewsBlur, The Old Reader, BazQux and FreshRSS.">
 	<meta name="color-scheme" content="light dark">
 	<link rel="icon" href="../favicon.ico" sizes="any">
 	<link rel="icon" href="../icon.png" type="image/png">
@@ -39,7 +39,7 @@
 				<li><a href="#preferences">Preferences</a></li>
 				<li><a href="#inspector">Get Info</a></li>
 				<li><a href="#notifications">Notifications</a></li>
-				<li><a href="#freshrss">Syncing with FreshRSS</a></li>
+				<li><a href="#freshrss">Syncing with other services</a></li>
 				<li><a href="#keyboard">Keyboard shortcuts</a></li>
 				<li><a href="#installing">Installing and updating</a></li>
 				<li><a href="#data">Your data</a></li>
@@ -62,7 +62,7 @@
 			</figure>
 			<p>The menu bar along the top follows NetNewsWire's menus:</p>
 			<ul>
-				<li><strong>File:</strong> New Feed, New Folder, New Window, Refresh, Import and Export Subscriptions, Add FreshRSS Account, Close Window, Preferences and Exit.</li>
+				<li><strong>File:</strong> New Feed, New Folder, New Window, Refresh, Import and Export Subscriptions, Add Account, Close Window, Preferences and Exit.</li>
 				<li><strong>Edit:</strong> Undo and Redo, copying the article's address, Article Search, and Find in Article.</li>
 				<li><strong>View:</strong> show or hide the sidebar, toolbar and status bar; Hide Read Feeds and Hide Read Articles; Clean Up; the sort order, Group by Feed and Use Column Layout; Article Theme, Text Size and Enable JavaScript; Full Screen.</li>
 				<li><strong>Go:</strong> Next Unread, and Today, All Unread and Starred.</li>
@@ -105,7 +105,7 @@
 
 			<p>Right-click an article for more: <strong>Mark Above as Read</strong> and <strong>Mark Below as Read</strong> catch up on everything newer or older in the list, and you can jump to the article's feed in the sidebar or mark everything in that feed as read.</p>
 			<p><strong>View → Group by Feed</strong> keeps each feed's articles together in the timeline, feeds in name order, with the newest (or oldest) first inside each feed.</p>
-			<p><strong>View → Use Column Layout</strong> turns the timeline into a table with one line per article and the columns Unread, Starred, Feed, Title and Date; the timeline widens to fit. Click a column's heading to sort by it, and click it again to reverse the order (the arrow shows which way); <strong>View → Sort Articles By</strong> does the same from the menu. Unread and Starred put those articles first. <strong>Newest Article on Top</strong> and <strong>Oldest Article on Top</strong> go back to sorting by date. Turn the layout off for the usual cards.</p>
+			<p><strong>View → Use Column Layout</strong> turns the timeline into a table with one line per article and the columns Unread, Starred, Feed, Title and Date. As in a mail reader, the table runs across the top, as wide as everything right of the sidebar, and the article is below it, also full width; drag the bar between them to change how tall the table is. Click a column's heading to sort by it, and click it again to reverse the order (the arrow shows which way); <strong>View → Sort Articles By</strong> does the same from the menu. Unread and Starred put those articles first. <strong>Newest Article on Top</strong> and <strong>Oldest Article on Top</strong> go back to sorting by date. Turn the layout off for the usual cards.</p>
 			<figure class="shot">
 				<img src="images/column-layout.png" width="{w}" height="{hh}" alt="The timeline as a table with the columns Feed, Title and Date, sorted by Date, newest first, next to the selected article." loading="lazy">
 				<figcaption>The column layout.</figcaption>
@@ -213,7 +213,7 @@
 				<img src="images/window-dark.png" width="1184" height="772" alt="The WinNewsReader window in Dark appearance, with a dark sidebar, timeline and article." loading="lazy">
 				<figcaption>Dark appearance: the article follows along.</figcaption>
 			</figure>
-			<p>The <strong>Accounts</strong> tab lists your accounts. Turn one off and it disappears from the sidebar and isn't refreshed; turn it back on and it returns. <strong>Add FreshRSS Account…</strong>, <strong>Edit Account…</strong> and <strong>Remove Account…</strong> are here too. Edit lets you rename a FreshRSS account or change its server, username or API password; leave the password blank to keep the saved one. The account keeps its feeds and articles. Each account needs its own name, and the same server and username can't be added twice; a second FreshRSS account is called “FreshRSS 2” until you rename it.</p>
+			<p>The <strong>Accounts</strong> tab lists your accounts. Turn one off and it disappears from the sidebar and isn't refreshed; turn it back on and it returns. <strong>Add Account…</strong>, <strong>Edit Account…</strong> and <strong>Remove Account…</strong> are here too. Edit lets you rename a synced account or change its server (FreshRSS only), username or password; leave the password blank to keep the saved one. The account keeps its feeds and articles. Each account needs its own name, and the same server and username can't be added twice; a second account on the same service is called, for instance, “FreshRSS 2” until you rename it.</p>
 			<figure class="shot narrow">
 				<img src="images/preferences-accounts.png" width="684" height="612" alt="The Accounts preferences, listing the On This PC account with an On switch, and the Add, Edit and Remove buttons below." loading="lazy">
 				<figcaption>Accounts.</figcaption>
@@ -243,14 +243,14 @@
 		</section>
 
 		<section id="freshrss">
-			<h2>Syncing with FreshRSS</h2>
-			<p>If you run or use a <a href="https://freshrss.org/">FreshRSS</a> server, WinNewsReader can sync with it, so your feeds, folders, and read and starred articles match your other devices.</p>
-			<ol>
-				<li>In FreshRSS, open your profile settings and set an <strong>API password</strong> (it's separate from your login password). Make sure the API is turned on in FreshRSS's authentication settings.</li>
-				<li>In WinNewsReader, choose <strong>File → Add FreshRSS Account…</strong> (or use the Accounts tab in Preferences).</li>
-				<li>Enter your server's address, your username and the API password.</li>
-			</ol>
-			<p>The account appears in the sidebar under its own heading. The password is kept in Windows Credential Manager, not in a file. FreshRSS subscribes only to RSS and Atom feeds, so a JSON Feed can't be moved there.</p>
+			<h2>Syncing with other services</h2>
+			<p>WinNewsReader can sync with Feedbin, NewsBlur, The Old Reader, BazQux and FreshRSS, so your feeds, folders, and read and starred articles match your other devices. Choose <strong>File → Add Account…</strong> (or use the Accounts tab in Preferences), pick the service and sign in. The account appears in the sidebar under its own heading, and the password is kept in Windows Credential Manager, not in a file.</p>
+			<ul>
+				<li><strong>Feedbin, The Old Reader and BazQux:</strong> sign in with your email and password.</li>
+				<li><strong>NewsBlur:</strong> sign in with your username and password.</li>
+				<li><strong>FreshRSS:</strong> if you run or use a <a href="https://freshrss.org/">FreshRSS</a> server, open your profile settings there and set an <strong>API password</strong> (it's separate from your login password), and make sure the API is turned on in its authentication settings. Then enter your server's address, your username and the API password.</li>
+			</ul>
+			<p>Feedbin lets a feed sit in several folders or at the top level. FreshRSS, The Old Reader and BazQux put every feed in exactly one folder, and NewsBlur in exactly one place. FreshRSS, The Old Reader and BazQux subscribe only to RSS and Atom feeds, so a JSON Feed can't be moved there. Inoreader and Feedly aren't supported yet.</p>
 		</section>
 
 		<section id="keyboard">

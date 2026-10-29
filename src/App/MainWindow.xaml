@@ -185,9 +185,12 @@
                 <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="Transparent" />
                 <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedDisabled" Color="Transparent" />
             </Grid.Resources>
+            <!-- Rows 2 and 3 are the column layout's: a bar to drag, and the article below the table. -->
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition x:Name="TimelineRow" Height="*" />
+                <RowDefinition x:Name="SplitterRow" Height="0" />
+                <RowDefinition x:Name="ArticleRow" Height="0" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="SidebarColumn" Width="250" />
@@ -299,7 +302,7 @@
                 </Grid>
             </Grid>
 
-            <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}" DoubleTapped="OnSidebarDoubleTapped"
+            <TreeView x:Name="Sidebar" Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}" DoubleTapped="OnSidebarDoubleTapped"
                       SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="True" DragOver="OnSidebarDragOver" Drop="OnSidebarDrop"
                       DragItemsStarting="OnSidebarDragItemsStarting" DragItemsCompleted="OnSidebarDragItemsCompleted"
                       SelectionChanged="OnSidebarSelectionChanged"
@@ -338,7 +341,7 @@
                 </TreeView.ItemTemplate>
             </TreeView>
 
-            <local:PaneSplitter x:Name="SidebarSplitter" Grid.RowSpan="2" Grid.Column="1">
+            <local:PaneSplitter x:Name="SidebarSplitter" Grid.RowSpan="4" Grid.Column="1">
                 <Rectangle Width="1" HorizontalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
             </local:PaneSplitter>
 
@@ -422,7 +425,7 @@
             </ListView>
 
             <!-- With no feed selected the timeline has nothing to list, so it says so, as the article pane does. -->
-            <StackPanel Grid.Row="1" Grid.Column="2" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24"
+            <StackPanel x:Name="NoFeedPanel" Grid.Row="1" Grid.Column="2" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24"
                         IsHitTestVisible="False" Visibility="{x:Bind ViewModel.HasNoFeedSelected, Mode=OneWay}">
                 <FontIcon Glyph="&#xE8FD;" FontSize="40" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                 <TextBlock Text="No Feed Selected" Style="{ThemeResource SubtitleTextBlockStyle}" HorizontalAlignment="Center"
@@ -431,11 +434,16 @@
                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
             </StackPanel>
 
-            <local:PaneSplitter x:Name="TimelineSplitter" Grid.RowSpan="2" Grid.Column="3">
+            <local:PaneSplitter x:Name="TimelineSplitter" Grid.RowSpan="4" Grid.Column="3">
                 <Rectangle Width="1" HorizontalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
             </local:PaneSplitter>
 
-            <Grid Grid.Row="1" Grid.Column="4" Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <!-- The column layout's bar between the table and the article below it. -->
+            <local:RowSplitter x:Name="ArticleSplitter" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="3" Visibility="Collapsed">
+                <Rectangle Height="1" VerticalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+            </local:RowSplitter>
+
+            <Grid x:Name="ArticlePane" Grid.Row="1" Grid.Column="4" Background="{ThemeResource LayerFillColorDefaultBrush}">
                 <WebView2 x:Name="ArticleView" AutomationProperties.Name="Article" />
                 <!-- NetNewsWire's Find in Article (Ctrl+F), as a bar over the article. -->
                 <Border x:Name="FindBar" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,28,0"
@@ -469,29 +477,37 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button Style="{StaticResource ToolbarButtonStyle}" IsEnabled="{x:Bind ViewModel.HasSidebarSelection, Mode=OneWay}"
                     ToolTipService.ToolTip="Actions for the selected feed or folder" AutomationProperties.Name="Selection Actions">
-                <FontIcon Glyph="&#xE713;" FontSize="14" />
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <FontIcon Glyph="&#xE713;" FontSize="14" />
+                    <FontIcon Glyph="&#xE70D;" FontSize="8" />
+                </StackPanel>
                 <Button.Flyout>
                     <MenuFlyout x:Name="StatusActionsMenu" Opening="OnStatusActionsMenuOpening" />
                 </Button.Flyout>
             </Button>
-            <Button Grid.Column="1" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTipService.ToolTip="Article Theme" AutomationProperties.Name="Article Theme">
-                <FontIcon Glyph="&#xE790;" FontSize="14" />
-                <Button.Flyout>
-                    <MenuFlyout x:Name="StatusThemeMenu" Opening="OnStatusThemeMenuOpening" />
-                </Button.Flyout>
-            </Button>
-            <ProgressRing Grid.Column="2" Width="14" Height="14" IsActive="{x:Bind ViewModel.IsRefreshing, Mode=OneWay}" />
-            <Button Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="0" Padding="6,2" Background="Transparent" BorderThickness="0"
+            <ProgressRing Grid.Column="1" Width="14" Height="14" IsActive="{x:Bind ViewModel.IsRefreshing, Mode=OneWay}" />
+            <Button Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="0" Padding="6,2" Background="Transparent" BorderThickness="0"
                     Click="OnStatusClicked" ToolTipService.ToolTip="Click to show the unread count, the feed count or the last refresh"
                     AutomationProperties.Name="Status">
                 <TextBlock Text="{x:Bind ViewModel.StatusLine, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Button>
+            <!-- On the right, as NetNewsWire's theme menu is: the theme's name and an arrow beside the icon. -->
+            <Button Grid.Column="3" Style="{StaticResource ToolbarButtonStyle}" HorizontalAlignment="Right"
+                    ToolTipService.ToolTip="Article Theme" AutomationProperties.Name="Article Theme">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE790;" FontSize="14" />
+                    <TextBlock x:Name="StatusThemeText" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <FontIcon Glyph="&#xE70D;" FontSize="8" />
+                </StackPanel>
+                <Button.Flyout>
+                    <MenuFlyout x:Name="StatusThemeMenu" Opening="OnStatusThemeMenuOpening" Placement="TopEdgeAlignedRight" />
+                </Button.Flyout>
             </Button>
         </Grid>
     </Grid>
