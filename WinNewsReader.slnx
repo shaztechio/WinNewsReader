@@ -23,7 +23,13 @@
   <Folder Name="/src/Sync.Feedbin/">
     <Project Path="src/Sync.Feedbin/WinNewsReader.Sync.Feedbin.csproj" />
   </Folder>
+  <Folder Name="/src/Sync.NewsBlur/">
+    <Project Path="src/Sync.NewsBlur/WinNewsReader.Sync.NewsBlur.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Sync.NewsBlur.Tests/">
+    <Project Path="tests/Sync.NewsBlur.Tests/WinNewsReader.Sync.NewsBlur.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Sync.Feedbin.Tests/">
     <Project Path="tests/Sync.Feedbin.Tests/WinNewsReader.Sync.Feedbin.Tests.csproj" />
   </Folder>

@@ -2,6 +2,7 @@ using WinNewsReader.Core;
 using WinNewsReader.Store;
 using WinNewsReader.Sync.Feedbin;
 using WinNewsReader.Sync.GoogleReader;
+using WinNewsReader.Sync.NewsBlur;
 
 namespace WinNewsReader.App;
 
@@ -40,12 +41,19 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 	{
 		_ when ReaderApiVariants.IsReaderApi(kind) => ReaderApiVariants.Host(ReaderApiVariants.For(kind)) ?? ReaderApiCaller.NormalizedEndpoint(serverUrl),
 		AccountKind.Feedbin => FeedbinCaller.DefaultBaseAddress,
+		AccountKind.NewsBlur => NewsBlurCaller.DefaultBaseAddress,
 		_ => throw new NotSupportedException($"{AccountKinds.DisplayName(kind)} accounts aren't supported yet."),
 	};
 
 	/// <summary>Checks that the service accepts the login. Throws if it doesn't.</summary>
 	private static async Task CheckLoginAsync(AccountKind kind, string endpoint, string username, string password, CancellationToken cancellationToken)
 	{
+		if (kind == AccountKind.NewsBlur)
+		{
+			using var newsBlur = new NewsBlurCaller(username, password);
+			await newsBlur.LoginAsync(cancellationToken);
+			return;
+		}
 		if (kind == AccountKind.Feedbin)
 		{
 			using var feedbin = new FeedbinCaller(username, password);
@@ -155,6 +163,10 @@ public sealed class AccountManager(string dataRoot, FeedDownloader downloader, I
 	{
 		var store = new ArticlesStore(Path.Combine(AccountDirectory(record.AccountId), "articles.db"));
 		_stores.Add(store);
+		if (record.Kind == AccountKind.NewsBlur)
+		{
+			return new NewsBlurAccount(record, store, new NewsBlurCaller(record.Username, password), downloader);
+		}
 		if (record.Kind == AccountKind.Feedbin)
 		{
 			return new FeedbinAccount(record, store, new FeedbinCaller(record.Username, password), downloader);

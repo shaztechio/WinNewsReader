@@ -88,7 +88,7 @@ By section:
 | --- | --- | --- | --- | --- | --- |
 | AC-01 | Local account ("On This PC") | `Account/LocalAccount` | Port | Done | Unit: add, refresh, delete feed; state survives restart |
 | AC-02 | Feedbin | `Account/Feedbin` | Port | Done: Feedbin API v2, tags as folders | Unit: fake Feedbin server |
-| AC-03 | NewsBlur | `Account/NewsBlur`, `Modules/NewsBlur` | Port | Open: NewsBlur | Unit: recorded HTTP; side-by-side round trip |
+| AC-03 | NewsBlur | `Account/NewsBlur`, `Modules/NewsBlur` | Port | Done: session login, story hashes | Unit: fake NewsBlur server |
 | AC-04 | Inoreader | `Account/ReaderAPI` | Port | Keys: needs Inoreader app keys | Needs Inoreader app key (finding 1). Unit + side-by-side |
 | AC-05 | The Old Reader | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host; Old Reader ID rules | Unit: fake Reader API server |
 | AC-06 | BazQux | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host | Unit: fake Reader API server |
@@ -255,7 +255,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | PR-07 | General | Safari extension: open feeds in NNW / default reader | Drop | Dropped | Safari only. Windows uses `feed:` handler registration (OT-04) |
 | PR-08 | General | Refresh interval: manual, 30 min, 1/2/4/8 h | Port | Done | Unit: scheduler fires at interval |
 | PR-09 | Accounts | Add, remove, enable, edit credentials per account | Port | Done | UI |
-| PR-10 | Accounts | Add-account list grouped: local, web, self-hosted | Port | Partial: FreshRSS only | UI; iCloud group dropped |
+| PR-10 | Accounts | Add-account list grouped: local, web, self-hosted | Port | Done: web and self-hosted groups, no Feedly or Inoreader | UI; iCloud group dropped |
 | PR-11 | Advanced | App updates: check automatically, release vs test builds, Check Now | Port | Unchecked: Preferences → Advanced and Help → Check for Updates… use Velopack against winnewsreader.com/releases/; the packaged app knows it is installed and reports the empty feed; no release has been published yet to update to | Velopack channels. UI |
 | PR-12 | Advanced | Send crash logs automatically | Port | Dropped: the app never sends crash reports; they stay on the PC and the next start offers them (see UW-08) | Tied to crash reporting choice |
 | PR-13 | Advanced | Privacy policy link | Port | Done: privacy policy at winnewsreader.com/privacy/, linked from Preferences → Advanced | Needs own policy |
