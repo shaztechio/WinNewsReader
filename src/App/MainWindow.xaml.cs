@@ -507,6 +507,16 @@ public sealed partial class MainWindow : Window
 				_ = StartFindAsync();
 			}
 		};
+		// NetNewsWire's content rules: requests to ad and tracking hosts from an article are refused.
+		var contentRules = ContentRules.Load(Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources", "ContentRules.json"));
+		core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+		core.WebResourceRequested += (_, args) =>
+		{
+			if (contentRules.Blocks(args.Request.Uri))
+			{
+				args.Response = core.Environment.CreateWebResourceResponse(null, 403, "Blocked", "");
+			}
+		};
 		// The status bar shows the address of a link while the pointer is over it, as NetNewsWire's does.
 		core.StatusBarTextChanged += (_, _) => ViewModel.HoverUrl = core.StatusBarText ?? "";
 		core.NewWindowRequested += (_, args) =>

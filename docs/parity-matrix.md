@@ -25,9 +25,9 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 157 |
+| Done | 158 |
 | Partial | 16 |
-| Open | 8 |
+| Open | 7 |
 | Unchecked | 29 |
 | Installer | 6 |
 | Keys | 2 |
@@ -38,7 +38,7 @@ By section:
 
 | Section | Done | Partial | Open | Unchecked | Installer | Keys | Dropped |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Feed formats and networking | 13 |  | 1 |  |  |  |  |
+| Feed formats and networking | 14 |  |  |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
 | Main window and layout | 9 |  | 1 | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
@@ -80,7 +80,7 @@ By section:
 | FM-11 | OPML parse | `XML/OPMLParser.swift` | Port | Done | Golden: `Subs.opml`, `SubsNoTitleAttributes.opml` |
 | FM-12 | Conditional GET (ETag / Last-Modified) | `Modules/RSWeb` | Port | Done | Unit: second fetch sends both headers; 304 skips parse |
 | FM-13 | Per-host throttling | `Modules/RSWeb`, `SyncRateLimiter.swift` | Port | Done | Unit: concurrent requests to one host stay under the limit |
-| FM-14 | Content rules for article web view | `Shared/Resources/ContentRules.json` | Port | Open: content rules aren't loaded into the web view | Unit: rules load into WebView2 request filter |
+| FM-14 | Content rules for article web view | `Shared/Resources/ContentRules.json` | Port | Done | Unit: rules load into WebView2 request filter |
 
 ## Accounts and sync
 
