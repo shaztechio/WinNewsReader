@@ -274,7 +274,10 @@
                                 <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Visibility="{x:Bind ShowsGlyph, Mode=OneWay}" />
                                 <Image Source="{x:Bind Icon, Mode=OneWay}" Width="16" Height="16" Visibility="{x:Bind HasIcon, Mode=OneWay}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind Title, Mode=OneWay}" FontWeight="{x:Bind TitleWeight}"
-                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Visibility="{x:Bind IsNotRenaming, Mode=OneWay}" />
+                                <TextBox Grid.Column="1" Text="{x:Bind EditText, Mode=TwoWay}" Visibility="{x:Bind IsRenaming, Mode=OneWay}"
+                                         MinHeight="0" Padding="6,2" VerticalAlignment="Center" AutomationProperties.Name="Name"
+                                         Loaded="OnRenameBoxLoaded" KeyDown="OnRenameKeyDown" LostFocus="OnRenameLostFocus" />
                                 <TextBlock Grid.Column="2" Text="{x:Bind UnreadCountText, Mode=OneWay}" VerticalAlignment="Center"
                                            Margin="0,0,8,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </Grid>

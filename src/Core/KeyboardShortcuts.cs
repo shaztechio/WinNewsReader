@@ -50,6 +50,7 @@ public static class KeyboardShortcuts
 		new("Commands", "Ctrl+I", "Get Info"),
 		new("Commands", "Ctrl+,", "Preferences"),
 		new("Commands", "Ctrl+Alt+E", "Export subscriptions"),
+		new("Commands", "F2", "Rename the selected feed or folder in place (in the sidebar)"),
 		new("Commands", "Delete", "Delete the selected feed or folder (in the sidebar)"),
 		new("Commands", "F1", "This help"),
 		new("Commands", "Ctrl+Q", "Quit"),

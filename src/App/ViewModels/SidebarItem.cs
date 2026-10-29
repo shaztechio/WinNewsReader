@@ -26,6 +26,17 @@ public sealed partial class SidebarItem : ObservableObject
 		Title = title;
 	}
 
+	/// <summary>NetNewsWire's rename in place: the row's name is a text box while this is set.</summary>
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(IsNotRenaming))]
+	public partial bool IsRenaming { get; set; }
+
+	public bool IsNotRenaming => !IsRenaming;
+
+	/// <summary>What's typed in the name box while renaming.</summary>
+	[ObservableProperty]
+	public partial string EditText { get; set; } = "";
+
 	/// <summary>Whether the row is one of several chosen with Ctrl+click or Shift+click.</summary>
 	[ObservableProperty]
 	public partial bool IsMultiSelected { get; set; }

@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 162 |
-| Partial | 12 |
+| Done | 163 |
+| Partial | 8 |
 | Open | 4 |
-| Unchecked | 32 |
+| Unchecked | 35 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -42,11 +42,11 @@ By section:
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
 | Main window and layout | 10 |  |  | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
-| Sidebar | 13 | 2 |  | 5 |  |  |  |
-| Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
+| Sidebar | 13 | 1 |  | 6 |  |  |  |
+| Smart feeds and timeline | 14 |  |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 12 | 1 |  | 1 |  |  |  |
-| Feed management and import/export | 4 | 2 |  | 1 |  |  | 1 |
+| Feed management and import/export | 4 |  |  | 3 |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
 | Preferences | 9 | 1 |  | 3 | 3 |  | 2 |
@@ -147,7 +147,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SB-03 | Favicons and feed icons | `Modules/Images`, `IconImageCache.swift` | Port | Done | UI: icons load; cache folder populated |
 | SB-04 | Drag and drop: move feeds/folders, between accounts | `SidebarOutlineDataSource.swift` | Port | Partial: feeds, within and between accounts; folders can't be dragged | UI: drag moves feed; sync account reflects it |
 | SB-05 | Drag URL or feed onto sidebar to subscribe | `PasteboardFeed.swift` | Port | Unchecked: built (drop on a row picks its account and folder); dragging needs a mouse, not tried; address parsing is unit tested | UI: dropping a URL opens Add Feed |
-| SB-06 | Inline rename | `Sidebar/Renaming` | Port | Partial: Rename… dialog, not in place | UI: F2 / Rename edits in place |
+| SB-06 | Inline rename | `Sidebar/Renaming` | Port | Unchecked: Rename… and F2 rename in place; driven from the status bar menu, committing by moving focus; Enter and Esc not pressed | UI: F2 / Rename edits in place |
 | SB-07 | Delete with confirmation, undo | `SidebarDeleteItemsAlert.swift` | Port | Unchecked: asks first; undo built (store steps tested), delete not driven in the app | UI: delete asks; Ctrl+Z restores |
 | SB-08 | Hide read feeds | `toggleReadFeedsFilter:` | Port | Done | UI: feeds with no unread hide |
 | SB-09 | Double-click feed opens home page; hidden pref marks all read instead | `GruberFeedDoubleClickMarkAsRead` | Port | Unchecked: double-click needs a mouse; not tested | UI: both behaviors |
@@ -171,7 +171,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | TL-03 | Group by feed | `timelineGroupByFeed` | Port | Done | Unit + UI |
 | TL-04 | Hide read articles | `toggleReadArticlesFilter:` | Port | Done | UI: read articles hide; current selection stays |
 | TL-05 | Clean up (drop read from current view) | `cleanUp:` | Port | Done | UI: read rows removed |
-| TL-06 | Row shows title, summary, feed, date, icon, author avatar, unread dot, star | `Timeline/Cell` | Port | Partial: no author avatar | Side-by-side screenshot review |
+| TL-06 | Row shows title, summary, feed, date, icon, author avatar, unread dot, star | `Timeline/Cell` | Port | Done | Side-by-side screenshot review |
 | TL-07 | Separators (hidden pref) | `CorreiaSeparators` | Port | Done | UI: setting toggles separators |
 | TL-08 | Context menu: Mark Read/Unread, Star/Unstar, Mark Above/Below as Read, Select Feed in Sidebar, Mark All as Read in feed, Open in Browser, Copy Article URL, Copy External URL, Share | `menu(for:)` | Port | Done | UI: items present in this order |
 | TL-09 | Drag article out as URL | `ArticlePasteboardWriter.swift` | Port | Unchecked: built (one article drags as a web link, several as lines of text); dragging needs a mouse, not tried | UI: drop on browser opens URL |
@@ -216,8 +216,8 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | FD-01 | Add Feed sheet (URL, name, account, folder; remembers last account/folder) | `AddFeed/` | Port | Unchecked: with no row selected, New Feed offers the account and folder last used (kept in settings.json); needs a second account or folder to see, not driven | UI: adds feed; defaults remembered |
 | FD-02 | Add Feed from list | `AddFeedFromListSheet.xib` | Port | Done | UI: picks one of several discovered feeds |
 | FD-03 | Add Folder sheet | `AddFolder/` | Port | Done | UI |
-| FD-04 | Import OPML into chosen account | `importOPMLFromFile:` | Port | Partial: On This PC only; importing into FreshRSS is open | Unit: `Subs.opml` round trip |
-| FD-05 | Export OPML from chosen account | `exportOPML:` | Port | Partial: On This PC only | Unit: export, re-import, same tree |
+| FD-04 | Import OPML into chosen account | `importOPMLFromFile:` | Port | Unchecked: Import Subscriptions asks which account when there is more than one, and a sync account subscribes to each feed in turn (the flattening and the loop are unit tested); the chooser and the file picker weren't driven | Unit: `Subs.opml` round trip |
+| FD-05 | Export OPML from chosen account | `exportOPML:` | Port | Unchecked: Export Subscriptions asks which account when there is more than one; the picker wasn't driven | Unit: export, re-import, same tree |
 | FD-06 | Import NNW 3 subscriptions | `importNNW3FromFile:` | Drop | Dropped | Legacy Mac-only file format |
 | FD-07 | Add NetNewsWire News feed (Help menu) | `addAppNews:` | Port | Done | Point at this app's own news feed |
 | FD-08 | Dinosaurs window: feeds not updated in N months (default 6), select, delete, open home page, copy URL, undo | `Mac/Dinosaurs` | Port | Done | UI: stale fixture feed listed; delete undoes |

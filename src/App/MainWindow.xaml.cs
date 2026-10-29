@@ -1454,7 +1454,7 @@ public sealed partial class MainWindow : Window
 			}
 			moveTo.IsEnabled = moveTo.Items.Count > 0;
 			menu.Items.Add(moveTo);
-			menu.Items.Add(MenuItem("Rename…", async () => await ShowRenameFeedDialogAsync(item)));
+			menu.Items.Add(MenuItem("Rename…", () => BeginRenameAfterMenu(item)));
 			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteAsync(item)));
 			menu.Items.Add(new MenuFlyoutSeparator());
 			menu.Items.Add(MenuItem("Get Info", async () => await ShowInspectorAsync(item)));
@@ -1462,7 +1462,7 @@ public sealed partial class MainWindow : Window
 		else if (item.Folder is not null)
 		{
 			menu.Items.Add(new MenuFlyoutSeparator());
-			menu.Items.Add(MenuItem("Rename…", async () => await ShowRenameFolderDialogAsync(item)));
+			menu.Items.Add(MenuItem("Rename…", () => BeginRenameAfterMenu(item)));
 			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteAsync(item)));
 			menu.Items.Add(new MenuFlyoutSeparator());
 			menu.Items.Add(MenuItem("Get Info", async () => await ShowInspectorAsync(item)));
@@ -1707,12 +1707,102 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	private async Task ShowRenameFeedDialogAsync(SidebarItem item)
+	/// <summary>NetNewsWire's rename in place (F2, or Rename… in the menu): the row's name becomes a box, Enter keeps it and Esc drops it.</summary>
+	private void BeginRename(SidebarItem? item)
 	{
-		if (await PromptAsync("Rename Feed", "Rename", "Name", item.Title) is { } name)
+		if (item is { IsRenaming: false } && (item.Feed is not null || item.Folder is not null))
+		{
+			item.EditText = item.Title;
+			_renameStarted = Environment.TickCount64;
+			item.IsRenaming = true;
+		}
+	}
+
+	/// <summary>From a menu: waits for the menu to close and hand the focus back before the box asks for it.</summary>
+	private void BeginRenameAfterMenu(SidebarItem item)
+	{
+		var timer = DispatcherQueue.CreateTimer();
+		timer.Interval = TimeSpan.FromMilliseconds(400);
+		timer.IsRepeating = false;
+		timer.Tick += (_, _) => BeginRename(item);
+		timer.Start();
+	}
+
+	/// <summary>
+	/// When a rename began. A menu hands the focus back to where it came from as it closes, which would end a rename that
+	/// opened from the menu at once, so losing the focus just after it began only makes the box take it again.
+	/// </summary>
+	private long _renameStarted;
+
+	private void OnRenameBoxLoaded(object sender, RoutedEventArgs e)
+	{
+		var box = (TextBox)sender;
+		// The box is always in the row, hidden; when it's shown for a rename it takes the focus with its text selected.
+		box.RegisterPropertyChangedCallback(UIElement.VisibilityProperty, (_, _) =>
+		{
+			if (box.Visibility == Visibility.Visible)
+			{
+				DispatcherQueue.TryEnqueue(() =>
+				{
+					box.Focus(FocusState.Programmatic);
+					box.SelectAll();
+				});
+			}
+		});
+	}
+
+	private void OnRenameKeyDown(object sender, KeyRoutedEventArgs e)
+	{
+		if (DataContextOf((FrameworkElement)sender) is not SidebarItem item)
+		{
+			return;
+		}
+		if (e.Key == VirtualKey.Enter)
+		{
+			e.Handled = true;
+			_ = CommitRenameAsync(item, ((TextBox)sender).Text);
+		}
+		else if (e.Key == VirtualKey.Escape)
+		{
+			e.Handled = true;
+			item.IsRenaming = false;
+			FocusPane(Pane.Sidebar);
+		}
+	}
+
+	/// <summary>Clicking away keeps what was typed, as in NetNewsWire.</summary>
+	private void OnRenameLostFocus(object sender, RoutedEventArgs e)
+	{
+		if (DataContextOf((FrameworkElement)sender) is not SidebarItem { IsRenaming: true } item)
+		{
+			return;
+		}
+		if (Environment.TickCount64 - _renameStarted < 600)
+		{
+			var box = (TextBox)sender;
+			DispatcherQueue.TryEnqueue(() => box.Focus(FocusState.Programmatic));
+			return;
+		}
+		_ = CommitRenameAsync(item, ((TextBox)sender).Text);
+	}
+
+	/// <summary>Takes the name from the box itself: its binding to the row only updates as the box loses the focus, which may be after this.</summary>
+	private async Task CommitRenameAsync(SidebarItem item, string name)
+	{
+		if (!item.IsRenaming)
+		{
+			return;
+		}
+		item.IsRenaming = false;
+		if (item.Feed is not null)
 		{
 			await RunReportingErrorsAsync("Couldn’t Rename Feed", () => ViewModel.RenameFeedAsync(item, name));
 		}
+		else if (item.Folder is not null)
+		{
+			await RunReportingErrorsAsync("Couldn’t Rename Folder", () => ViewModel.RenameFolderAsync(item, name));
+		}
+		FocusPane(Pane.Sidebar);
 	}
 
 	/// <summary>
@@ -1811,13 +1901,6 @@ public sealed partial class MainWindow : Window
 			new TextBox { Header = header, Text = url ?? "", IsReadOnly = true, TextWrapping = TextWrapping.Wrap, PlaceholderText = "None" };
 	}
 
-	private async Task ShowRenameFolderDialogAsync(SidebarItem item)
-	{
-		if (await PromptAsync("Rename Folder", "Rename", "Name", item.Title) is { } name)
-		{
-			await RunReportingErrorsAsync("Couldn’t Rename Folder", () => ViewModel.RenameFolderAsync(item, name));
-		}
-	}
 
 	private async Task ConfirmDeleteAsync(SidebarItem item)
 	{
@@ -1932,8 +2015,32 @@ public sealed partial class MainWindow : Window
 
 	// Import and export
 
+	/// <summary>With more than one account, asks which one an import or export is for; with one, that one. Null if cancelled.</summary>
+	private async Task<IAccount?> ChooseAccountAsync(string title, string button)
+	{
+		var accounts = ViewModel.Accounts.ToList();
+		if (accounts.Count == 1)
+		{
+			return accounts[0];
+		}
+		var box = new ComboBox
+		{
+			Header = "Account",
+			ItemsSource = accounts.Select(account => account.Name).ToList(),
+			SelectedIndex = Math.Max(0, accounts.IndexOf(ViewModel.DefaultAccountForNewFeed)),
+			HorizontalAlignment = HorizontalAlignment.Stretch,
+			Width = 360,
+		};
+		AutomationProperties.SetName(box, "Account");
+		return await ShowDialogAsync(Dialog(title, button, box)) == ContentDialogResult.Primary ? accounts[Math.Max(0, box.SelectedIndex)] : null;
+	}
+
 	private async Task ImportAsync()
 	{
+		if (await ChooseAccountAsync("Import Subscriptions", "Choose File…") is not { } account)
+		{
+			return;
+		}
 		var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
 		picker.FileTypeFilter.Add(".opml");
 		picker.FileTypeFilter.Add(".xml");
@@ -1944,7 +2051,11 @@ public sealed partial class MainWindow : Window
 		}
 		try
 		{
-			await ViewModel.ImportOpmlAsync(file.Path);
+			var summary = await ViewModel.ImportOpmlAsync(file.Path, account);
+			if (account.Kind != AccountKind.Local)
+			{
+				await ShowMessageAsync("Import Subscriptions", summary);
+			}
 		}
 		catch (Exception ex) when (ex is OpmlException or IOException or UnauthorizedAccessException)
 		{
@@ -1954,7 +2065,11 @@ public sealed partial class MainWindow : Window
 
 	private async Task ExportAsync()
 	{
-		var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = "Subscriptions-On This PC" };
+		if (await ChooseAccountAsync("Export Subscriptions", "Choose File…") is not { } account)
+		{
+			return;
+		}
+		var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = $"Subscriptions-{account.Name}" };
 		picker.FileTypeChoices.Add("OPML", [".opml"]);
 		WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
 		if (await picker.PickSaveFileAsync() is not { } file)
@@ -1963,7 +2078,7 @@ public sealed partial class MainWindow : Window
 		}
 		try
 		{
-			ViewModel.ExportOpml(file.Path);
+			ViewModel.ExportOpml(file.Path, account);
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
@@ -2039,6 +2154,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.Left, CtrlAlt, Pane.Sidebar, () => ViewModel.SetAllExpanded(false));
 		Add(Quote, None, Pane.Sidebar, () => ViewModel.SetAllExpanded(true));
 		Add(VirtualKey.Right, CtrlAlt, Pane.Sidebar, () => ViewModel.SetAllExpanded(true));
+		Add(VirtualKey.F2, None, Pane.Sidebar, () => BeginRename(ViewModel.SelectedSidebarItem));
 		Add(VirtualKey.Delete, None, Pane.Sidebar, () => _ = DeleteSelectedAsync());
 		Add(VirtualKey.Back, None, Pane.Sidebar, () => _ = DeleteSelectedAsync());
 		Add(VirtualKey.Left, None, Pane.Timeline, () => FocusPane(Pane.Sidebar));

@@ -1141,8 +1141,30 @@ public sealed partial class MainViewModel : ObservableObject
 		return result;
 	}
 
-	public void ExportOpml(string path) =>
-		File.WriteAllText(path, OpmlExporter.OpmlString(LocalAccount.Store, Path.GetFileNameWithoutExtension(path)));
+	/// <summary>
+	/// NetNewsWire's import into the chosen account. On This PC adds the feeds at once and refreshes; a sync account
+	/// subscribes to each on its server, which takes a while, so the status bar says how far it has got.
+	/// </summary>
+	public async Task<string> ImportOpmlAsync(string path, IAccount account)
+	{
+		if (account.Kind == AccountKind.Local)
+		{
+			var added = await ImportOpmlAsync(path);
+			return $"Imported {added.FeedsAdded:N0} feeds";
+		}
+		var feeds = await Task.Run(() => OpmlImporter.FeedsIn(path));
+		var result = await Task.Run(() => OpmlImporter.SubscribeAsync(account, feeds, (done, total) => StatusText = $"Importing {done:N0} of {total:N0}…"));
+		LoadSidebar();
+		_ = RefreshAsync();
+		return result.Failed.Count == 0
+			? $"Imported {result.Subscribed:N0} feeds into {account.Name}"
+			: $"Imported {result.Subscribed:N0} feeds into {account.Name}; {result.Failed.Count:N0} couldn’t be added: {string.Join(", ", result.Failed.Take(5))}{(result.Failed.Count > 5 ? ", …" : "")}";
+	}
+
+	public void ExportOpml(string path) => ExportOpml(path, LocalAccount);
+
+	public void ExportOpml(string path, IAccount account) =>
+		File.WriteAllText(path, OpmlExporter.OpmlString(account.Store, Path.GetFileNameWithoutExtension(path)));
 
 	/// <summary>Marks every article in <paramref name="item"/> read: the selected sidebar item by default.</summary>
 	public void MarkAllRead(SidebarItem? item = null)

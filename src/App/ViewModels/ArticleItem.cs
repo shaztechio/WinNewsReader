@@ -23,6 +23,14 @@ public sealed partial class ArticleItem : ObservableObject
 		IsRead = article.Read;
 		IsStarred = article.Starred;
 		Icon = icon;
+		// NetNewsWire shows the author's picture instead of the feed's icon for an article with one author who has one,
+		// and goes back to the feed's icon if the picture can't be loaded.
+		if (Core.AuthorAvatar.UrlFor(article.Authors) is { } avatarUrl)
+		{
+			var avatar = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(avatarUrl)) { DecodePixelWidth = 40 };
+			avatar.ImageFailed += (_, _) => Icon = icon;
+			Icon = avatar;
+		}
 	}
 
 	/// <summary>The feed's favicon, or null to show a placeholder.</summary>
