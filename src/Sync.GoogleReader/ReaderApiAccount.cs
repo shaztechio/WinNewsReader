@@ -140,6 +140,9 @@ public sealed class ReaderApiAccount : IAccount, IDisposable
 		}
 	}
 
+	public Task<IReadOnlyList<FeedSpecifier>> FindFeedsAsync(string url, CancellationToken cancellationToken = default) =>
+		_finder.FindCandidatesAsync(url, specifier => !specifier.Url.Contains("json", StringComparison.OrdinalIgnoreCase), cancellationToken);
+
 	/// <summary>Finds the feed, as NetNewsWire does skipping JSON feeds, subscribes on the server and downloads its articles.</summary>
 	public async Task<StoredFeed> SubscribeAsync(string url, string? folderName, CancellationToken cancellationToken = default)
 	{

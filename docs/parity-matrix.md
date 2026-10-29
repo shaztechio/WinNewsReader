@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 155 |
+| Done | 157 |
 | Partial | 16 |
-| Open | 9 |
-| Unchecked | 30 |
+| Open | 8 |
+| Unchecked | 29 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -46,7 +46,7 @@ By section:
 | Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 12 | 1 |  | 1 |  |  |  |
-| Feed management and import/export | 2 | 3 | 1 | 1 |  |  | 1 |
+| Feed management and import/export | 4 | 3 |  |  |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
 | Preferences | 9 | 1 |  | 3 | 3 |  | 2 |
@@ -214,12 +214,12 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | ID | Feature | Mac source | Decision | Status | Test / reason |
 | --- | --- | --- | --- | --- | --- |
 | FD-01 | Add Feed sheet (URL, name, account, folder; remembers last account/folder) | `AddFeed/` | Port | Partial: defaults to the selection, not the last used account and folder | UI: adds feed; defaults remembered |
-| FD-02 | Add Feed from list | `AddFeedFromListSheet.xib` | Port | Open: the feed finder picks the best one | UI: picks one of several discovered feeds |
+| FD-02 | Add Feed from list | `AddFeedFromListSheet.xib` | Port | Done | UI: picks one of several discovered feeds |
 | FD-03 | Add Folder sheet | `AddFolder/` | Port | Done | UI |
 | FD-04 | Import OPML into chosen account | `importOPMLFromFile:` | Port | Partial: On This PC only; importing into FreshRSS is open | Unit: `Subs.opml` round trip |
 | FD-05 | Export OPML from chosen account | `exportOPML:` | Port | Partial: On This PC only | Unit: export, re-import, same tree |
 | FD-06 | Import NNW 3 subscriptions | `importNNW3FromFile:` | Drop | Dropped | Legacy Mac-only file format |
-| FD-07 | Add NetNewsWire News feed (Help menu) | `addAppNews:` | Port | Unchecked: Help → Add WinNewsReader News Feed subscribes to winnewsreader.com/feed.xml (the feed is tested); not yet tried against the live site | Point at this app's own news feed |
+| FD-07 | Add NetNewsWire News feed (Help menu) | `addAppNews:` | Port | Done | Point at this app's own news feed |
 | FD-08 | Dinosaurs window: feeds not updated in N months (default 6), select, delete, open home page, copy URL, undo | `Mac/Dinosaurs` | Port | Done | UI: stale fixture feed listed; delete undoes |
 
 ## Inspector

@@ -41,6 +41,9 @@ public interface IAccount
 
 	Task<RefreshSummary> RefreshAllAsync(CancellationToken cancellationToken = default);
 
+	/// <summary>The feeds that <paramref name="url"/> could mean, best first, so the reader can pick when there are several.</summary>
+	Task<IReadOnlyList<FeedSpecifier>> FindFeedsAsync(string url, CancellationToken cancellationToken = default);
+
 	/// <summary>Finds the feed for <paramref name="url"/> and subscribes. Throws <see cref="SubscribeException"/> if it can't.</summary>
 	Task<StoredFeed> SubscribeAsync(string url, string? folderName, CancellationToken cancellationToken = default);
 

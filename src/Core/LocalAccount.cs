@@ -75,6 +75,9 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 
 	public void SetArticleStatus(IReadOnlyCollection<string> articleIds, StatusKey key, bool flag) => Store.SetStatuses(articleIds, key, flag);
 
+	public Task<IReadOnlyList<FeedSpecifier>> FindFeedsAsync(string url, CancellationToken cancellationToken = default) =>
+		_feedFinder.FindCandidatesAsync(url, cancellationToken: cancellationToken);
+
 	/// <summary>
 	/// Finds the best feed for <paramref name="userUrl"/>, which may be a feed or a web page, then
 	/// subscribes at the top level or in the folder named <paramref name="folderName"/>, creating it if needed,

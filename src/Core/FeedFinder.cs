@@ -33,6 +33,30 @@ public sealed class FeedFinder(FeedDownloader downloader)
 			?? throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
 	}
 
+	/// <summary>
+	/// Every feed that could be meant by what someone typed, best first, for NetNewsWire's Add Feed from List. Throws
+	/// <see cref="SubscribeException"/> if there are none.
+	/// </summary>
+	public async Task<IReadOnlyList<FeedSpecifier>> FindCandidatesAsync(string userUrl, Func<FeedSpecifier, bool>? include = null, CancellationToken cancellationToken = default)
+	{
+		var normalizedUrl = userUrl.NormalizedUrl();
+		IReadOnlySet<FeedSpecifier> feedSpecifiers;
+		try
+		{
+			feedSpecifiers = await FindAsync(normalizedUrl, cancellationToken);
+		}
+		catch (FeedNotFoundException)
+		{
+			throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+		}
+		var candidates = Ranked(feedSpecifiers.Where(include ?? (_ => true)));
+		return candidates.Count > 0 ? candidates : throw new SubscribeException($"Couldn’t find a feed at {normalizedUrl}.");
+	}
+
+	/// <summary>Best first; the same order <see cref="FeedSpecifier.BestFeed"/> takes its pick from.</summary>
+	public static IReadOnlyList<FeedSpecifier> Ranked(IEnumerable<FeedSpecifier> specifiers) =>
+		[.. specifiers.OrderByDescending(specifier => specifier.Score).ThenBy(specifier => specifier.OrderFound)];
+
 	/// <summary>Throws <see cref="FeedNotFoundException"/> if the URL can't be fetched or isn't a feed or HTML.</summary>
 	public async Task<IReadOnlySet<FeedSpecifier>> FindAsync(string url, CancellationToken cancellationToken = default)
 	{

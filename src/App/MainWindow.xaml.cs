@@ -1535,7 +1535,12 @@ public sealed partial class MainWindow : Window
 		accountBox.SelectionChanged += (_, _) => ShowFolders(null);
 		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
 		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Style = (Style)Application.Current.Resources["ErrorTextStyle"] };
-		var dialog = Dialog("New Feed", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { url, accountBox, folderBox, progress, error } });
+		// NetNewsWire's Add Feed from List: when the address offers several feeds, the reader picks one.
+		var choiceHeading = new TextBlock { Text = "This address has more than one feed. Choose one:", TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+		var choiceList = new ListView { SelectionMode = ListViewSelectionMode.Single, Visibility = Visibility.Collapsed, MaxHeight = 240 };
+		AutomationProperties.SetName(choiceList, "Feeds found");
+		List<FeedSpecifier>? choices = null;
+		var dialog = Dialog("New Feed", "Add", new StackPanel { Spacing = 12, Width = 420, Children = { url, accountBox, folderBox, choiceHeading, choiceList, progress, error } });
 		dialog.IsPrimaryButtonEnabled = url.Text.Length > 0;
 		url.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = url.Text.Trim().Length > 0;
 		dialog.PrimaryButtonClick += async (_, args) =>
@@ -1546,7 +1551,27 @@ public sealed partial class MainWindow : Window
 			dialog.IsPrimaryButtonEnabled = false;
 			try
 			{
-				await ViewModel.SubscribeAsync(url.Text.Trim(), accounts[Math.Max(0, accountBox.SelectedIndex)], folders[Math.Max(0, folderBox.SelectedIndex)].Folder);
+				var account = accounts[Math.Max(0, accountBox.SelectedIndex)];
+				var address = url.Text.Trim();
+				if (choices is null)
+				{
+					var found = await account.FindFeedsAsync(address);
+					if (found.Count > 1)
+					{
+						choices = [.. found];
+						choiceList.ItemsSource = choices.Select(choice => string.IsNullOrWhiteSpace(choice.Title) ? choice.Url : $"{choice.Title}  ·  {choice.Url}").ToList();
+						choiceList.SelectedIndex = 0;
+						url.Visibility = accountBox.Visibility = folderBox.Visibility = Visibility.Collapsed;
+						choiceHeading.Visibility = choiceList.Visibility = Visibility.Visible;
+						args.Cancel = true;
+						return;
+					}
+				}
+				else
+				{
+					address = choices[Math.Max(0, choiceList.SelectedIndex)].Url;
+				}
+				await ViewModel.SubscribeAsync(address, account, folders[Math.Max(0, folderBox.SelectedIndex)].Folder);
 			}
 			catch (Exception ex)
 			{
