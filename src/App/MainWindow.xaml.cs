@@ -30,7 +30,7 @@ public sealed partial class MainWindow : Window
 
 	private readonly TaskbarBadge _badge;
 
-	private readonly DispatcherQueueTimer _refreshTimer;
+	private DispatcherQueueTimer? _refreshTimer;
 	private bool _syncingSelection;
 	private bool _articleViewReady;
 
@@ -60,12 +60,19 @@ public sealed partial class MainWindow : Window
 	private string? _shownArticleId;
 	private RectInt32 _normalBounds;
 
+	/// <summary>NetNewsWire's New Window: the app opens another main window, with a selection of its own.</summary>
+	public event EventHandler? NewWindowRequested;
+
+	/// <summary>
+	/// <paramref name="viewModel"/>'s <see cref="MainViewModel.IsPrimary"/> says whether this is the window the app opened
+	/// with, which restores the last session and does the background work, or one opened since.
+	/// </summary>
 	public MainWindow(MainViewModel viewModel)
 	{
 		ViewModel = viewModel;
 		InitializeComponent();
 
-		RestorePlacement(ViewModel.Settings.Window);
+		RestorePlacement(ViewModel.IsPrimary ? ViewModel.Settings.Window : null);
 		if (ViewModel.Settings.SidebarHidden)
 		{
 			ShowSidebar(false);
@@ -91,7 +98,10 @@ public sealed partial class MainWindow : Window
 		ViewModel.SidebarExpansionChanged += (_, _) => ScheduleExpansionSync();
 		ScheduleExpansionSync();
 		// After the first layout, when the sidebar has rows to show the restored selection.
-		Root.Loaded += (_, _) => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ViewModel.RestoreSelection);
+		if (ViewModel.IsPrimary)
+		{
+			Root.Loaded += (_, _) => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ViewModel.RestoreSelection);
+		}
 		Closed += (_, _) => ViewModel.SaveState(new WindowPlacement(
 			_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height,
 			AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized },
@@ -99,15 +109,9 @@ public sealed partial class MainWindow : Window
 		AddShortcuts();
 		_ = InitializeArticleViewAsync();
 
-		// Refresh at launch, then as often as the reader's Refresh Feeds preference says (hourly, as in NetNewsWire, by default).
-		_refreshTimer = DispatcherQueue.CreateTimer();
-		_refreshTimer.Tick += (_, _) => _ = ViewModel.RefreshAsync();
-		ApplyRefreshInterval();
-		ViewModel.RefreshIntervalChanged += (_, _) => ApplyRefreshInterval();
-		_ = ViewModel.PrepareSearchAsync();
-		if (!ViewModel.Settings.SuppressRefreshOnLaunch)
+		if (ViewModel.IsPrimary)
 		{
-			_ = ViewModel.RefreshAsync();
+			StartBackgroundWork(refreshNow: !ViewModel.Settings.SuppressRefreshOnLaunch);
 		}
 		ApplyToolbarVisibility();
 		ApplyPaneStyles();
@@ -130,10 +134,42 @@ public sealed partial class MainWindow : Window
 		};
 		Closed += (_, _) =>
 		{
-			_refreshTimer.Stop();
-			// The app ends with its last window, so Preferences goes with the main one.
+			_refreshTimer?.Stop();
+			ViewModel.Detach();
+			// The app ends with its last window, so Preferences goes with its main window.
 			_preferences?.Close();
+			foreach (var window in _utilityWindows.Values.ToList())
+			{
+				window.Close();
+			}
 		};
+	}
+
+	/// <summary>
+	/// What only one window does: refresh at launch, then as often as the reader's Refresh Feeds preference says (hourly, as
+	/// in NetNewsWire, by default), and index old articles for search. When the first window closes, another takes it over.
+	/// </summary>
+	private void StartBackgroundWork(bool refreshNow)
+	{
+		_refreshTimer = DispatcherQueue.CreateTimer();
+		_refreshTimer.Tick += (_, _) => _ = ViewModel.RefreshAsync();
+		ApplyRefreshInterval();
+		ViewModel.RefreshIntervalChanged += (_, _) => ApplyRefreshInterval();
+		_ = ViewModel.PrepareSearchAsync();
+		if (refreshNow)
+		{
+			_ = ViewModel.RefreshAsync();
+		}
+	}
+
+	/// <summary>The window the app opened with has closed: this one now owns the refresh timer and the saved state.</summary>
+	public void BecomePrimary()
+	{
+		if (!ViewModel.IsPrimary)
+		{
+			ViewModel.IsPrimary = true;
+			StartBackgroundWork(refreshNow: false);
+		}
 	}
 
 	public MainViewModel ViewModel { get; }
@@ -1020,6 +1056,10 @@ public sealed partial class MainWindow : Window
 
 	private void ApplyRefreshInterval()
 	{
+		if (_refreshTimer is null)
+		{
+			return;
+		}
 		_refreshTimer.Stop();
 		if (RefreshIntervals.ToTimeSpan(ViewModel.Settings.RefreshIntervalMinutes) is { } interval)
 		{
@@ -1129,6 +1169,8 @@ public sealed partial class MainWindow : Window
 	}
 
 	private void OnToggleToolbar(object sender, RoutedEventArgs e) => ToggleToolbar();
+
+	private void OnNewWindow(object sender, RoutedEventArgs e) => NewWindowRequested?.Invoke(this, EventArgs.Empty);
 
 	// NetNewsWire's debug items, behind the ShowDebugMenu setting.
 
@@ -2006,6 +2048,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.W, Ctrl, null, Close);
 		Add(VirtualKey.F11, None, null, ToggleFullScreen);
 		Add(VirtualKey.T, CtrlAlt, null, ToggleToolbar);
+		Add(VirtualKey.N, CtrlAlt, null, () => NewWindowRequested?.Invoke(this, EventArgs.Empty));
 		Add(VirtualKey.Number6, Ctrl, null, () => OpenUtilityWindow("Dinosaurs"));
 		Add(VirtualKey.Number7, Ctrl, null, () => OpenUtilityWindow("CurrentActivity"));
 		Add(VirtualKey.Number8, Ctrl, null, () => OpenUtilityWindow("ActivityLog"));

@@ -33,12 +33,23 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool _restoringSelection;
 
 	/// <summary>What refreshes have done, for the Current Activity, Activity Log and Error Log windows.</summary>
-	public ActivityLog Activity { get; } = new();
+	public ActivityLog Activity { get; }
 
-	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, ArticleThemeInstaller themeInstaller, ArticleExtractor extractor, AppSettings settings, string settingsPath)
+	/// <summary>
+	/// The first window owns the saved selection and placement and the background work. Windows opened from it (NetNewsWire's
+	/// New Window) start empty with a selection of their own and save nothing; if the first one closes first, another takes over.
+	/// </summary>
+	public bool IsPrimary { get; set; }
+
+	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, ArticleThemeInstaller themeInstaller, ArticleExtractor extractor, AppSettings settings, string settingsPath,
+		ActivityLog? activity = null, bool isPrimary = true)
 	{
 		_accounts = accounts;
+		IsPrimary = isPrimary;
+		_selectionRestored = !isPrimary;
+		Activity = activity ?? new ActivityLog();
 		accounts.LocalAccount.Activity = Activity;
+		AppChanges.Changed += OnAppChange;
 		_favicons = favicons;
 		Themes = themes;
 		ThemeInstaller = themeInstaller;
@@ -508,6 +519,10 @@ public sealed partial class MainViewModel : ObservableObject
 	/// </summary>
 	public void LoadSidebar(string? select = null)
 	{
+		if (!_applyingExternalChange)
+		{
+			AppChanges.Raise(this, AppChangeKind.Structure);
+		}
 		var previousKey = SelectedSidebarItem?.Key;
 		var selectedKey = select ?? previousKey;
 		// Hide Read Feeds leaves out feeds, and folders, with nothing unread, except the selected row. At launch,
@@ -807,8 +822,48 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool _selectionRestored;
 
 	/// <summary>Records the window and the sidebar's state for the next launch.</summary>
+	/// <summary>Stops listening for what other windows change; called when this window closes.</summary>
+	public void Detach() => AppChanges.Changed -= OnAppChange;
+
+	private bool _applyingExternalChange;
+
+	/// <summary>Another window changed something: bring what this one shows up to date, keeping its selection.</summary>
+	private void OnAppChange(object sender, AppChangeKind kind)
+	{
+		if (sender == this)
+		{
+			return;
+		}
+		_applyingExternalChange = true;
+		try
+		{
+			switch (kind)
+			{
+				case AppChangeKind.Structure:
+					LoadSidebar();
+					LoadArticles(keepSelection: true);
+					break;
+				case AppChangeKind.Appearance:
+					AppearanceChanged?.Invoke(this, EventArgs.Empty);
+					break;
+				default:
+					UpdateUnreadCounts();
+					LoadArticles(keepSelection: true);
+					break;
+			}
+		}
+		finally
+		{
+			_applyingExternalChange = false;
+		}
+	}
+
 	public void SaveState(WindowPlacement? window)
 	{
+		if (!IsPrimary)
+		{
+			return;
+		}
 		Settings.Window = window ?? Settings.Window;
 		Settings.ExpandedSidebarKeys = [.. _expandedKeys];
 		Settings.SelectedSidebarKey = SelectedSidebarItem?.Key;
@@ -1370,6 +1425,7 @@ public sealed partial class MainViewModel : ObservableObject
 		Settings.Appearance = appearance;
 		SaveSettings();
 		AppearanceChanged?.Invoke(this, EventArgs.Empty);
+		AppChanges.Raise(this, AppChangeKind.Appearance);
 	}
 
 	/// <summary>Raised when the reader picks Light, Dark or System.</summary>
@@ -1530,6 +1586,7 @@ public sealed partial class MainViewModel : ObservableObject
 		OnPropertyChanged(nameof(ReadToggleGlyph));
 		OnPropertyChanged(nameof(StarToggleGlyph));
 		UpdateUnreadCounts();
+		AppChanges.Raise(this, AppChangeKind.Articles);
 	}
 
 	private int IndexOf(ArticleItem article)

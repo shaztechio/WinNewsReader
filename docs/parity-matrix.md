@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 158 |
+| Done | 159 |
 | Partial | 16 |
-| Open | 6 |
-| Unchecked | 30 |
+| Open | 4 |
+| Unchecked | 31 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -40,7 +40,7 @@ By section:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 14 |  |  |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
-| Main window and layout | 9 |  | 1 | 1 |  |  | 1 |
+| Main window and layout | 10 |  |  | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
 | Sidebar | 13 | 2 |  | 5 |  |  |  |
 | Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
@@ -55,7 +55,7 @@ By section:
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
-| Menu shortcuts | 23 | 1 | 1 | 17 |  |  |  |
+| Menu shortcuts | 23 | 1 |  | 18 |  |  |  |
 
 ## Findings that change the plan
 
@@ -110,7 +110,7 @@ By section:
 | MW-04 | Status bar (counts or last refresh, click to cycle; link hover URL) | `StatusBar/` | Port | Unchecked: clicking cycles last refresh, unread and feeds counts (driven); the hovered link's address is built, not hovered | UI: click cycles unread count, folders/feeds, last refresh |
 | MW-05 | Status bar gear menu (selection actions) | `statusBarMenu()` | Port | Done | UI: menu matches sidebar context menu for selection |
 | MW-06 | Theme menu in status bar | `toggleStatusBarThemeMenu:` | Port | Done | UI: picking a theme re-renders article |
-| MW-07 | Multiple main windows | `newMainWindow:` | Port | Open: one main window | UI: second window has independent selection |
+| MW-07 | Multiple main windows | `newMainWindow:` | Port | Done | UI: second window has independent selection |
 | MW-08 | Window state restore (panes, selection, layout) | `*WindowState.swift` | Port | Done | UI: restart restores layout and selected feed |
 | MW-09 | Sidebar/timeline/article font sizes (hidden defaults) | `sidebarFontSize` etc. | Port | Done | Unit: setting is applied on launch |
 | MW-10 | Full screen | `toggleFullScreen:` | Port | Done | F11. UI: toggles full screen |
@@ -362,7 +362,7 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | App | Quit | Cmd+Q | Ctrl+Q (Alt+F4 also closes) | Done |
 | File | New Feed | Cmd+N | Ctrl+N | Done |
 | File | New Folder | Shift+Cmd+N | Ctrl+Shift+N | Done |
-| File | New Window | Opt+Cmd+N | Ctrl+Alt+N | Open: one main window |
+| File | New Window | Opt+Cmd+N | Ctrl+Alt+N | Unchecked: Ctrl+Alt+N built, not pressed; the +▾ menu item opens a window |
 | File | Refresh | Cmd+R | Ctrl+R and F5 | Done |
 | File | Import Subscriptions | none | none | Done |
 | File | Export Subscriptions | Opt+Cmd+E | Ctrl+Alt+E | Done |

@@ -138,6 +138,7 @@
                                 <MenuFlyoutItem x:Name="UndoItem" Text="Undo" IsEnabled="False" Click="OnUndo" KeyboardAcceleratorTextOverride="Ctrl+Z" />
                                 <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="False" Click="OnRedo" KeyboardAcceleratorTextOverride="Ctrl+Y" />
                                 <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="New Window" Click="OnNewWindow" KeyboardAcceleratorTextOverride="Ctrl+Alt+N" />
                                 <MenuFlyoutItem Text="Hide Toolbar" Click="OnToggleToolbar" KeyboardAcceleratorTextOverride="Ctrl+Alt+T" />
                                 <!-- NetNewsWire's Window menu: its small utility windows. -->
                                 <MenuFlyoutSubItem Text="Window">

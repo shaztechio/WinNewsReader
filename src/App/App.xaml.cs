@@ -8,8 +8,6 @@ namespace WinNewsReader.App;
 
 public partial class App : Application
 {
-	private MainWindow? _window;
-
 	public App()
 	{
 		InitializeComponent();
@@ -31,32 +29,72 @@ public partial class App : Application
 		return index >= 0 && index + 1 < commandLine.Length ? Path.GetFullPath(commandLine[index + 1]) : null;
 	}
 
+	private FeedDownloader _downloader = null!;
+	private FaviconDownloader _favicons = null!;
+	private AccountManager _accounts = null!;
+	private AppSettings _settings = null!;
+	private string _settingsPath = "";
+	private ArticleThemes _themes = null!;
+	private ArticleThemeInstaller _themeInstaller = null!;
+	private ArticleExtractor _extractor = null!;
+	private readonly ActivityLog _activity = new();
+	private readonly List<MainWindow> _windows = [];
+
 	protected override void OnLaunched(LaunchActivatedEventArgs args)
 	{
-		var downloader = new FeedDownloader();
-		var favicons = new FaviconDownloader(downloader, Path.Combine(DataDirectory, "Favicons"));
-		var accounts = new AccountManager(DataDirectory, downloader, new WindowsCredentialStore());
-		accounts.LoadAll();
-		var settingsPath = Path.Combine(DataDirectory, "settings.json");
+		_downloader = new FeedDownloader();
+		_favicons = new FaviconDownloader(_downloader, Path.Combine(DataDirectory, "Favicons"));
+		_accounts = new AccountManager(DataDirectory, _downloader, new WindowsCredentialStore());
+		_accounts.LoadAll();
+		_settingsPath = Path.Combine(DataDirectory, "settings.json");
 		// Settings used to sit next to the local database.
 		var oldSettingsPath = Path.Combine(DataDirectory, LocalAccount.LocalAccountId, "settings.json");
-		if (!File.Exists(settingsPath) && File.Exists(oldSettingsPath))
+		if (!File.Exists(_settingsPath) && File.Exists(oldSettingsPath))
 		{
-			File.Move(oldSettingsPath, settingsPath);
+			File.Move(oldSettingsPath, _settingsPath);
 		}
-		var settings = AppSettings.Load(settingsPath);
-		AddDefaultFeedsOnFirstLaunch(accounts.LocalAccount, settings, settingsPath);
+		_settings = AppSettings.Load(_settingsPath);
+		AddDefaultFeedsOnFirstLaunch(_accounts.LocalAccount, _settings, _settingsPath);
 		// NetNewsWire's themes ship with the app; the reader's own go in the Themes folder.
-		var themes = new ArticleThemes(Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources"), Path.Combine(DataDirectory, "Themes"));
-		var viewModel = new MainViewModel(accounts, favicons, themes, new ArticleThemeInstaller(themes, downloader), new ArticleExtractor(downloader), settings, settingsPath);
-		_window = new MainWindow(viewModel);
-		StartNotifications(viewModel, _window);
-		_window.Closed += (_, _) =>
+		_themes = new ArticleThemes(Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources"), Path.Combine(DataDirectory, "Themes"));
+		_themeInstaller = new ArticleThemeInstaller(_themes, _downloader);
+		_extractor = new ArticleExtractor(_downloader);
+		var window = OpenWindow(isPrimary: true);
+		StartNotifications(window.ViewModel, window);
+		window.Activate();
+	}
+
+	/// <summary>A main window over the shared accounts. Windows after the first start empty, a little below and to the right of the last.</summary>
+	private MainWindow OpenWindow(bool isPrimary)
+	{
+		var viewModel = new MainViewModel(_accounts, _favicons, _themes, _themeInstaller, _extractor, _settings, _settingsPath, _activity, isPrimary);
+		var window = new MainWindow(viewModel);
+		if (!isPrimary && _windows.LastOrDefault() is { } previous)
 		{
-			accounts.Dispose();
-			downloader.Dispose();
-		};
-		_window.Activate();
+			var bounds = previous.AppWindow;
+			window.AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(bounds.Position.X + 32, bounds.Position.Y + 32, bounds.Size.Width, bounds.Size.Height));
+		}
+		_windows.Add(window);
+		window.NewWindowRequested += (_, _) => OpenWindow(isPrimary: false).Activate();
+		window.Closed += (_, _) => OnWindowClosed(window);
+		return window;
+	}
+
+	private void OnWindowClosed(MainWindow window)
+	{
+		_windows.Remove(window);
+		if (_windows.Count == 0)
+		{
+			_accounts.Dispose();
+			_downloader.Dispose();
+		}
+		else if (window.ViewModel.IsPrimary)
+		{
+			// The window the app opened with is gone; another takes over the refresh timer and notifications.
+			var next = _windows[0];
+			next.BecomePrimary();
+			StartNotifications(next.ViewModel, next);
+		}
 	}
 
 	/// <summary>New-article notifications, cleared when the window closes, since their buttons work only while it's open.</summary>
