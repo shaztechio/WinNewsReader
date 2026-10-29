@@ -33,6 +33,11 @@ NetNewsWire registered one app with each service. The app ID and key (Inoreader)
 2. Check whether users need a paid Feedly plan to use it.
 3. If granted: add the secrets, build a Feedly account (OAuth sign-in in a browser, token refresh, the streams and markers API, which is different from the Reader API, so a new project like Feedbin and NewsBlur), then add it to the Add Account list.
 
+## Requests sent
+
+- 2026-10-29: access requests sent to Inoreader's support team and to Feedly's sales team, describing WinNewsReader as a free, open-source Windows port of NetNewsWire. Inoreader was asked whether it qualifies for free API access, whether users need Pro, and what the rate limits are. Feedly was asked how to apply for production Cloud API access, and which plan users need.
+- Replies: none yet. Record them here, and update the matrix rows AC-04 (Inoreader) and AC-08 (Feedly).
+
 ## Status
 
 Neither is started. Inoreader is the smaller piece of work once keys exist, since it reuses the Reader API client. Feedly is a new client. Neither blocks anything else.
