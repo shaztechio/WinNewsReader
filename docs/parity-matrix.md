@@ -25,13 +25,13 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 163 |
-| Partial | 8 |
+| Done | 164 |
+| Partial | 1 |
 | Open | 4 |
-| Unchecked | 35 |
-| Installer | 6 |
+| Unchecked | 36 |
+| Installer | 8 |
 | Keys | 2 |
-| Dropped | 19 |
+| Dropped | 22 |
 | **Total** | **237** |
 
 By section:
@@ -42,18 +42,18 @@ By section:
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
 | Main window and layout | 10 |  |  | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
-| Sidebar | 13 | 1 |  | 6 |  |  |  |
+| Sidebar | 13 |  |  | 7 |  |  |  |
 | Smart feeds and timeline | 14 |  |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
-| Article view | 12 | 1 |  | 1 |  |  |  |
+| Article view | 12 |  |  | 1 | 1 |  |  |
 | Feed management and import/export | 4 |  |  | 3 |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
-| Notifications | 3 | 1 |  |  |  |  |  |
+| Notifications | 3 |  |  |  | 1 |  |  |
 | Preferences | 9 | 1 |  | 3 | 3 |  | 2 |
 | Utility windows | 4 |  |  | 2 | 1 |  | 1 |
-| Other | 4 | 3 |  |  | 2 |  |  |
+| Other | 5 |  |  |  | 2 |  | 2 |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
-| Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
+| Single-key shortcuts (global) | 14 |  |  |  |  |  | 1 |
 | Timeline and article | 4 |  |  |  |  |  |  |
 | Menu shortcuts | 24 |  |  | 18 |  |  |  |
 
@@ -145,7 +145,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SB-01 | Accounts as groups, folders, feeds | `SidebarViewController.swift` | Port | Done | UI: tree matches imported OPML |
 | SB-02 | Unread counts: show, dot, hide | `UnreadCountDisplay.swift` | Port | Done | UI: each setting renders |
 | SB-03 | Favicons and feed icons | `Modules/Images`, `IconImageCache.swift` | Port | Done | UI: icons load; cache folder populated |
-| SB-04 | Drag and drop: move feeds/folders, between accounts | `SidebarOutlineDataSource.swift` | Port | Partial: feeds, within and between accounts; folders can't be dragged | UI: drag moves feed; sync account reflects it |
+| SB-04 | Drag and drop: move feeds/folders, between accounts | `SidebarOutlineDataSource.swift` | Port | Unchecked: feeds drag within and between accounts, and now folders drag to another account (they move with their feeds; the transfer is unit tested); dragging needs a mouse and, for a folder, a second account | UI: drag moves feed; sync account reflects it |
 | SB-05 | Drag URL or feed onto sidebar to subscribe | `PasteboardFeed.swift` | Port | Unchecked: built (drop on a row picks its account and folder); dragging needs a mouse, not tried; address parsing is unit tested | UI: dropping a URL opens Add Feed |
 | SB-06 | Inline rename | `Sidebar/Renaming` | Port | Unchecked: Rename… and F2 rename in place; driven from the status bar menu, committing by moving focus; Enter and Esc not pressed | UI: F2 / Rename edits in place |
 | SB-07 | Delete with confirmation, undo | `SidebarDeleteItemsAlert.swift` | Port | Unchecked: asks first; undo built (store steps tested), delete not driven in the app | UI: delete asks; Ctrl+Z restores |
@@ -196,7 +196,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | --- | --- | --- | --- | --- | --- |
 | AV-01 | HTML template, core and stylesheet CSS, scripts | `Shared/Article Rendering` | Port | Done | Side-by-side screenshot of 10 fixture articles |
 | AV-02 | Bundled themes (Default, Appanoose, Biblioteca, Hyperlegible, NewsFax, Promenade, Sepia, Tiqoe Dark, Verdana Revival) | `Resources/Themes` | Port | Done | Side-by-side screenshot per theme |
-| AV-03 | `.nnwtheme` import by double-click | Info.plist doc type | Port | Partial: Install Theme… takes a zip or Info.plist; double-click needs the installer | UI: opening a file installs the theme |
+| AV-03 | `.nnwtheme` import by double-click | Info.plist doc type | Port | Installer: Install Theme… takes a zip or Info.plist now; opening a .nnwtheme by double-click needs the installer to register the file type | UI: opening a file installs the theme |
 | AV-04 | Theme download from http(s) URL (zip) | `ArticleThemeDownloader.swift` | Port | Done | Unit: download, unzip, install; rejects non-http |
 | AV-05 | Open Themes Folder | `showThemesFolder:` | Port | Done | UI: Explorer opens folder |
 | AV-06 | Article text size: S, M, L, XL, XXL | `ArticleTextSize.swift` | Port | Done | UI: each size changes rendered CSS |
@@ -239,7 +239,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | --- | --- | --- | --- | --- |
 | NT-01 | New-article toast per feed | Port | Done | Windows toasts via AppUserModelID + COM activator. UI: toast appears |
 | NT-02 | Toast actions: Mark as Read, Mark as Starred | Port | Done | UI: action updates state without opening app |
-| NT-03 | Clicking toast opens article | Port | Partial: only while the app is running | UI |
+| NT-03 | Clicking toast opens article | Port | Installer: clicking a toast opens the article while the app is running; starting the app from a toast needs the installer's app registration | UI |
 | NT-04 | Dock/badge unread count | Port | Done | Taskbar badge. UI: badge shows count |
 
 ## Preferences
@@ -283,13 +283,13 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | ID | Feature | Decision | Status | Test / reason |
 | --- | --- | --- | --- | --- |
 | OT-01 | Dark mode, follows system | Port | Done | UI: theme switches live |
-| OT-02 | Open in browser, foreground or background | Port | Partial: foreground only | UI |
+| OT-02 | Open in browser, foreground or background | Port | Dropped: Windows gives no way to open a browser tab in the background from another app (see PR-06) | UI |
 | OT-03 | `feed:`, `feeds:`, app-named scheme URLs open Add Feed | Port | Installer: needs the installer | HKCU registration. UI: launching URL opens sheet |
 | OT-04 | Register as default feed reader | Port | Installer: needs the installer | Installer writes handler; removed on uninstall |
 | OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Done: help, keyboard shortcuts, website, release notes (the site's news page), source code and bug tracker; no forum, since the repository has no discussions | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
 | OT-06 | Open Application Support folder | Port | Done | Opens `%LOCALAPPDATA%\<AppName>` |
-| OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Partial: Web Inspector, icon cache folder and rebuild search index; no crash tests (nothing to test them against) | Behind PR-14 |
-| OT-08 | Accessibility | Port | Partial: names on the controls; no Narrator pass yet | Narrator / UI Automation names on every control |
+| OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Dropped: Web Inspector, icon cache folder and rebuild search index are in the hidden Debug menu; there is no crash reporter here to test with crash items (see UW-08) | Behind PR-14 |
+| OT-08 | Accessibility | Port | Done: every interactive control in the main window, Preferences and the utility windows has an accessible name (checked through UI Automation); no Narrator listening pass | Narrator / UI Automation names on every control |
 | SH-01 | Share (macOS sharing services on the Mac) | Port | Done | Windows' share sheet with the article's title and link; see TB-10 |
 
 ## Dropped Apple-only features
@@ -329,7 +329,7 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | `o` | `o` | Mark older as read | Done |
 | `s` | `s` | Toggle starred | Done |
 | `b`, Return, keypad Enter | same | Open in browser | Done |
-| Shift+`b`, Shift+Return, Shift+keypad Enter | same | Open in browser, opposite of background setting | Partial: opens normally; Windows can't open in the background |
+| Shift+`b`, Shift+Return, Shift+keypad Enter | same | Open in browser, opposite of background setting | Dropped: Windows can't open a browser tab in the background (see PR-06); the keys open it normally |
 | `a` | `a` | Previous feed | Done |
 | `z` | `z` | Next feed | Done |
 | Cmd+`'` | Ctrl+`'` | Clean up | Done |

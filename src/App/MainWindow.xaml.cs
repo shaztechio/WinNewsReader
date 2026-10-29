@@ -302,10 +302,18 @@ public sealed partial class MainWindow : Window
 	// app decide.
 
 	private SidebarItem? _draggedFeed;
+	private SidebarItem? _draggedFolder;
 
 	private void OnSidebarDragItemsStarting(TreeView sender, TreeViewDragItemsStartingEventArgs args)
 	{
-		if (args.Items.FirstOrDefault() is SidebarItem { Kind: SidebarItemKind.Feed, Feed: { } feed } item)
+		if (args.Items.FirstOrDefault() is SidebarItem { Kind: SidebarItemKind.Folder } folderItem)
+		{
+			// A folder can go to another account, taking its feeds.
+			_draggedFolder = folderItem;
+			args.Data.SetText(folderItem.Title);
+			args.Data.RequestedOperation = DataPackageOperation.Move | DataPackageOperation.Copy;
+		}
+		else if (args.Items.FirstOrDefault() is SidebarItem { Kind: SidebarItemKind.Feed, Feed: { } feed } item)
 		{
 			_draggedFeed = item;
 			// Dropped on another app, the feed is its URL.
@@ -318,7 +326,11 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	private void OnSidebarDragItemsCompleted(TreeView sender, TreeViewDragItemsCompletedEventArgs args) => _draggedFeed = null;
+	private void OnSidebarDragItemsCompleted(TreeView sender, TreeViewDragItemsCompletedEventArgs args)
+	{
+		_draggedFeed = null;
+		_draggedFolder = null;
+	}
 
 	/// <summary>
 	/// NetNewsWire's drop rules: a folder or an account's top level. Within an account its own rules apply; another account
@@ -333,7 +345,12 @@ public sealed partial class MainWindow : Window
 			var place = target.Account != feed.Account && target.Kind == SidebarItemKind.Folder ? $"{target.Account!.Name} › {target.Title}" : target.Title;
 			e.DragUIOverride.Caption = $"{(copy ? "Copy" : "Move")} to {place}";
 		}
-		else if (_draggedFeed is null && CanSubscribeFrom(e.DataView))
+		else if (_draggedFolder is { } folder && DataContextOf(sender as FrameworkElement) is SidebarItem folderTarget && MainViewModel.CanDropFolder(folder, folderTarget))
+		{
+			e.AcceptedOperation = copy ? DataPackageOperation.Copy : DataPackageOperation.Move;
+			e.DragUIOverride.Caption = $"{(copy ? "Copy" : "Move")} to {folderTarget.Account!.Name}";
+		}
+		else if (_draggedFeed is null && _draggedFolder is null && CanSubscribeFrom(e.DataView))
 		{
 			e.AcceptedOperation = DataPackageOperation.Copy;
 			e.DragUIOverride.Caption = "Subscribe";
@@ -418,7 +435,17 @@ public sealed partial class MainWindow : Window
 			_draggedFeed = null;
 			await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(feed, target.Account!, target.Folder, copy));
 		}
-		else if (_draggedFeed is null && CanSubscribeFrom(e.DataView))
+		else if (_draggedFolder is { } folder && DataContextOf(sender as FrameworkElement) is SidebarItem folderTarget && MainViewModel.CanDropFolder(folder, folderTarget))
+		{
+			_draggedFolder = null;
+			string? problem = null;
+			await RunReportingErrorsAsync("Couldn’t Move Folder", async () => problem = await ViewModel.MoveFolderAsync(folder, folderTarget.Account!, copy));
+			if (problem is not null)
+			{
+				await ShowMessageAsync("Couldn’t Move Folder", problem);
+			}
+		}
+		else if (_draggedFeed is null && _draggedFolder is null && CanSubscribeFrom(e.DataView))
 		{
 			var deferral = e.GetDeferral();
 			try

@@ -935,6 +935,22 @@ public sealed partial class MainViewModel : ObservableObject
 		};
 	}
 
+	/// <summary>A folder can be dropped on another account, or on a folder in it, to move it there with its feeds.</summary>
+	public static bool CanDropFolder(SidebarItem folderItem, SidebarItem target) =>
+		folderItem is { Kind: SidebarItemKind.Folder, Account: { } account }
+		&& target.Kind is SidebarItemKind.Folder or SidebarItemKind.AccountGroup
+		&& target.Account is { } targetAccount && targetAccount != account;
+
+	/// <summary>Moves or copies a folder, and its feeds, to another account. Returns what couldn't be moved, or null if it all was.</summary>
+	public async Task<string?> MoveFolderAsync(SidebarItem folderItem, IAccount toAccount, bool copy)
+	{
+		var account = folderItem.Account!;
+		var feeds = folderItem.Children.Where(child => child.Feed is not null).Select(child => child.Feed!).ToList();
+		var result = await Task.Run(() => FeedTransfer.TransferFolderAsync(account, folderItem.Folder!, feeds, toAccount, copy));
+		LoadSidebar();
+		return result.Failed.Count == 0 ? null : $"{string.Join(", ", result.Failed.Take(5))}{(result.Failed.Count > 5 ? ", …" : "")} couldn’t be added to {toAccount.Name}, so nothing was removed from {account.Name}.";
+	}
+
 	/// <summary>
 	/// Moves or copies a feed row to a folder, or the top level when <paramref name="to"/> is null, in its own account or
 	/// another one. Another account subscribes to the feed and, for a move, it's then removed here. The feed ends up selected
