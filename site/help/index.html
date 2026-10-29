@@ -29,6 +29,7 @@
 				<li><a href="#subscribing">Subscribing to feeds</a></li>
 				<li><a href="#organizing">Folders and organizing</a></li>
 				<li><a href="#reading">Reading</a></li>
+				<li><a href="#windows">Activity, errors and stale feeds</a></li>
 				<li><a href="#undo">Undo</a></li>
 				<li><a href="#find">Find in an article</a></li>
 				<li><a href="#reader-view">Reader View</a></li>
@@ -59,7 +60,7 @@
 			</figure>
 			<p>The <strong>+▾</strong> menu over the sidebar is where most of the less-used commands live:</p>
 			<figure class="shot narrow">
-				<img src="images/new-menu.png" width="292" height="813" alt="The +▾ menu, listing New Feed, New Folder, Import and Export Subscriptions, Add FreshRSS Account, Hide Read Feeds, sort order, Clean Up, Article Theme, Text Size, Enable JavaScript, Undo and Redo, Hide Toolbar, Find in Article, Full Screen, Preferences and Help." loading="lazy">
+				<img src="images/new-menu.png" width="292" height="853" alt="The +▾ menu, listing New Feed, New Folder, Import and Export Subscriptions, Add FreshRSS Account, Hide Read Feeds, sort order, Clean Up, Article Theme, Text Size, Enable JavaScript, Undo and Redo, Hide Toolbar, Window, Find in Article, Full Screen, Preferences and Help." loading="lazy">
 				<figcaption>The +▾ menu.</figcaption>
 			</figure>
 		</section>
@@ -95,6 +96,27 @@
 		<section id="undo">
 			<h2>Undo</h2>
 			<p><kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes the last time you marked articles read or unread, starred or unstarred, marked a whole feed or list as read, or deleted a feed or folder. The <strong>+▾</strong> menu names what it will undo, such as <strong>Undo Mark All as Read</strong>, and <kbd>Ctrl</kbd>+<kbd>Y</kbd> redoes it. Undoing a delete subscribes to the feed again, in its folder and with the name you gave it; its articles come back at the next refresh, but the ones that were deleted with it, and whether you'd read or starred them, don't.</p>
+		</section>
+
+		<section id="windows">
+			<h2>Activity, errors and stale feeds</h2>
+			<p>Five small windows come from NetNewsWire's Window menu. Open them from <strong>+▾ → Window</strong>.</p>
+			<ul>
+				<li><strong>Current Activity</strong> (<kbd>Ctrl</kbd>+<kbd>7</kbd>) lists the feeds being downloaded right now.</li>
+				<li><strong>Activity Log</strong> (<kbd>Ctrl</kbd>+<kbd>8</kbd>) lists what each refresh did, feed by feed, newest first. <strong>Copy</strong> copies the selected lines, or all of them, and <strong>Clear</strong> empties the log.</li>
+				<li><strong>Error Log</strong> (<kbd>Ctrl</kbd>+<kbd>9</kbd>) shows only the feeds that couldn't be downloaded or weren't feeds, and why.</li>
+				<li><strong>Account Stats</strong> counts the feeds, folders, articles, unread and starred articles in each account.</li>
+				<li><strong>Dinosaurs</strong> (<kbd>Ctrl</kbd>+<kbd>6</kbd>) lists the feeds that haven't had a new article in six months. Select some to open their home pages, copy their addresses or delete them, and <strong>Undo Delete</strong> subscribes again.</li>
+			</ul>
+			<figure class="shot narrow">
+				<img src="images/activity-log.png" width="744" height="512" alt="The Activity Log window, listing each feed’s refresh result with the time, such as “Not modified” or “0 new articles”." loading="lazy">
+				<figcaption>The Activity Log.</figcaption>
+			</figure>
+			<figure class="shot narrow">
+				<img src="images/dinosaurs.png" width="624" height="472" alt="The Dinosaurs window, listing one feed, Julia Evans, whose last article was in February, with buttons to open its home page, copy its URL or delete it." loading="lazy">
+				<figcaption>Dinosaurs.</figcaption>
+			</figure>
+			<p>The logs are kept while WinNewsReader is open, and start empty each time it starts.</p>
 		</section>
 
 		<section id="find">
@@ -235,6 +257,7 @@
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Mark above / below as read</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd></td><td>Copy the article URL / external URL</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>→</kbd></td><td>Open in browser (with the article focused)</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>6</kbd>, <kbd>7</kbd>, <kbd>8</kbd>, <kbd>9</kbd></td><td>Dinosaurs, Current Activity, Activity Log, Error Log</td></tr>
 				<tr><td><kbd>F11</kbd></td><td>Full screen</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd></td><td>Hide or show the toolbar (with it hidden, right-click empty space in the sidebar for Show Toolbar)</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Bring the main window forward</td></tr>

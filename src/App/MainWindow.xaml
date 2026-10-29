@@ -107,6 +107,14 @@
                                 <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="False" Click="OnRedo" KeyboardAcceleratorTextOverride="Ctrl+Y" />
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="Hide Toolbar" Click="OnToggleToolbar" KeyboardAcceleratorTextOverride="Ctrl+Alt+T" />
+                                <!-- NetNewsWire's Window menu: its small utility windows. -->
+                                <MenuFlyoutSubItem Text="Window">
+                                    <MenuFlyoutItem Text="Dinosaurs" Tag="Dinosaurs" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+6" />
+                                    <MenuFlyoutItem Text="Current Activity" Tag="CurrentActivity" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+7" />
+                                    <MenuFlyoutItem Text="Activity Log" Tag="ActivityLog" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+8" />
+                                    <MenuFlyoutItem Text="Error Log" Tag="ErrorLog" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+9" />
+                                    <MenuFlyoutItem Text="Account Stats" Tag="AccountStats" Click="OnUtilityWindow" />
+                                </MenuFlyoutSubItem>
                                 <MenuFlyoutItem Text="Find in Article…" Click="OnFindInArticle" KeyboardAcceleratorTextOverride="Ctrl+F" />
                                 <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
                                 <MenuFlyoutSeparator />

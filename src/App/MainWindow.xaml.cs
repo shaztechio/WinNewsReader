@@ -872,6 +872,35 @@ public sealed partial class MainWindow : Window
 		_preferences.Activate();
 	}
 
+	// NetNewsWire's utility windows: each opens once and is brought forward if it's already open.
+	private readonly Dictionary<string, Window> _utilityWindows = [];
+
+	private void OnUtilityWindow(object sender, RoutedEventArgs e)
+	{
+		if (sender is FrameworkElement { Tag: string key })
+		{
+			OpenUtilityWindow(key);
+		}
+	}
+
+	private void OpenUtilityWindow(string key)
+	{
+		if (!_utilityWindows.TryGetValue(key, out var window))
+		{
+			window = key switch
+			{
+				"Dinosaurs" => new DinosaursWindow(ViewModel),
+				"CurrentActivity" => new CurrentActivityWindow(ViewModel),
+				"ActivityLog" => new ActivityLogWindow(ViewModel, errorsOnly: false),
+				"ErrorLog" => new ActivityLogWindow(ViewModel, errorsOnly: true),
+				_ => new AccountStatsWindow(ViewModel),
+			};
+			_utilityWindows[key] = window;
+			window.Closed += (_, _) => _utilityWindows.Remove(key);
+		}
+		window.Activate();
+	}
+
 	/// <summary>NetNewsWire's double-click on a feed: its home page opens in the browser.</summary>
 	private void OnSidebarDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
 	{
@@ -1681,6 +1710,10 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.W, Ctrl, null, Close);
 		Add(VirtualKey.F11, None, null, ToggleFullScreen);
 		Add(VirtualKey.T, CtrlAlt, null, ToggleToolbar);
+		Add(VirtualKey.Number6, Ctrl, null, () => OpenUtilityWindow("Dinosaurs"));
+		Add(VirtualKey.Number7, Ctrl, null, () => OpenUtilityWindow("CurrentActivity"));
+		Add(VirtualKey.Number8, Ctrl, null, () => OpenUtilityWindow("ActivityLog"));
+		Add(VirtualKey.Number9, Ctrl, null, () => OpenUtilityWindow("ErrorLog"));
 		Add(VirtualKey.Z, Ctrl, null, () => _ = UndoAsync());
 		Add(VirtualKey.Y, Ctrl, null, () => _ = RedoAsync());
 		Add(VirtualKey.Z, CtrlShift, null, () => _ = RedoAsync());

@@ -11,6 +11,9 @@ public sealed record StoredFeed(string FeedId, string Url, string? Name, string?
 	public string? EditedName { get; init; }
 }
 
+/// <summary>The counts in NetNewsWire's Account Stats window.</summary>
+public sealed record StoreStatistics(int Feeds, int Folders, int Articles, int Unread, int Starred);
+
 public enum StatusKey
 {
 	Read,
@@ -514,6 +517,52 @@ public sealed class ArticlesStore : IDisposable
 				counts[reader.GetString(0)] = reader.GetInt32(1);
 			}
 			return counts;
+		}
+	}
+
+	/// <summary>NetNewsWire's Account Stats: what the account holds.</summary>
+	public StoreStatistics Statistics()
+	{
+		lock (_lock)
+		{
+			int Count(string sql)
+			{
+				using var command = Command(sql);
+				return Convert.ToInt32(command.ExecuteScalar());
+			}
+
+			return new StoreStatistics(
+				Count("SELECT COUNT(*) FROM feeds"),
+				Count("SELECT COUNT(*) FROM folders"),
+				Count("SELECT COUNT(*) FROM articles"),
+				Count("SELECT COUNT(*) FROM statuses s JOIN articles a ON a.articleID = s.articleID WHERE s.read = 0"),
+				Count("SELECT COUNT(*) FROM statuses s JOIN articles a ON a.articleID = s.articleID WHERE s.starred = 1"));
+		}
+	}
+
+	/// <summary>
+	/// The date of each feed's newest article, or when the feed was added if it has none, for the Dinosaurs window.
+	/// </summary>
+	public IReadOnlyDictionary<string, DateTimeOffset> NewestArticleDates()
+	{
+		lock (_lock)
+		{
+			using var command = Command(
+				"""
+				SELECT f.feedID, COALESCE(MAX(COALESCE(a.datePublished, a.dateModified, s.dateArrived)), f.dateAdded)
+				FROM feeds f LEFT JOIN articles a ON a.feedID = f.feedID LEFT JOIN statuses s ON s.articleID = a.articleID
+				GROUP BY f.feedID
+				""");
+			using var reader = command.ExecuteReader();
+			var dates = new Dictionary<string, DateTimeOffset>();
+			while (reader.Read())
+			{
+				if (FromDb(reader, 1) is { } date)
+				{
+					dates[reader.GetString(0)] = date;
+				}
+			}
+			return dates;
 		}
 	}
 

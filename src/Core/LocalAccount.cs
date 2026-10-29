@@ -123,7 +123,43 @@ public sealed class LocalAccount(ArticlesStore store, FeedDownloader downloader)
 		return await Task.WhenAll(tasks);
 	}
 
+	/// <summary>Where refreshes report what they're doing, for the Current Activity, Activity Log and Error Log windows.</summary>
+	public ActivityLog? Activity { get; set; }
+
 	public async Task<FeedRefreshResult> RefreshAsync(StoredFeed feed, CancellationToken cancellationToken = default)
+	{
+		var name = Core.NameSorting.DisplayName(feed);
+		var token = Activity?.Started(Name, name);
+		try
+		{
+			var result = await RefreshCoreAsync(feed, cancellationToken);
+			if (Activity is { } activity)
+			{
+				switch (result.Status)
+				{
+					case DownloadStatus.Failed:
+						activity.Add(ActivityLevel.Error, Name, name, result.Error ?? "Couldn’t download the feed");
+						break;
+					case DownloadStatus.NotModified:
+						activity.Add(ActivityLevel.Info, Name, name, "Not modified");
+						break;
+					default:
+						activity.Add(ActivityLevel.Info, Name, name, result.NewArticles == 1 ? "1 new article" : $"{result.NewArticles} new articles");
+						break;
+				}
+			}
+			return result;
+		}
+		finally
+		{
+			if (token is not null)
+			{
+				Activity!.Finished(token);
+			}
+		}
+	}
+
+	private async Task<FeedRefreshResult> RefreshCoreAsync(StoredFeed feed, CancellationToken cancellationToken)
 	{
 		var download = await downloader.DownloadAsync(feed.Url, feed.ETag, feed.LastModified, cancellationToken);
 		if (download.Status != DownloadStatus.Ok)

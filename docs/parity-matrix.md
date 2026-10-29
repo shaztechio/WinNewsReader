@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 140 |
+| Done | 144 |
 | Partial | 17 |
-| Open | 33 |
-| Unchecked | 20 |
+| Open | 23 |
+| Unchecked | 26 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -46,16 +46,16 @@ By section:
 | Smart feeds and timeline | 9 | 1 | 5 |  |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 11 | 1 | 1 | 1 |  |  |  |
-| Feed management and import/export | 1 | 3 | 3 |  |  |  | 1 |
+| Feed management and import/export | 2 | 3 | 2 |  |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
 | Preferences | 7 | 1 | 2 | 3 | 3 |  | 2 |
-| Utility windows | 1 | 1 | 4 |  | 1 |  | 1 |
+| Utility windows | 3 | 1 |  | 2 | 1 |  | 1 |
 | Other | 3 | 3 | 1 |  | 2 |  |  |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
-| Menu shortcuts | 22 | 1 | 6 | 13 |  |  |  |
+| Menu shortcuts | 23 | 1 | 1 | 17 |  |  |  |
 
 ## Findings that change the plan
 
@@ -220,7 +220,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | FD-05 | Export OPML from chosen account | `exportOPML:` | Port | Partial: On This PC only | Unit: export, re-import, same tree |
 | FD-06 | Import NNW 3 subscriptions | `importNNW3FromFile:` | Drop | Dropped | Legacy Mac-only file format |
 | FD-07 | Add NetNewsWire News feed (Help menu) | `addAppNews:` | Port | Open: no app news feed | Point at this app's own news feed |
-| FD-08 | Dinosaurs window: feeds not updated in N months (default 6), select, delete, open home page, copy URL, undo | `Mac/Dinosaurs` | Port | Open: no Dinosaurs window | UI: stale fixture feed listed; delete undoes |
+| FD-08 | Dinosaurs window: feeds not updated in N months (default 6), select, delete, open home page, copy URL, undo | `Mac/Dinosaurs` | Port | Done | UI: stale fixture feed listed; delete undoes |
 
 ## Inspector
 
@@ -269,10 +269,10 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 
 | ID | Feature | Mac source | Decision | Status | Test / reason |
 | --- | --- | --- | --- | --- | --- |
-| UW-01 | Current Activity (refresh progress per feed) | `Mac/CurrentActivity` | Port | Open | UI |
-| UW-02 | Activity Log | `Mac/ActivityLog` | Port | Open | UI |
-| UW-03 | Error Log | `Mac/ErrorLog` | Port | Open | UI: parse failure logged |
-| UW-04 | Account Stats | `Mac/AccountStats` | Port | Open | UI |
+| UW-01 | Current Activity (refresh progress per feed) | `Mac/CurrentActivity` | Port | Unchecked: window opens and updates; a download under way wasn't caught on screen (unit tested) | UI |
+| UW-02 | Activity Log | `Mac/ActivityLog` | Port | Done | UI |
+| UW-03 | Error Log | `Mac/ErrorLog` | Port | Unchecked: window opens; a logged failure wasn't shown on screen (unit tested) | UI: parse failure logged |
+| UW-04 | Account Stats | `Mac/AccountStats` | Port | Done | UI |
 | UW-05 | iCloud Storage Stats | `Mac/CloudKitStats` | Drop | Dropped | iCloud dropped |
 | UW-06 | Keyboard Shortcuts window | `KeyboardShortcuts.html` | Port | Partial: a section of the help page, not a window | Regenerate from this app's map |
 | UW-07 | About window, credits | `Mac/About`, `Credits.rtf` | Port | Done | Credit NetNewsWire and MIT notice |
@@ -393,11 +393,11 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | Article | Open in Browser Inverted | Shift+Cmd+Right | Ctrl+Shift+Right | Unchecked: Ctrl+Shift+Right built, not pressed |
 | Window | Main Window | Cmd+0 | Ctrl+0 | Unchecked: Ctrl+0 built, not pressed |
 | Window | Info (Inspector) | Cmd+I | Ctrl+I | Done |
-| Window | Dinosaurs | Cmd+6 | Ctrl+6 | Open: no window |
-| Window | Current Activity | Cmd+7 | Ctrl+7 | Open: no window |
-| Window | Activity Log | Cmd+8 | Ctrl+8 | Open: no window |
-| Window | Error Log | Cmd+9 | Ctrl+9 | Open: no window |
-| Window | Account Stats | none | none | Open: no window |
+| Window | Dinosaurs | Cmd+6 | Ctrl+6 | Unchecked: Ctrl+6 built, not pressed; the +▾ menu opens it |
+| Window | Current Activity | Cmd+7 | Ctrl+7 | Unchecked: Ctrl+7 built, not pressed; the +▾ menu opens it |
+| Window | Activity Log | Cmd+8 | Ctrl+8 | Unchecked: Ctrl+8 built, not pressed; the +▾ menu opens it |
+| Window | Error Log | Cmd+9 | Ctrl+9 | Unchecked: Ctrl+9 built, not pressed; the +▾ menu opens it |
+| Window | Account Stats | none | none | Done |
 | Help | Help | Cmd+? | F1 | Done |
 | Help | Keyboard Shortcuts | none | none | Done |
 

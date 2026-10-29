@@ -32,9 +32,13 @@ public sealed partial class MainViewModel : ObservableObject
 	private bool _rebuildingSidebar;
 	private bool _restoringSelection;
 
+	/// <summary>What refreshes have done, for the Current Activity, Activity Log and Error Log windows.</summary>
+	public ActivityLog Activity { get; } = new();
+
 	public MainViewModel(AccountManager accounts, FaviconDownloader favicons, ArticleThemes themes, ArticleThemeInstaller themeInstaller, ArticleExtractor extractor, AppSettings settings, string settingsPath)
 	{
 		_accounts = accounts;
+		accounts.LocalAccount.Activity = Activity;
 		_favicons = favicons;
 		Themes = themes;
 		ThemeInstaller = themeInstaller;
@@ -573,7 +577,24 @@ public sealed partial class MainViewModel : ObservableObject
 		try
 		{
 			// Parsing is CPU-bound, so keep the whole refresh off the UI thread. Accounts refresh side by side.
-			var results = await Task.WhenAll(Accounts.ToList().Select(account => Task.Run(() => account.RefreshAllAsync())));
+			var refreshing = Accounts.ToList();
+			var results = await Task.WhenAll(refreshing.Select(account => Task.Run(() => account.RefreshAllAsync())));
+			// The local account logs feed by feed as it goes; a sync account reports once, when it's done.
+			for (var i = 0; i < refreshing.Count; i++)
+			{
+				if (refreshing[i].Kind == AccountKind.Local)
+				{
+					continue;
+				}
+				if (results[i].Error is { } error)
+				{
+					Activity.Add(ActivityLevel.Error, refreshing[i].Name, null, error);
+				}
+				else
+				{
+					Activity.Add(ActivityLevel.Info, refreshing[i].Name, null, results[i].NewArticles == 1 ? "Synced: 1 new article" : $"Synced: {results[i].NewArticles} new articles");
+				}
+			}
 			if (Settings.HideReadFeeds || Accounts.Any(account => account.Kind != AccountKind.Local))
 			{
 				// Feeds with new articles may need to come back, and a sync account's feed list may have changed.
@@ -857,6 +878,10 @@ public sealed partial class MainViewModel : ObservableObject
 	/// A local feed is removed from the folder or top level it's shown in; a sync feed is unsubscribed, as in
 	/// NetNewsWire. A folder goes with its feeds.
 	/// </summary>
+	/// <summary>Every row in the sidebar for the feed: one for each folder it's in, or the top level.</summary>
+	public IReadOnlyList<SidebarItem> RowsForFeed(IAccount account, string feedId) =>
+		[.. AllSidebarItems().Where(item => item.Account == account && item.Feed?.FeedId == feedId)];
+
 	public async Task DeleteAsync(SidebarItem item)
 	{
 		var account = item.Account!;
