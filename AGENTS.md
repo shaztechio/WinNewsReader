@@ -1,0 +1,27 @@
+# WinNewsReader
+
+A native Windows feed reader (.NET 10, WinUI 3, WebView2, SQLite) aiming for feature parity with NetNewsWire for Mac. See [README.md](README.md) for the layout of the repository and how to build and run it.
+
+## Documents
+
+Read the one that matches the task before starting.
+
+| File | What it is |
+| --- | --- |
+| [docs/PLAN.md](docs/PLAN.md) | The plan, with a checkbox per piece of work. Tick boxes as work lands |
+| [docs/parity-matrix.md](docs/parity-matrix.md) | Every NetNewsWire feature, its status (Done, Unchecked, Keys, Dropped and so on) and how it is tested. Keep the status and the counts at the top current |
+| [docs/MANUAL-TEST-CHECKLIST.md](docs/MANUAL-TEST-CHECKLIST.md) | Steps for the features that are built but not yet confirmed by hand, and the real-account checks for the sync services |
+| [docs/FUTURE-SYNC-SERVICES.md](docs/FUTURE-SYNC-SERVICES.md) | Inoreader and Feedly: why they aren't built, what access they need, and what to do once it exists |
+| [docs/RELEASING.md](docs/RELEASING.md) | How a release is built and published (Velopack installer, GitHub Release, the update feed on winnewsreader.com) |
+| [docs/winnewsreader.com.zone](docs/winnewsreader.com.zone) | The DNS records for the website |
+
+The website is in `site/` (GitHub Pages): the help page is `site/help/index.html`, so a change to what the app does usually needs a change there too.
+
+## Working here
+
+- NetNewsWire's source is the reference. Read it with `gh api repos/Ranchero-Software/NetNewsWire/contents/<path>` rather than guessing its behavior.
+- Run all tests with `dotnet test` from the repository root. Sync accounts are tested against in-memory fake servers in `tests/Sync.*.Tests`.
+- The app locks its own DLLs while it runs: close `WinNewsReader.exe` before building.
+- Commit only when asked, and push right after every commit. End commit messages with the `Co-Authored-By` line the tooling gives.
+- Keep the repository private for now.
+- Never commit secrets (API keys, passwords). Release-time keys belong in GitHub Actions repository secrets.

@@ -1,6 +1,6 @@
 # WinNewsReader
 
-A native Windows feed reader aiming for feature parity with the [NetNewsWire](https://github.com/Ranchero-Software/NetNewsWire) Mac app. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/parity-matrix.md](docs/parity-matrix.md) for the feature inventory.
+A native Windows feed reader aiming for feature parity with the [NetNewsWire](https://github.com/Ranchero-Software/NetNewsWire) Mac app. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/parity-matrix.md](docs/parity-matrix.md) for the feature inventory. [docs/MANUAL-TEST-CHECKLIST.md](docs/MANUAL-TEST-CHECKLIST.md) lists what still needs testing by hand, [docs/FUTURE-SYNC-SERVICES.md](docs/FUTURE-SYNC-SERVICES.md) covers the Inoreader and Feedly sync services that are not built yet, and [AGENTS.md](AGENTS.md) indexes all the documents for people and tools working in the repository.
 
 <img src="src/App/Assets/AppIcon.png" width="96" align="right" alt="">
 
