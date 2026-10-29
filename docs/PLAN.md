@@ -174,7 +174,7 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
   - [x] About window, Open App Data Folder, Hide/Show Toolbar (Ctrl+Alt+T) and the hidden preferences SuppressRefreshOnLaunch, ArticleTitleInWindowTitle and DoubleClickFeedMarksRead (in settings.json). About and Hide Toolbar were driven in the running app; the three preferences have a settings test only.
   - [x] Undo and redo (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z, and Undo/Redo in the +▾ menu, which names the command) for mark read/unread, star/unstar, Mark All as Read and Mark Older as Read, and for deleting a feed or folder, which subscribes again in the same folder with the same edited name. Mark read and star were undone and redone in the running app; deleting was not driven there (it needs a right-click), so its store steps are covered by tests instead.
   - [x] Screenshots on the help page, taken from a clean demo data folder with NetNewsWire's starter feeds, so no personal feeds show
-  - [ ] Dragging URLs and folders, inline rename, undo, multiple windows
+  - [x] Dragging URLs and folders, inline rename, undo, multiple windows (see the lines above; the drags and Ctrl+click are built but not yet tried by hand)
 - [x] Phase 3: article view
   - [x] NetNewsWire's template, core and stylesheet CSS, page scripts and special cases (AV-01), its eight bundled themes (AV-02), Open Themes Folder (AV-05), article text size; feed icons in the article header
   - [x] Reader View (AV-08, TB-09): SmartReader extracts the article from its page, on demand (Ctrl+Shift+R) or always for a feed set to Always Use Reader View
@@ -185,4 +185,5 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
   - [x] Reader API client and account: feeds, folders, articles and statuses both ways; subscribe, unsubscribe, rename and delete folders
   - [x] Checked against a real FreshRSS server: 101 feeds, 11 folders, read and unread both ways
   - [x] Moving feeds between folders (FreshRSS keeps each feed in one folder, so no top level or copies)
-  - [ ] OPML import into FreshRSS; Inoreader, The Old Reader and BazQux variants
+  - [x] OPML import into a sync account, subscribing feed by feed (tested with a fake account; the file picker not driven)
+  - [ ] Inoreader, The Old Reader and BazQux variants
