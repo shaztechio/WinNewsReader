@@ -57,7 +57,7 @@ public static class AccountDialogs
 	/// <summary>What the sheet tells the reader about signing in to a service.</summary>
 	private static string HelpFor(AccountKind kind) => kind switch
 	{
-		AccountKind.FreshRss => "Use the API password from FreshRSS’s Settings → Profile, with “Allow API access” turned on in its authentication settings.",
+		AccountKind.FreshRss => "Enter your FreshRSS server’s address; “/api/greader.php” is added for you. If your API is somewhere else, enter its full address ending in greader.php. Use the API password from FreshRSS’s Settings → Profile, with “Allow API access” turned on in its authentication settings.",
 		AccountKind.TheOldReader => "Sign in with the email and password of your Old Reader account.",
 		AccountKind.BazQux => "Sign in with the email and password of your BazQux account.",
 		AccountKind.Feedbin => "Sign in with the email and password of your Feedbin account.",
