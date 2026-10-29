@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 151 |
-| Partial | 17 |
-| Open | 16 |
-| Unchecked | 26 |
+| Done | 153 |
+| Partial | 15 |
+| Open | 15 |
+| Unchecked | 27 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -40,7 +40,7 @@ By section:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 13 |  | 1 |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
-| Main window and layout | 7 | 2 | 2 |  |  |  | 1 |
+| Main window and layout | 9 |  | 1 | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
 | Sidebar | 13 | 2 | 2 | 3 |  |  |  |
 | Smart feeds and timeline | 13 | 1 | 1 |  |  |  |  |
@@ -107,9 +107,9 @@ By section:
 | MW-01 | Three-pane layout (sidebar, timeline, article) | `MainWindow/` | Port | Done | UI: all three panes present and resizable |
 | MW-02 | Column layout (timeline as table: unread, starred, feed, title, date) | `Timeline/TimelineColumn.swift`, `+ColumnLayout.swift` | Port | Done | UI: View > Use Column Layout switches layout; columns sort |
 | MW-03 | Toggle sidebar | `toggleSidebar:` | Port | Done | UI: shortcut hides and shows sidebar |
-| MW-04 | Status bar (counts or last refresh, click to cycle; link hover URL) | `StatusBar/` | Port | Partial: a status line; no cycling through counts | UI: click cycles unread count, folders/feeds, last refresh |
-| MW-05 | Status bar gear menu (selection actions) | `statusBarMenu()` | Port | Open: no status bar menu | UI: menu matches sidebar context menu for selection |
-| MW-06 | Theme menu in status bar | `toggleStatusBarThemeMenu:` | Port | Partial: the theme menu is in +▾, not a status bar | UI: picking a theme re-renders article |
+| MW-04 | Status bar (counts or last refresh, click to cycle; link hover URL) | `StatusBar/` | Port | Unchecked: clicking cycles last refresh, unread and feeds counts (driven); the hovered link's address is built, not hovered | UI: click cycles unread count, folders/feeds, last refresh |
+| MW-05 | Status bar gear menu (selection actions) | `statusBarMenu()` | Port | Done | UI: menu matches sidebar context menu for selection |
+| MW-06 | Theme menu in status bar | `toggleStatusBarThemeMenu:` | Port | Done | UI: picking a theme re-renders article |
 | MW-07 | Multiple main windows | `newMainWindow:` | Port | Open: one main window | UI: second window has independent selection |
 | MW-08 | Window state restore (panes, selection, layout) | `*WindowState.swift` | Port | Done | UI: restart restores layout and selected feed |
 | MW-09 | Sidebar/timeline/article font sizes (hidden defaults) | `sidebarFontSize` etc. | Port | Done | Unit: setting is applied on launch |

@@ -426,6 +426,8 @@ public sealed partial class MainWindow : Window
 				_ = StartFindAsync();
 			}
 		};
+		// The status bar shows the address of a link while the pointer is over it, as NetNewsWire's does.
+		core.StatusBarTextChanged += (_, _) => ViewModel.HoverUrl = core.StatusBarText ?? "";
 		core.NewWindowRequested += (_, args) =>
 		{
 			args.Handled = true;
@@ -640,30 +642,30 @@ public sealed partial class MainWindow : Window
 	/// <summary>Fills the New menu's Article Theme and Text Size submenus, which change as themes come and go.</summary>
 	private void OnNewMenuOpening(object? sender, object e)
 	{
-		FillThemeMenu(ThemeMenu);
+		FillThemeMenu(ThemeMenu.Items);
 		FillTextSizeMenu(TextSizeMenu);
 	}
 
 	/// <summary>The themes, with the current one checked, then the themes folder, where the reader adds .nnwtheme folders.</summary>
-	private void FillThemeMenu(MenuFlyoutSubItem menu)
+	private void FillThemeMenu(IList<MenuFlyoutItemBase> items)
 	{
-		menu.Items.Clear();
+		items.Clear();
 		ViewModel.Themes.Reload();
 		var current = ViewModel.CurrentTheme.Name;
 		foreach (var theme in ViewModel.Themes.All)
 		{
 			var item = new RadioMenuFlyoutItem { Text = theme.Name, GroupName = "ArticleTheme", IsChecked = theme.Name == current };
 			item.Click += (_, _) => ViewModel.SetTheme(theme.Name);
-			menu.Items.Add(item);
+			items.Add(item);
 			if (theme == ViewModel.Themes.Default)
 			{
-				menu.Items.Add(new MenuFlyoutSeparator());
+				items.Add(new MenuFlyoutSeparator());
 			}
 		}
-		menu.Items.Add(new MenuFlyoutSeparator());
-		menu.Items.Add(MenuItem("Install Theme…", async () => await InstallThemeFromFileAsync()));
-		menu.Items.Add(MenuItem("Install Theme from URL…", async () => await InstallThemeFromUrlAsync()));
-		menu.Items.Add(MenuItem("Open Themes Folder", ViewModel.OpenThemesFolder));
+		items.Add(new MenuFlyoutSeparator());
+		items.Add(MenuItem("Install Theme…", async () => await InstallThemeFromFileAsync()));
+		items.Add(MenuItem("Install Theme from URL…", async () => await InstallThemeFromUrlAsync()));
+		items.Add(MenuItem("Open Themes Folder", ViewModel.OpenThemesFolder));
 	}
 
 	/// <summary>A zipped theme, or the Info.plist in a .nnwtheme folder: the file picker can't pick folders.</summary>
@@ -1163,10 +1165,33 @@ public sealed partial class MainWindow : Window
 	{
 		var menu = (MenuFlyout)sender!;
 		menu.Items.Clear();
-		if (DataContextOf(menu.Target) is not SidebarItem item)
+		if (DataContextOf(menu.Target) is SidebarItem item)
 		{
-			return;
+			FillSidebarMenu(menu, item);
 		}
+	}
+
+	/// <summary>The status bar's gear menu: the sidebar's menu for the row that's selected, as in NetNewsWire.</summary>
+	private void OnStatusActionsMenuOpening(object? sender, object e)
+	{
+		var menu = (MenuFlyout)sender!;
+		menu.Items.Clear();
+		if (ViewModel.SelectedSidebarItem is { } item)
+		{
+			FillSidebarMenu(menu, item);
+		}
+	}
+
+	private void OnStatusThemeMenuOpening(object? sender, object e)
+	{
+		var menu = (MenuFlyout)sender!;
+		FillThemeMenu(menu.Items);
+	}
+
+	private void OnStatusClicked(object sender, RoutedEventArgs e) => ViewModel.CycleStatus();
+
+	private void FillSidebarMenu(MenuFlyout menu, SidebarItem item)
+	{
 		if (item.Kind != SidebarItemKind.SmartFeedsGroup)
 		{
 			menu.Items.Add(MenuItem("Mark All as Read", () => ViewModel.MarkAllRead(item)));

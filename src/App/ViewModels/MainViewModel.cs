@@ -426,6 +426,44 @@ public sealed partial class MainViewModel : ObservableObject
 
 	public bool IsNotRefreshing => !IsRefreshing;
 
+	// NetNewsWire's status bar: click it to cycle between the last refresh, the unread count, and the feed and folder counts.
+	// While a refresh is running it always says so.
+	private StatusMode _statusMode;
+
+	/// <summary>The address of the link the pointer is over in the article, which the status bar shows while it is.</summary>
+	public string HoverUrl
+	{
+		get => _hoverUrl;
+		set
+		{
+			if (_hoverUrl != value)
+			{
+				_hoverUrl = value;
+				OnPropertyChanged(nameof(StatusLine));
+			}
+		}
+	}
+
+	private string _hoverUrl = "";
+
+	public string StatusLine => _hoverUrl.Length > 0 ? _hoverUrl
+		: IsRefreshing || _statusMode == StatusMode.LastRefresh ? StatusText
+		: _statusMode == StatusMode.Unread ? Core.StatusLine.Unread(TotalUnread)
+		: Core.StatusLine.FeedsAndFolders(Accounts.Sum(account => account.Store.GetFeeds().Count), Accounts.Sum(account => account.Store.GetFolders().Count));
+
+	public void CycleStatus()
+	{
+		_statusMode = Core.StatusLine.Next(_statusMode);
+		OnPropertyChanged(nameof(StatusLine));
+	}
+
+	partial void OnStatusTextChanged(string value) => OnPropertyChanged(nameof(StatusLine));
+
+	partial void OnIsRefreshingChanged(bool value) => OnPropertyChanged(nameof(StatusLine));
+
+	/// <summary>Whether the sidebar has a row selected, which the status bar's gear menu acts on.</summary>
+	public bool HasSidebarSelection => SelectedSidebarItem is not null;
+
 	public bool HasSelectedArticle => SelectedArticle is not null;
 
 	// NetNewsWire's toggles over a selection: if any article is unread, they all become read, otherwise unread; if any
@@ -1393,6 +1431,7 @@ public sealed partial class MainViewModel : ObservableObject
 		OnPropertyChanged(nameof(IsHidingReadArticles));
 		OnPropertyChanged(nameof(CanHideReadArticles));
 		OnPropertyChanged(nameof(HasNoFeedSelected));
+		OnPropertyChanged(nameof(HasSidebarSelection));
 		if (!_rebuildingSidebar)
 		{
 			LoadArticles(keepSelection: false);
@@ -1576,6 +1615,7 @@ public sealed partial class MainViewModel : ObservableObject
 		if (TotalUnread != allUnread)
 		{
 			TotalUnread = allUnread;
+			OnPropertyChanged(nameof(StatusLine));
 			UnreadBadgeChanged?.Invoke(this, EventArgs.Empty);
 		}
 

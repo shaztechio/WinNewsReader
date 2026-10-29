@@ -393,10 +393,36 @@
             </Grid>
         </Grid>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Padding="12,4">
-            <ProgressRing Width="14" Height="14" IsActive="{x:Bind ViewModel.IsRefreshing, Mode=OneWay}" />
-            <TextBlock Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-        </StackPanel>
+        <!-- NetNewsWire's status bar: a gear menu for the selected sidebar row, a theme menu, and a line of text that
+             changes between the last refresh, the unread count, and the feed and folder counts when it's clicked. -->
+        <Grid Grid.Row="2" ColumnSpacing="8" Padding="8,2,12,2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Style="{StaticResource ToolbarButtonStyle}" IsEnabled="{x:Bind ViewModel.HasSidebarSelection, Mode=OneWay}"
+                    ToolTipService.ToolTip="Actions for the selected feed or folder" AutomationProperties.Name="Selection Actions">
+                <FontIcon Glyph="&#xE713;" FontSize="14" />
+                <Button.Flyout>
+                    <MenuFlyout x:Name="StatusActionsMenu" Opening="OnStatusActionsMenuOpening" />
+                </Button.Flyout>
+            </Button>
+            <Button Grid.Column="1" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTipService.ToolTip="Article Theme" AutomationProperties.Name="Article Theme">
+                <FontIcon Glyph="&#xE790;" FontSize="14" />
+                <Button.Flyout>
+                    <MenuFlyout x:Name="StatusThemeMenu" Opening="OnStatusThemeMenuOpening" />
+                </Button.Flyout>
+            </Button>
+            <ProgressRing Grid.Column="2" Width="14" Height="14" IsActive="{x:Bind ViewModel.IsRefreshing, Mode=OneWay}" />
+            <Button Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="0" Padding="6,2" Background="Transparent" BorderThickness="0"
+                    Click="OnStatusClicked" ToolTipService.ToolTip="Click to show the unread count, the feed count or the last refresh"
+                    AutomationProperties.Name="Status">
+                <TextBlock Text="{x:Bind ViewModel.StatusLine, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Button>
+        </Grid>
     </Grid>
 </Window>
