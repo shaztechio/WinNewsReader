@@ -46,7 +46,7 @@ public sealed class AppSettings
 	/// <summary>Whether a sort by Feed, Title, Unread or Starred runs backwards. Date has its own, <see cref="SortOldestFirst"/>.</summary>
 	public bool SortFieldReversed { get; set; }
 
-	/// <summary><c>ShowDebugMenu</c>: adds NetNewsWire's debugging items to the +▾ menu.</summary>
+	/// <summary><c>ShowDebugMenu</c>: adds NetNewsWire's debugging items to the View menu.</summary>
 	public bool ShowDebugMenu { get; set; }
 
 	/// <summary>NetNewsWire's "Group by Feed": the timeline lists each feed's articles together, feeds in name order.</summary>

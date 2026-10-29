@@ -88,6 +88,11 @@ public sealed partial class MainWindow : Window
 		AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 		SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop();
 		Sidebar.ContextFlyout = SidebarEmptySpaceMenu();
+		BuildMenuCommands();
+		RefreshViewMenu();
+		ViewMenuBarItem.PointerEntered += (_, _) => RefreshViewMenu();
+		ViewMenuBarItem.GotFocus += (_, _) => RefreshViewMenu();
+		ViewModel.ArticleAppearanceChanged += (_, _) => RefreshViewMenu();
 		// Ctrl+click and Shift+click add to the selection; the tree has already handled the click by the time it bubbles here.
 		Sidebar.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSidebarPointerPressed), true);
 		ViewModel.Undo.Changed += (_, _) => UpdateUndoMenu();
@@ -798,11 +803,51 @@ public sealed partial class MainWindow : Window
 	private void OnToggleArticleJavaScript(object sender, RoutedEventArgs e) => ViewModel.SetArticleJavaScriptEnabled(!ViewModel.IsArticleJavaScriptEnabled);
 
 	/// <summary>Fills the New menu's Article Theme and Text Size submenus, which change as themes come and go.</summary>
-	private void OnNewMenuOpening(object? sender, object e)
+	/// <summary>
+	/// The View menu's Article Theme and Text Size submenus change as themes come and go and as the reader picks them, so they're
+	/// filled again when something might have changed: as the menu is reached for, and when a theme or size is chosen.
+	/// </summary>
+	private void RefreshViewMenu()
 	{
 		FillThemeMenu(ThemeMenu.Items);
 		FillTextSizeMenu(TextSizeMenu);
 	}
+
+	private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+
+	/// <summary>Raised by Exit (Ctrl+Q): the app closes every window.</summary>
+	public event EventHandler? ExitRequested;
+
+	private Dictionary<string, Action> _menuCommands = [];
+
+	/// <summary>The menu bar's items that have no handler of their own: each is named by its <c>Tag</c>.</summary>
+	private void BuildMenuCommands() => _menuCommands = new()
+	{
+		["Exit"] = () => ExitRequested?.Invoke(this, EventArgs.Empty),
+		["CopyUrl"] = () => CopyToClipboard(ViewModel.SelectedArticle?.LinkUrl),
+		["CopyExternalUrl"] = CopyExternalUrl,
+		["ArticleSearch"] = () => SearchBox.Focus(FocusState.Keyboard),
+		["Today"] = () => ViewModel.SelectSmartFeed(SidebarItemKind.Today),
+		["AllUnread"] = () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread),
+		["Starred"] = () => ViewModel.SelectSmartFeed(SidebarItemKind.Starred),
+		["MarkAbove"] = ViewModel.MarkAboveRead,
+		["MarkBelow"] = ViewModel.MarkBelowRead,
+		["MarkOlder"] = ViewModel.MarkOlderRead,
+		["MainWindow"] = Activate,
+		["Info"] = () => _ = ShowInspectorAsync(null),
+	};
+
+	private void OnMenuCommand(object sender, RoutedEventArgs e)
+	{
+		if (sender is FrameworkElement { Tag: string key } && _menuCommands.TryGetValue(key, out var run))
+		{
+			run();
+		}
+	}
+
+	/// <summary>The article's external link, when it has one that differs from its own address.</summary>
+	private void CopyExternalUrl() =>
+		CopyToClipboard(ViewModel.SelectedArticle is { } article && article.Article.ExternalUrl is { } external && external != article.LinkUrl ? external : null);
 
 	/// <summary>The themes, with the current one checked, then the themes folder, where the reader adds .nnwtheme folders.</summary>
 	private void FillThemeMenu(IList<MenuFlyoutItemBase> items)
@@ -1308,6 +1353,7 @@ public sealed partial class MainWindow : Window
 	private void ApplyToolbarVisibility()
 	{
 		var visibility = ViewModel.Settings.ToolbarHidden ? Visibility.Collapsed : Visibility.Visible;
+		ToolbarMenuItem.IsChecked = !ViewModel.Settings.ToolbarHidden;
 		SidebarToolbar.Visibility = visibility;
 		TimelineToolbar.Visibility = visibility;
 		ArticleToolbar.Visibility = visibility;
@@ -1427,6 +1473,7 @@ public sealed partial class MainWindow : Window
 			SidebarColumn.Width = new GridLength(0);
 		}
 		Sidebar.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+		SidebarMenuItem.IsChecked = show;
 		SidebarSplitter.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
 		// Over the timeline, the group sits at the left, its buttons together, clear of the timeline's own.
 		Grid.SetColumn(SidebarToolbar, show ? 0 : 2);
@@ -2324,7 +2371,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.K, CtrlAlt, null, ViewModel.MarkAboveRead);
 		Add(VirtualKey.K, CtrlShift, null, ViewModel.MarkBelowRead);
 		Add(VirtualKey.C, CtrlShift, null, () => CopyToClipboard(ViewModel.SelectedArticle?.LinkUrl));
-		Add(VirtualKey.C, CtrlAlt, null, () => CopyToClipboard(ViewModel.SelectedArticle is { } article && article.Article.ExternalUrl is { } external && external != article.LinkUrl ? external : null));
+		Add(VirtualKey.C, CtrlAlt, null, CopyExternalUrl);
 		Add(VirtualKey.W, Ctrl, null, Close);
 		Add(VirtualKey.F11, None, null, ToggleFullScreen);
 		Add(VirtualKey.T, CtrlAlt, null, ToggleToolbar);
@@ -2347,7 +2394,7 @@ public sealed partial class MainWindow : Window
 		Add(VirtualKey.Number1, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Today));
 		Add(VirtualKey.Number2, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.AllUnread));
 		Add(VirtualKey.Number3, Ctrl, null, () => ViewModel.SelectSmartFeed(SidebarItemKind.Starred));
-		Add(VirtualKey.Q, Ctrl, null, Close);
+		Add(VirtualKey.Q, Ctrl, null, () => ExitRequested?.Invoke(this, EventArgs.Empty));
 		Add(VirtualKey.H, CtrlShift, null, ViewModel.ToggleHideReadArticles);
 		Add(VirtualKey.F, CtrlShift, null, ViewModel.ToggleHideReadFeeds);
 		Add(Quote, Ctrl, null, ViewModel.CleanUp);

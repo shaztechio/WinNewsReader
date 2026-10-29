@@ -139,6 +139,13 @@ public partial class App : Application
 		}
 		_windows.Add(window);
 		window.NewWindowRequested += (_, _) => OpenWindow(isPrimary: false).Activate();
+		window.ExitRequested += (_, _) =>
+		{
+			foreach (var open in _windows.ToList())
+			{
+				open.Close();
+			}
+		};
 		window.Closed += (_, _) => OnWindowClosed(window);
 		return window;
 	}

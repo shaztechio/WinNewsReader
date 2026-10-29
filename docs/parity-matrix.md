@@ -362,24 +362,24 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | App | Quit | Cmd+Q | Ctrl+Q (Alt+F4 also closes) | Done |
 | File | New Feed | Cmd+N | Ctrl+N | Done |
 | File | New Folder | Shift+Cmd+N | Ctrl+Shift+N | Done |
-| File | New Window | Opt+Cmd+N | Ctrl+Alt+N | Unchecked: Ctrl+Alt+N built, not pressed; the +▾ menu item opens a window |
+| File | New Window | Opt+Cmd+N | Ctrl+Alt+N | Unchecked: Ctrl+Alt+N built, not pressed; the menu bar item opens a window |
 | File | Refresh | Cmd+R | Ctrl+R and F5 | Done |
 | File | Import Subscriptions | none | none | Done |
 | File | Export Subscriptions | Opt+Cmd+E | Ctrl+Alt+E | Done |
 | File | Close Window | Cmd+W | Ctrl+W | Unchecked: Ctrl+W built, not pressed |
-| Edit | Undo / Redo | Cmd+Z / Shift+Cmd+Z | Ctrl+Z / Ctrl+Y and Ctrl+Shift+Z | Unchecked: Ctrl+Z / Ctrl+Y built, not pressed; the +▾ menu items work |
+| Edit | Undo / Redo | Cmd+Z / Shift+Cmd+Z | Ctrl+Z / Ctrl+Y and Ctrl+Shift+Z | Unchecked: Ctrl+Z / Ctrl+Y built, not pressed; the menu bar items work |
 | Edit | Cut / Copy / Paste / Select All | Cmd+X/C/V/A | Ctrl+X/C/V/A | Done |
 | Edit | Copy Article URL | Shift+Cmd+C | Ctrl+Shift+C | Unchecked: Ctrl+Shift+C built, not pressed |
 | Edit | Copy External URL | Ctrl+Cmd+C | Ctrl+Alt+C | Unchecked: Ctrl+Alt+C built, not pressed |
 | Edit | Article Search | Opt+Cmd+F | Ctrl+Alt+F | Done |
-| Edit | Find in Article | Cmd+F | Ctrl+F | Unchecked: Ctrl+F built; the find bar works from the +▾ menu |
+| Edit | Find in Article | Cmd+F | Ctrl+F | Unchecked: Ctrl+F built; the find bar works from the menu bar |
 | Edit | Find Next / Previous | Cmd+G / Shift+Cmd+G | F3 / Shift+F3 | Unchecked: F3 built; the buttons work |
 | View | Clean Up Articles | Cmd+' | Ctrl+' | Done |
 | View | Hide Read Articles | Shift+Cmd+H | Ctrl+Shift+H | Done |
 | View | Hide Read Feeds | Shift+Cmd+F | Ctrl+Shift+F | Done |
 | View | Show Sidebar | Ctrl+Cmd+S | Ctrl+Alt+S | Done |
-| View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Unchecked: Ctrl+Alt+T built, not pressed; the +▾ menu item hides it |
-| View | Full Screen | Ctrl+Cmd+F | F11 | Unchecked: F11 built; the +▾ menu item works |
+| View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Unchecked: Ctrl+Alt+T built, not pressed; the menu bar item hides it |
+| View | Full Screen | Ctrl+Cmd+F | F11 | Unchecked: F11 built; the menu bar item works |
 | View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Done |
 | Go | Next Unread | Cmd+/ | Ctrl+/ | Done |
 | Go | Today / All Unread / Starred | Cmd+1 / 2 / 3 | Ctrl+1 / 2 / 3 | Done |
@@ -393,10 +393,10 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | Article | Open in Browser Inverted | Shift+Cmd+Right | Ctrl+Shift+Right | Unchecked: Ctrl+Shift+Right built, not pressed |
 | Window | Main Window | Cmd+0 | Ctrl+0 | Unchecked: Ctrl+0 built, not pressed |
 | Window | Info (Inspector) | Cmd+I | Ctrl+I | Done |
-| Window | Dinosaurs | Cmd+6 | Ctrl+6 | Unchecked: Ctrl+6 built, not pressed; the +▾ menu opens it |
-| Window | Current Activity | Cmd+7 | Ctrl+7 | Unchecked: Ctrl+7 built, not pressed; the +▾ menu opens it |
-| Window | Activity Log | Cmd+8 | Ctrl+8 | Unchecked: Ctrl+8 built, not pressed; the +▾ menu opens it |
-| Window | Error Log | Cmd+9 | Ctrl+9 | Unchecked: Ctrl+9 built, not pressed; the +▾ menu opens it |
+| Window | Dinosaurs | Cmd+6 | Ctrl+6 | Unchecked: Ctrl+6 built, not pressed; the menu bar opens it |
+| Window | Current Activity | Cmd+7 | Ctrl+7 | Unchecked: Ctrl+7 built, not pressed; the menu bar opens it |
+| Window | Activity Log | Cmd+8 | Ctrl+8 | Unchecked: Ctrl+8 built, not pressed; the menu bar opens it |
+| Window | Error Log | Cmd+9 | Ctrl+9 | Unchecked: Ctrl+9 built, not pressed; the menu bar opens it |
 | Window | Account Stats | none | none | Done |
 | Help | Help | Cmd+? | F1 | Done |
 | Help | Keyboard Shortcuts | none | none | Done |

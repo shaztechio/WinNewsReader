@@ -51,7 +51,7 @@ public sealed partial class PreferencesWindow : Window
 
 		_viewModel.AppearanceChanged += OnAppearanceChanged;
 		_viewModel.AccountsChanged += OnAccountsChanged;
-		// What the reader changed elsewhere, such as the theme from the +▾ menu, shows when they come back.
+		// What the reader changed elsewhere, such as the theme from the View menu, shows when they come back.
 		Activated += (_, args) =>
 		{
 			if (args.WindowActivationState != WindowActivationState.Deactivated)

@@ -52,11 +52,130 @@
         </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Grid.RowSpan="2">
+        <!-- NetNewsWire's menu bar: File, Edit, View, Go, Article, Window and Help. Its app menu has no Windows counterpart, so
+             Preferences and Exit are at the end of File, and About and Check for Updates are in Help. The shortcuts themselves are
+             registered on the window, so they work with the menus closed. -->
+        <MenuBar x:Name="AppMenuBar" Grid.Row="0" HorizontalAlignment="Left" Margin="4,0,0,0" Background="Transparent">
+            <MenuBarItem Title="File" AccessKey="F">
+                <MenuFlyoutItem Text="New Feed…" Click="OnNewFeed" KeyboardAcceleratorTextOverride="Ctrl+N" />
+                <MenuFlyoutItem Text="New Folder…" Click="OnNewFolder" KeyboardAcceleratorTextOverride="Ctrl+Shift+N" />
+                <MenuFlyoutItem Text="New Window" Click="OnNewWindow" KeyboardAcceleratorTextOverride="Ctrl+Alt+N" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Refresh" Click="OnRefresh" KeyboardAcceleratorTextOverride="Ctrl+R" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
+                <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
+                <MenuFlyoutItem Text="Add FreshRSS Account…" Click="OnAddFreshRssAccount" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Close Window" Click="OnCloseWindow" KeyboardAcceleratorTextOverride="Ctrl+W" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Preferences…" Click="OnPreferences" KeyboardAcceleratorTextOverride="Ctrl+," />
+                <MenuFlyoutItem Text="Exit" Tag="Exit" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+Q" />
+            </MenuBarItem>
+            <MenuBarItem Title="Edit" AccessKey="E">
+                <MenuFlyoutItem x:Name="UndoItem" Text="Undo" IsEnabled="False" Click="OnUndo" KeyboardAcceleratorTextOverride="Ctrl+Z" />
+                <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="False" Click="OnRedo" KeyboardAcceleratorTextOverride="Ctrl+Y" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Copy Article URL" Tag="CopyUrl" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+Shift+C" />
+                <MenuFlyoutItem Text="Copy External URL" Tag="CopyExternalUrl" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+Alt+C" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Article Search" Tag="ArticleSearch" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+Alt+F" />
+                <MenuFlyoutItem Text="Find in Article…" Click="OnFindInArticle" KeyboardAcceleratorTextOverride="Ctrl+F" />
+                <MenuFlyoutItem Text="Find Next" Click="OnFindNext" KeyboardAcceleratorTextOverride="F3" />
+                <MenuFlyoutItem Text="Find Previous" Click="OnFindPrevious" KeyboardAcceleratorTextOverride="Shift+F3" />
+            </MenuBarItem>
+            <MenuBarItem x:Name="ViewMenuBarItem" Title="View" AccessKey="V">
+                <ToggleMenuFlyoutItem x:Name="SidebarMenuItem" Text="Show Sidebar" IsChecked="True" Click="OnToggleSidebar" KeyboardAcceleratorTextOverride="Ctrl+Alt+S" />
+                <ToggleMenuFlyoutItem x:Name="ToolbarMenuItem" Text="Show Toolbar" IsChecked="True" Click="OnToggleToolbar" KeyboardAcceleratorTextOverride="Ctrl+Alt+T" />
+                <ToggleMenuFlyoutItem x:Name="StatusBarItem" Text="Show Status Bar" IsChecked="True" Click="OnToggleStatusBar" />
+                <MenuFlyoutSeparator />
+                <ToggleMenuFlyoutItem Text="Hide Read Feeds" KeyboardAcceleratorTextOverride="Ctrl+Shift+F"
+                                      IsChecked="{x:Bind ViewModel.HideReadFeeds, Mode=OneWay}" Click="OnToggleHideReadFeeds" />
+                <ToggleMenuFlyoutItem Text="Hide Read Articles" KeyboardAcceleratorTextOverride="Ctrl+Shift+H"
+                                      IsChecked="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanHideReadArticles, Mode=OneWay}"
+                                      Click="OnToggleHideReadArticles" />
+                <MenuFlyoutItem Text="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
+                                IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
+                <MenuFlyoutSeparator />
+                <RadioMenuFlyoutItem Text="Newest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
+                <RadioMenuFlyoutItem Text="Oldest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
+                <ToggleMenuFlyoutItem Text="Group by Feed" IsChecked="{x:Bind ViewModel.GroupByFeed, Mode=OneWay}" Click="OnToggleGroupByFeed" />
+                <ToggleMenuFlyoutItem Text="Use Column Layout" IsChecked="{x:Bind ViewModel.UseColumnLayout, Mode=OneWay}" Click="OnToggleColumnLayout" />
+                <MenuFlyoutSubItem Text="Sort Articles By" IsEnabled="{x:Bind ViewModel.UseColumnLayout, Mode=OneWay}">
+                    <MenuFlyoutItem Text="Date" Tag="Date" Click="OnSortByField" />
+                    <MenuFlyoutItem Text="Feed" Tag="Feed" Click="OnSortByField" />
+                    <MenuFlyoutItem Text="Title" Tag="Title" Click="OnSortByField" />
+                    <MenuFlyoutItem Text="Unread" Tag="Unread" Click="OnSortByField" />
+                    <MenuFlyoutItem Text="Starred" Tag="Starred" Click="OnSortByField" />
+                </MenuFlyoutSubItem>
+                <MenuFlyoutSeparator />
+                <!-- NetNewsWire's View > Article Theme menu, and the article text size and JavaScript from its preferences. -->
+                <MenuFlyoutSubItem x:Name="ThemeMenu" Text="Article Theme" />
+                <MenuFlyoutSubItem x:Name="TextSizeMenu" Text="Text Size" />
+                <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
+                                      Click="OnToggleArticleJavaScript" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
+            </MenuBarItem>
+            <MenuBarItem Title="Go" AccessKey="G">
+                <MenuFlyoutItem Text="Next Unread" Click="OnNextUnread" KeyboardAcceleratorTextOverride="Ctrl+/" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Today" Tag="Today" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+1" />
+                <MenuFlyoutItem Text="All Unread" Tag="AllUnread" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+2" />
+                <MenuFlyoutItem Text="Starred" Tag="Starred" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+3" />
+            </MenuBarItem>
+            <MenuBarItem Title="Article" AccessKey="A">
+                <MenuFlyoutItem Text="Mark as Read/Unread" Click="OnToggleRead" KeyboardAcceleratorTextOverride="Ctrl+Shift+U" />
+                <MenuFlyoutItem Text="Mark All as Read" Click="OnMarkAllRead" KeyboardAcceleratorTextOverride="Ctrl+K" />
+                <MenuFlyoutItem Text="Mark Above as Read" Tag="MarkAbove" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+Alt+K" />
+                <MenuFlyoutItem Text="Mark Below as Read" Tag="MarkBelow" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+Shift+K" />
+                <MenuFlyoutItem Text="Mark Older Articles as Read" Tag="MarkOlder" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="O" />
+                <MenuFlyoutItem Text="Mark as Starred/Unstarred" Click="OnToggleStarred" KeyboardAcceleratorTextOverride="Ctrl+Shift+L" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Show Reader View" Click="OnToggleReaderView" KeyboardAcceleratorTextOverride="Ctrl+Shift+R" />
+                <MenuFlyoutItem Text="Open in Browser" Click="OnOpenInBrowser" KeyboardAcceleratorTextOverride="Ctrl+Right" />
+                <MenuFlyoutItem Text="Share…" Click="OnShare" />
+            </MenuBarItem>
+            <!-- NetNewsWire's Window menu: the main window, Info and its small utility windows. -->
+            <MenuBarItem Title="Window" AccessKey="W">
+                <MenuFlyoutItem Text="Main Window" Tag="MainWindow" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+0" />
+                <MenuFlyoutItem Text="Info" Tag="Info" Click="OnMenuCommand" KeyboardAcceleratorTextOverride="Ctrl+I" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Dinosaurs" Tag="Dinosaurs" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+6" />
+                <MenuFlyoutItem Text="Current Activity" Tag="CurrentActivity" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+7" />
+                <MenuFlyoutItem Text="Activity Log" Tag="ActivityLog" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+8" />
+                <MenuFlyoutItem Text="Error Log" Tag="ErrorLog" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+9" />
+                <MenuFlyoutItem Text="Account Stats" Tag="AccountStats" Click="OnUtilityWindow" />
+            </MenuBarItem>
+            <!-- NetNewsWire's Help menu, pointing at this project's own pages, with the app menu's About and Check for Updates. -->
+            <MenuBarItem Title="Help" AccessKey="H">
+                <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />
+                <MenuFlyoutItem Text="Keyboard Shortcuts" Click="OnKeyboardShortcutsHelp" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Website" Click="OnWebsite" />
+                <MenuFlyoutItem Text="Release Notes" Click="OnReleaseNotes" />
+                <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
+                <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
+                <MenuFlyoutItem Text="Add WinNewsReader News Feed" Click="OnAddNewsFeed" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Open App Data Folder" Click="OnOpenAppDataFolder" />
+                <MenuFlyoutItem Text="Check for Updates…" Click="OnCheckForUpdates" />
+                <MenuFlyoutItem Text="About WinNewsReader" Click="OnAbout" />
+                <!-- NetNewsWire's hidden Debug menu, shown by the ShowDebugMenu setting. -->
+                <MenuFlyoutSubItem x:Name="DebugMenu" Text="Debug" Visibility="Collapsed">
+                    <MenuFlyoutItem Text="Open Web Inspector" Click="OnOpenWebInspector" />
+                    <MenuFlyoutItem Text="Open Icon Cache Folder" Click="OnOpenIconCache" />
+                    <MenuFlyoutItem Text="Rebuild Search Index" Click="OnRebuildSearchIndex" />
+                </MenuFlyoutSubItem>
+            </MenuBarItem>
+        </MenuBar>
+
+        <Grid Grid.Row="1" Grid.RowSpan="2">
             <Grid.Resources>
                 <!-- Toolbar buttons stay borderless when disabled too; only the icon dims. -->
                 <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
@@ -97,83 +216,15 @@
                             ToolTipService.ToolTip="Refresh (Ctrl+R)" AutomationProperties.Name="Refresh">
                         <FontIcon Glyph="&#xE72C;" FontSize="16" />
                     </Button>
-                    <Button Style="{StaticResource ToolbarButtonStyle}" ToolTipService.ToolTip="New and View Options" AutomationProperties.Name="New">
+                    <Button Style="{StaticResource ToolbarButtonStyle}" ToolTipService.ToolTip="New Feed or Folder" AutomationProperties.Name="New">
                         <StackPanel Orientation="Horizontal" Spacing="4">
                             <FontIcon Glyph="&#xE710;" FontSize="16" />
                             <FontIcon Glyph="&#xE70D;" FontSize="8" />
                         </StackPanel>
                         <Button.Flyout>
-                            <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="OnNewMenuOpening">
-                                <!-- The shortcuts themselves are registered on the window, so they work with the menu closed. -->
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
                                 <MenuFlyoutItem Text="New Feed…" Click="OnNewFeed" KeyboardAcceleratorTextOverride="Ctrl+N" />
                                 <MenuFlyoutItem Text="New Folder…" Click="OnNewFolder" KeyboardAcceleratorTextOverride="Ctrl+Shift+N" />
-                                <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="Import Subscriptions…" Click="OnImport" />
-                                <MenuFlyoutItem Text="Export Subscriptions…" Click="OnExport" KeyboardAcceleratorTextOverride="Ctrl+Alt+E" />
-                                <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="Add FreshRSS Account…" Click="OnAddFreshRssAccount" />
-                                <MenuFlyoutSeparator />
-                                <ToggleMenuFlyoutItem Text="Hide Read Feeds" KeyboardAcceleratorTextOverride="Ctrl+Shift+F"
-                                                      IsChecked="{x:Bind ViewModel.HideReadFeeds, Mode=OneWay}" Click="OnToggleHideReadFeeds" />
-                                <RadioMenuFlyoutItem Text="Newest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
-                                <RadioMenuFlyoutItem Text="Oldest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
-                                <ToggleMenuFlyoutItem Text="Group by Feed" IsChecked="{x:Bind ViewModel.GroupByFeed, Mode=OneWay}" Click="OnToggleGroupByFeed" />
-                                <ToggleMenuFlyoutItem Text="Use Column Layout" IsChecked="{x:Bind ViewModel.UseColumnLayout, Mode=OneWay}" Click="OnToggleColumnLayout" />
-                                <MenuFlyoutSubItem Text="Sort Articles By" IsEnabled="{x:Bind ViewModel.UseColumnLayout, Mode=OneWay}">
-                                    <MenuFlyoutItem Text="Date" Tag="Date" Click="OnSortByField" />
-                                    <MenuFlyoutItem Text="Feed" Tag="Feed" Click="OnSortByField" />
-                                    <MenuFlyoutItem Text="Title" Tag="Title" Click="OnSortByField" />
-                                    <MenuFlyoutItem Text="Unread" Tag="Unread" Click="OnSortByField" />
-                                    <MenuFlyoutItem Text="Starred" Tag="Starred" Click="OnSortByField" />
-                                </MenuFlyoutSubItem>
-                                <MenuFlyoutItem Text="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
-                                                IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
-                                <MenuFlyoutSeparator />
-                                <!-- NetNewsWire's View > Article Theme menu, and the article text size and JavaScript from its preferences. -->
-                                <MenuFlyoutSubItem x:Name="ThemeMenu" Text="Article Theme" />
-                                <MenuFlyoutSubItem x:Name="TextSizeMenu" Text="Text Size" />
-                                <ToggleMenuFlyoutItem Text="Enable JavaScript" IsChecked="{x:Bind ViewModel.IsArticleJavaScriptEnabled, Mode=OneWay}"
-                                                      Click="OnToggleArticleJavaScript" />
-                                <MenuFlyoutSeparator />
-                                <MenuFlyoutItem x:Name="UndoItem" Text="Undo" IsEnabled="False" Click="OnUndo" KeyboardAcceleratorTextOverride="Ctrl+Z" />
-                                <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="False" Click="OnRedo" KeyboardAcceleratorTextOverride="Ctrl+Y" />
-                                <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="New Window" Click="OnNewWindow" KeyboardAcceleratorTextOverride="Ctrl+Alt+N" />
-                                <MenuFlyoutItem Text="Hide Toolbar" Click="OnToggleToolbar" KeyboardAcceleratorTextOverride="Ctrl+Alt+T" />
-                                <ToggleMenuFlyoutItem x:Name="StatusBarItem" Text="Show Status Bar" IsChecked="True" Click="OnToggleStatusBar" />
-                                <!-- NetNewsWire's Window menu: its small utility windows. -->
-                                <MenuFlyoutSubItem Text="Window">
-                                    <MenuFlyoutItem Text="Dinosaurs" Tag="Dinosaurs" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+6" />
-                                    <MenuFlyoutItem Text="Current Activity" Tag="CurrentActivity" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+7" />
-                                    <MenuFlyoutItem Text="Activity Log" Tag="ActivityLog" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+8" />
-                                    <MenuFlyoutItem Text="Error Log" Tag="ErrorLog" Click="OnUtilityWindow" KeyboardAcceleratorTextOverride="Ctrl+9" />
-                                    <MenuFlyoutItem Text="Account Stats" Tag="AccountStats" Click="OnUtilityWindow" />
-                                </MenuFlyoutSubItem>
-                                <MenuFlyoutItem Text="Find in Article…" Click="OnFindInArticle" KeyboardAcceleratorTextOverride="Ctrl+F" />
-                                <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
-                                <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="Preferences…" Click="OnPreferences" KeyboardAcceleratorTextOverride="Ctrl+," />
-                                <!-- NetNewsWire's hidden Debug menu, shown by the ShowDebugMenu setting. -->
-                                <MenuFlyoutSubItem x:Name="DebugMenu" Text="Debug" Visibility="Collapsed">
-                                    <MenuFlyoutItem Text="Open Web Inspector" Click="OnOpenWebInspector" />
-                                    <MenuFlyoutItem Text="Open Icon Cache Folder" Click="OnOpenIconCache" />
-                                    <MenuFlyoutItem Text="Rebuild Search Index" Click="OnRebuildSearchIndex" />
-                                </MenuFlyoutSubItem>
-                                <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
-                                <MenuFlyoutSubItem Text="Help">
-                                    <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />
-                                    <MenuFlyoutItem Text="Keyboard Shortcuts" Click="OnKeyboardShortcutsHelp" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="Website" Click="OnWebsite" />
-                                    <MenuFlyoutItem Text="Release Notes" Click="OnReleaseNotes" />
-                                    <MenuFlyoutItem Text="Check for Updates…" Click="OnCheckForUpdates" />
-                                    <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
-                                    <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
-                                    <MenuFlyoutItem Text="Add WinNewsReader News Feed" Click="OnAddNewsFeed" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="Open App Data Folder" Click="OnOpenAppDataFolder" />
-                                    <MenuFlyoutItem Text="About WinNewsReader" Click="OnAbout" />
-                                </MenuFlyoutSubItem>
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
@@ -414,7 +465,7 @@
 
         <!-- NetNewsWire's status bar: a gear menu for the selected sidebar row, a theme menu, and a line of text that
              changes between the last refresh, the unread count, and the feed and folder counts when it's clicked. -->
-        <Grid x:Name="StatusBar" Grid.Row="2" ColumnSpacing="8" Padding="8,2,12,2">
+        <Grid x:Name="StatusBar" Grid.Row="3" ColumnSpacing="8" Padding="8,2,12,2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
