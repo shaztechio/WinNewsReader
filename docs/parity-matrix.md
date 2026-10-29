@@ -27,8 +27,8 @@ Audited against the app on 2026-10-29. Each row has a status:
 | --- | --- |
 | Done | 158 |
 | Partial | 16 |
-| Open | 7 |
-| Unchecked | 29 |
+| Open | 6 |
+| Unchecked | 30 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -42,7 +42,7 @@ By section:
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
 | Main window and layout | 9 |  | 1 | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
-| Sidebar | 13 | 2 | 1 | 4 |  |  |  |
+| Sidebar | 13 | 2 |  | 5 |  |  |  |
 | Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 12 | 1 |  | 1 |  |  |  |
@@ -155,7 +155,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SB-11 | Context menu, feed: Mark All as Read, Open Home Page, Copy Feed URL, Copy Home Page URL, Show Notifications, Always Use Reader View, Rename, Delete | `menuForFeed(_:)` | Port | Done | UI: items present in this order, check states correct |
 | SB-12 | Context menu, folder: Mark All as Read, Rename, Delete | `menuForFolder(_:)` | Port | Done | UI: items present |
 | SB-13 | Context menu, smart feed: Mark All as Read | `menuForSmartFeed(_:)` | Port | Done | UI: item present |
-| SB-14 | Context menu, multiple: Mark All as Read, Delete | `menuForMultipleObjects(_:)` | Port | Open: the sidebar selects one row at a time | UI: items present |
+| SB-14 | Context menu, multiple: Mark All as Read, Delete | `menuForMultipleObjects(_:)` | Port | Unchecked: built (Ctrl+click, Shift+click, menu and Delete key for the chosen rows; selection rules unit tested); it needs a mouse and keyboard together, not tried | UI: items present |
 
 ## Smart feeds and timeline
 

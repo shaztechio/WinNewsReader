@@ -929,6 +929,71 @@ public sealed partial class MainViewModel : ObservableObject
 	/// A local feed is removed from the folder or top level it's shown in; a sync feed is unsubscribed, as in
 	/// NetNewsWire. A folder goes with its feeds.
 	/// </summary>
+	// NetNewsWire's multiple selection in the sidebar: Ctrl+click adds a row, Shift+click selects a range, and the menu
+	// then offers Mark All as Read and Delete for all of them. The timeline shows the row clicked last.
+
+	private IReadOnlyList<SidebarItem> _multiSelection = [];
+
+	/// <summary>The rows chosen together, empty unless there are at least two.</summary>
+	public IReadOnlyList<SidebarItem> MultiSelection => _multiSelection;
+
+	private static bool CanMultiSelect(SidebarItem item) => !item.IsGroup;
+
+	/// <summary>A click in the sidebar: with Ctrl or Shift it grows the selection, otherwise it starts over.</summary>
+	public void SidebarClick(SidebarItem clicked, bool ctrl, bool shift)
+	{
+		if (!CanMultiSelect(clicked) || !(ctrl || shift))
+		{
+			SetMultiSelection([]);
+			return;
+		}
+		var anchor = SelectedSidebarItem is { } selected && CanMultiSelect(selected) ? selected : clicked;
+		IReadOnlyList<SidebarItem> next;
+		if (shift)
+		{
+			next = RowSelection.Range([.. VisibleSidebarItems().Where(CanMultiSelect)], anchor, clicked);
+		}
+		else
+		{
+			var current = _multiSelection.Count > 0 ? _multiSelection : [anchor];
+			next = RowSelection.Toggle(current, clicked);
+		}
+		SetMultiSelection(next);
+	}
+
+	private void SetMultiSelection(IReadOnlyList<SidebarItem> rows)
+	{
+		var next = rows.Count > 1 ? rows : [];
+		foreach (var row in _multiSelection.Except(next))
+		{
+			row.IsMultiSelected = false;
+		}
+		foreach (var row in next)
+		{
+			row.IsMultiSelected = true;
+		}
+		_multiSelection = next;
+	}
+
+	public void MarkAllReadInMultiSelection()
+	{
+		foreach (var row in _multiSelection.ToList())
+		{
+			MarkAllRead(row);
+		}
+	}
+
+	/// <summary>Deletes the feeds and folders among the chosen rows.</summary>
+	public async Task DeleteMultiSelectionAsync()
+	{
+		var rows = _multiSelection.Where(row => row.Feed is not null || row.Folder is not null).ToList();
+		SetMultiSelection([]);
+		foreach (var row in rows)
+		{
+			await DeleteAsync(row);
+		}
+	}
+
 	/// <summary>Every row in the sidebar for the feed: one for each folder it's in, or the top level.</summary>
 	public IReadOnlyList<SidebarItem> RowsForFeed(IAccount account, string feedId) =>
 		[.. AllSidebarItems().Where(item => item.Account == account && item.Feed?.FeedId == feedId)];

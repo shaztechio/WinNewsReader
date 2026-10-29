@@ -264,6 +264,10 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <!-- Rows chosen together with Ctrl+click or Shift+click are shaded. -->
+                                <Border Grid.ColumnSpan="3" CornerRadius="4" Margin="-4,-2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="1"
+                                        Visibility="{x:Bind IsMultiSelected, Mode=OneWay}" IsHitTestVisible="False" />
                                 <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Visibility="{x:Bind ShowsGlyph, Mode=OneWay}" />
                                 <Image Source="{x:Bind Icon, Mode=OneWay}" Width="16" Height="16" Visibility="{x:Bind HasIcon, Mode=OneWay}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind Title, Mode=OneWay}" FontWeight="{x:Bind TitleWeight}"

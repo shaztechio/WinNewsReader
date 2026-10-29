@@ -81,6 +81,8 @@ public sealed partial class MainWindow : Window
 		AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 		SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop();
 		Sidebar.ContextFlyout = SidebarEmptySpaceMenu();
+		// Ctrl+click and Shift+click add to the selection; the tree has already handled the click by the time it bubbles here.
+		Sidebar.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSidebarPointerPressed), true);
 		ViewModel.Undo.Changed += (_, _) => UpdateUndoMenu();
 		SidebarSplitter.Column = SidebarColumn;
 		TimelineSplitter.Column = TimelineColumn;
@@ -1311,8 +1313,45 @@ public sealed partial class MainWindow : Window
 
 	private void OnStatusClicked(object sender, RoutedEventArgs e) => ViewModel.CycleStatus();
 
+	private void OnSidebarPointerPressed(object sender, PointerRoutedEventArgs e)
+	{
+		if (!e.GetCurrentPoint(Sidebar).Properties.IsLeftButtonPressed || DataContextOf(e.OriginalSource as FrameworkElement) is not SidebarItem clicked)
+		{
+			return;
+		}
+		var modifiers = CurrentModifiers();
+		ViewModel.SidebarClick(clicked, modifiers.HasFlag(VirtualKeyModifiers.Control), modifiers.HasFlag(VirtualKeyModifiers.Shift));
+	}
+
+	/// <summary>NetNewsWire's menu for several selected rows: Mark All as Read, and Delete when they can all be deleted.</summary>
+	private void FillMultiSidebarMenu(MenuFlyout menu)
+	{
+		var rows = ViewModel.MultiSelection;
+		menu.Items.Add(MenuItem($"Mark All as Read in {rows.Count} Items", ViewModel.MarkAllReadInMultiSelection));
+		if (rows.Any(row => row.Feed is not null || row.Folder is not null))
+		{
+			menu.Items.Add(new MenuFlyoutSeparator());
+			menu.Items.Add(MenuItem("Delete", async () => await ConfirmDeleteMultipleAsync()));
+		}
+	}
+
+	private async Task ConfirmDeleteMultipleAsync()
+	{
+		var count = ViewModel.MultiSelection.Count(row => row.Feed is not null || row.Folder is not null);
+		var dialog = Dialog("Delete", "Delete", new TextBlock { Text = $"Are you sure you want to delete these {count} items?", TextWrapping = TextWrapping.Wrap });
+		if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
+		{
+			await RunReportingErrorsAsync("Couldn’t Delete", ViewModel.DeleteMultiSelectionAsync);
+		}
+	}
+
 	private void FillSidebarMenu(MenuFlyout menu, SidebarItem item)
 	{
+		if (ViewModel.MultiSelection.Count > 1 && ViewModel.MultiSelection.Contains(item))
+		{
+			FillMultiSidebarMenu(menu);
+			return;
+		}
 		if (item.Kind != SidebarItemKind.SmartFeedsGroup)
 		{
 			menu.Items.Add(MenuItem("Mark All as Read", () => ViewModel.MarkAllRead(item)));
@@ -2165,6 +2204,11 @@ public sealed partial class MainWindow : Window
 
 	private async Task DeleteSelectedAsync()
 	{
+		if (ViewModel.MultiSelection.Count > 1)
+		{
+			await ConfirmDeleteMultipleAsync();
+			return;
+		}
 		if (ViewModel.SelectedSidebarItem is { Feed: not null } or { Folder: not null })
 		{
 			await ConfirmDeleteAsync(ViewModel.SelectedSidebarItem);

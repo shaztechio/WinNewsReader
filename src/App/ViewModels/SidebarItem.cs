@@ -26,6 +26,10 @@ public sealed partial class SidebarItem : ObservableObject
 		Title = title;
 	}
 
+	/// <summary>Whether the row is one of several chosen with Ctrl+click or Shift+click.</summary>
+	[ObservableProperty]
+	public partial bool IsMultiSelected { get; set; }
+
 	/// <summary><c>sidebarFontSize</c>: the size of the sidebar's text, in points. Set at launch, before rows are made.</summary>
 	public static double TextSize { get; set; } = 14;
 
