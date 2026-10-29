@@ -94,6 +94,7 @@
                                                       IsChecked="{x:Bind ViewModel.HideReadFeeds, Mode=OneWay}" Click="OnToggleHideReadFeeds" />
                                 <RadioMenuFlyoutItem Text="Newest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
                                 <RadioMenuFlyoutItem Text="Oldest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
+                                <ToggleMenuFlyoutItem Text="Group by Feed" IsChecked="{x:Bind ViewModel.GroupByFeed, Mode=OneWay}" Click="OnToggleGroupByFeed" />
                                 <MenuFlyoutItem Text="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
                                                 IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
                                 <MenuFlyoutSeparator />
@@ -185,10 +186,18 @@
                     </Button>
                 </StackPanel>
                 <!-- NetNewsWire's toolbar search field: searches every article in every account. -->
-                <TextBox x:Name="SearchBox" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Width="220"
-                         PlaceholderText="Search (Ctrl+Alt+F)" AutomationProperties.Name="Search Articles"
-                         Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- NetNewsWire's search scope: this feed, folder or smart feed only, rather than every article. -->
+                    <ToggleButton Style="{StaticResource ToolbarToggleButtonStyle}" Click="OnToggleSearchScope"
+                                  IsChecked="{x:Bind ViewModel.SearchCurrentTimeline, Mode=OneWay}"
+                                  ToolTipService.ToolTip="Search only the current feed, folder or smart feed" AutomationProperties.Name="Search Current Feed Only">
+                        <FontIcon Glyph="&#xE8FD;" FontSize="16" />
+                    </ToggleButton>
+                    <TextBox x:Name="SearchBox" Width="220"
+                             PlaceholderText="Search (Ctrl+Alt+F)" AutomationProperties.Name="Search Articles"
+                             Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
+                </StackPanel>
             </Grid>
 
             <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}" DoubleTapped="OnSidebarDoubleTapped"
@@ -200,7 +209,7 @@
                 <TreeView.ItemTemplate>
                     <DataTemplate x:DataType="vm:SidebarItem">
                         <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded, Mode=OneWay}"
-                                      ContextFlyout="{StaticResource SidebarMenu}"
+                                      ContextFlyout="{StaticResource SidebarMenu}" FontSize="{x:Bind vm:SidebarItem.TextSize}"
                                       AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
                             <!-- Drops land on the row's content, ahead of the tree's own drop handling, which would
                                  rearrange rows itself. -->
@@ -232,6 +241,7 @@
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ArticleItem">
                         <Grid Padding="0,10" ColumnSpacing="8" ContextFlyout="{StaticResource ArticleMenu}"
+                              BorderThickness="{x:Bind vm:ArticleItem.SeparatorThickness}" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                               AutomationProperties.Name="{x:Bind Title}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="10" />

@@ -90,6 +90,24 @@ public sealed class AppSettingsTests : IDisposable
 	}
 
 	[Fact]
+	public void TimelineSettingsDefaultOffAndRoundTrip()
+	{
+		var defaults = new AppSettings();
+		Assert.False(defaults.GroupByFeed);
+		Assert.False(defaults.TimelineSeparators);
+		Assert.Equal(0, defaults.SidebarFontSize);
+		Assert.Equal(0, defaults.TimelineFontSize);
+
+		new AppSettings { GroupByFeed = true, TimelineSeparators = true, SidebarFontSize = 16, TimelineFontSize = 15.5 }.Save(SettingsPath);
+		var loaded = AppSettings.Load(SettingsPath);
+
+		Assert.True(loaded.GroupByFeed);
+		Assert.True(loaded.TimelineSeparators);
+		Assert.Equal(16, loaded.SidebarFontSize);
+		Assert.Equal(15.5, loaded.TimelineFontSize);
+	}
+
+	[Fact]
 	public void MissingFileGivesDefaults()
 	{
 		var settings = AppSettings.Load(SettingsPath);

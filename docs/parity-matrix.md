@@ -25,9 +25,9 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 144 |
+| Done | 149 |
 | Partial | 17 |
-| Open | 23 |
+| Open | 18 |
 | Unchecked | 26 |
 | Installer | 6 |
 | Keys | 2 |
@@ -40,16 +40,16 @@ By section:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 13 |  | 1 |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
-| Main window and layout | 5 | 2 | 4 |  |  |  | 1 |
+| Main window and layout | 6 | 2 | 3 |  |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
 | Sidebar | 13 | 2 | 2 | 3 |  |  |  |
-| Smart feeds and timeline | 9 | 1 | 5 |  |  |  |  |
+| Smart feeds and timeline | 12 | 1 | 2 |  |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 11 | 1 | 1 | 1 |  |  |  |
 | Feed management and import/export | 2 | 3 | 2 |  |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
-| Preferences | 7 | 1 | 2 | 3 | 3 |  | 2 |
+| Preferences | 8 | 1 | 1 | 3 | 3 |  | 2 |
 | Utility windows | 3 | 1 |  | 2 | 1 |  | 1 |
 | Other | 3 | 3 | 1 |  | 2 |  |  |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
@@ -112,7 +112,7 @@ By section:
 | MW-06 | Theme menu in status bar | `toggleStatusBarThemeMenu:` | Port | Partial: the theme menu is in +▾, not a status bar | UI: picking a theme re-renders article |
 | MW-07 | Multiple main windows | `newMainWindow:` | Port | Open: one main window | UI: second window has independent selection |
 | MW-08 | Window state restore (panes, selection, layout) | `*WindowState.swift` | Port | Done | UI: restart restores layout and selected feed |
-| MW-09 | Sidebar/timeline/article font sizes (hidden defaults) | `sidebarFontSize` etc. | Port | Open: font sizes are fixed | Unit: setting is applied on launch |
+| MW-09 | Sidebar/timeline/article font sizes (hidden defaults) | `sidebarFontSize` etc. | Port | Done | Unit: setting is applied on launch |
 | MW-10 | Full screen | `toggleFullScreen:` | Port | Done | F11. UI: toggles full screen |
 | MW-11 | Show/hide toolbar | `toggleToolbarShown:` | Port | Done | UI: toolbar hides and shows |
 | MW-12 | Toolbar customization palette | `runToolbarCustomizationPalette:` | Drop | Dropped | No native WinUI equivalent; default toolbar ships fixed. Revisit after 1.0 |
@@ -165,14 +165,14 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SF-02 | All Unread | `UnreadFeed.swift` | Port | Done | Unit: count equals sum of feeds |
 | SF-03 | Starred | `StarredFeedDelegate.swift` | Port | Done | Unit: starred articles only |
 | SF-04 | Search (as a feed, across all accounts) | `SearchFeedDelegate.swift` | Port | Done | Unit: title and body match; side-by-side same results |
-| SF-05 | Search within current timeline | `SearchTimelineFeedDelegate.swift` | Port | Open: search covers every feed only | Unit: limited to selected feed |
+| SF-05 | Search within current timeline | `SearchTimelineFeedDelegate.swift` | Port | Done | Unit: limited to selected feed |
 | TL-01 | Sort by date, ascending/descending | `ArticleSorter.swift` | Port | Done | Unit: sort order matches NNW for fixtures |
 | TL-02 | Sort by feed, title, unread, starred (column layout) | `sortArticlesByField:` | Port | Open: tied to the column layout | UI: View > Sort Articles By changes order |
-| TL-03 | Group by feed | `timelineGroupByFeed` | Port | Open: no grouping by feed | Unit + UI |
+| TL-03 | Group by feed | `timelineGroupByFeed` | Port | Done | Unit + UI |
 | TL-04 | Hide read articles | `toggleReadArticlesFilter:` | Port | Done | UI: read articles hide; current selection stays |
 | TL-05 | Clean up (drop read from current view) | `cleanUp:` | Port | Done | UI: read rows removed |
 | TL-06 | Row shows title, summary, feed, date, icon, author avatar, unread dot, star | `Timeline/Cell` | Port | Partial: no author avatar | Side-by-side screenshot review |
-| TL-07 | Separators (hidden pref) | `CorreiaSeparators` | Port | Open: no separators | UI: setting toggles separators |
+| TL-07 | Separators (hidden pref) | `CorreiaSeparators` | Port | Done | UI: setting toggles separators |
 | TL-08 | Context menu: Mark Read/Unread, Star/Unstar, Mark Above/Below as Read, Select Feed in Sidebar, Mark All as Read in feed, Open in Browser, Copy Article URL, Copy External URL, Share | `menu(for:)` | Port | Done | UI: items present in this order |
 | TL-09 | Drag article out as URL | `ArticlePasteboardWriter.swift` | Port | Open: articles can't be dragged out | UI: drop on browser opens URL |
 | TL-10 | Undo for mark read / star | `MarkStatusCommand.swift` | Port | Done | UI: Ctrl+Z reverts |
@@ -260,7 +260,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | PR-12 | Advanced | Send crash logs automatically | Port | Installer: needs the installer | Tied to crash reporting choice |
 | PR-13 | Advanced | Privacy policy link | Port | Installer: needs the installer | Needs own policy |
 | PR-14 | Hidden | `ShowDebugMenu` | Port | Open | Unit |
-| PR-15 | Hidden | `CorreiaSeparators` (timeline separators) | Port | Open | See TL-07 |
+| PR-15 | Hidden | `CorreiaSeparators` (timeline separators) | Port | Done | See TL-07 |
 | PR-16 | Hidden | `KafasisTitleMode` (title on main window) | Port | Unchecked: ArticleTitleInWindowTitle in settings.json; setting tested, behavior not run | UI |
 | PR-17 | Hidden | `GruberFeedDoubleClickMarkAsRead` | Port | Unchecked: DoubleClickFeedMarksRead in settings.json; setting tested, behavior not run | See SB-09 |
 | PR-18 | Hidden | `DevroeSuppressSyncOnLaunch` | Port | Unchecked: SuppressRefreshOnLaunch in settings.json; setting tested, behavior not run | Unit: no refresh at launch |

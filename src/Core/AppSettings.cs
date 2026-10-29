@@ -36,6 +36,17 @@ public sealed class AppSettings
 	/// <summary>Accounts the reader has turned off: hidden from the sidebar and skipped when refreshing.</summary>
 	public HashSet<string> DisabledAccountIds { get; set; } = [];
 
+	/// <summary>NetNewsWire's "Group by Feed": the timeline lists each feed's articles together, feeds in name order.</summary>
+	public bool GroupByFeed { get; set; }
+
+	/// <summary><c>CorreiaSeparators</c>: a line between the timeline's articles.</summary>
+	public bool TimelineSeparators { get; set; }
+
+	/// <summary><c>sidebarFontSize</c> and <c>timelineFontSize</c>: the size of the text in those panes, in points; 0 keeps the default.</summary>
+	public double SidebarFontSize { get; set; }
+
+	public double TimelineFontSize { get; set; }
+
 	/// <summary>NetNewsWire's Hide Toolbar state.</summary>
 	public bool ToolbarHidden { get; set; }
 

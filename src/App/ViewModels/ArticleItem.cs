@@ -10,6 +10,9 @@ public sealed partial class ArticleItem : ObservableObject
 {
 	private const int MaxSummaryLength = 300;
 
+	/// <summary>The line under each timeline row: <c>CorreiaSeparators</c>. Set at launch, before rows are made.</summary>
+	public static Microsoft.UI.Xaml.Thickness SeparatorThickness { get; set; }
+
 	private string? _summary;
 
 	public ArticleItem(Core.IAccount account, StoredArticle article, string feedName, Microsoft.UI.Xaml.Media.ImageSource? icon)

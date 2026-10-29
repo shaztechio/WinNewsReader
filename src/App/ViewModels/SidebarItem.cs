@@ -26,6 +26,9 @@ public sealed partial class SidebarItem : ObservableObject
 		Title = title;
 	}
 
+	/// <summary><c>sidebarFontSize</c>: the size of the sidebar's text, in points. Set at launch, before rows are made.</summary>
+	public static double TextSize { get; set; } = 14;
+
 	public SidebarItemKind Kind { get; }
 
 	/// <summary>Identifies the row across sidebar rebuilds. A feed in two folders has two keys.</summary>

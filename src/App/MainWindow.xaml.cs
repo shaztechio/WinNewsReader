@@ -108,6 +108,7 @@ public sealed partial class MainWindow : Window
 			_ = ViewModel.RefreshAsync();
 		}
 		ApplyToolbarVisibility();
+		ApplyPaneStyles();
 
 		_badge = new TaskbarBadge(this);
 		ViewModel.UnreadBadgeChanged += (_, _) => _badge.Update(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts);
@@ -513,6 +514,28 @@ public sealed partial class MainWindow : Window
 	{
 		ViewModel.SetSortOldestFirst(oldestFirst);
 		button.IsChecked = true;
+	}
+
+	private void OnToggleGroupByFeed(object sender, RoutedEventArgs e) => ViewModel.SetGroupByFeed(((ToggleMenuFlyoutItem)sender).IsChecked);
+
+	private void OnToggleSearchScope(object sender, RoutedEventArgs e) => ViewModel.SearchCurrentTimeline = ((Microsoft.UI.Xaml.Controls.Primitives.ToggleButton)sender).IsChecked == true;
+
+	/// <summary>NetNewsWire's hidden preferences for the panes: font sizes and separators between timeline rows.</summary>
+	private void ApplyPaneStyles()
+	{
+		var settings = ViewModel.Settings;
+		// The rows' own styles set a font size, so it has to be set on them rather than inherited from the list.
+		if (settings.SidebarFontSize > 0)
+		{
+			SidebarItem.TextSize = settings.SidebarFontSize;
+		}
+		if (settings.TimelineFontSize > 0)
+		{
+			var style = new Style(typeof(ListViewItem)) { BasedOn = (Style)Application.Current.Resources["DefaultListViewItemStyle"] };
+			style.Setters.Add(new Setter(Control.FontSizeProperty, settings.TimelineFontSize));
+			Timeline.ItemContainerStyle = style;
+		}
+		ArticleItem.SeparatorThickness = settings.TimelineSeparators ? new Thickness(0, 0, 0, 1) : new Thickness(0);
 	}
 
 	private void OnCleanUp(object sender, RoutedEventArgs e) => ViewModel.CleanUp();

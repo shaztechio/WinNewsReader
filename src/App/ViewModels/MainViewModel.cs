@@ -716,6 +716,16 @@ public sealed partial class MainViewModel : ObservableObject
 		LoadSidebar();
 	}
 
+	public bool GroupByFeed => Settings.GroupByFeed;
+
+	public void SetGroupByFeed(bool group)
+	{
+		Settings.GroupByFeed = group;
+		SaveSettings();
+		OnPropertyChanged(nameof(GroupByFeed));
+		LoadArticles(keepSelection: true);
+	}
+
 	public void SetSortOldestFirst(bool oldestFirst)
 	{
 		Settings.SortOldestFirst = oldestFirst;
@@ -1311,6 +1321,21 @@ public sealed partial class MainViewModel : ObservableObject
 
 	private string? _searchString;
 
+	/// <summary>
+	/// NetNewsWire's search scope: with this on, a search looks only in what the timeline was showing (a feed, a folder or
+	/// a smart feed), not in every article. It has no effect when nothing with articles is selected.
+	/// </summary>
+	[ObservableProperty]
+	public partial bool SearchCurrentTimeline { get; set; }
+
+	partial void OnSearchCurrentTimelineChanged(bool value)
+	{
+		if (_searchString is not null)
+		{
+			LoadArticles(keepSelection: false);
+		}
+	}
+
 	public bool IsSearching => _searchString is not null;
 
 	/// <summary>
@@ -1417,7 +1442,7 @@ public sealed partial class MainViewModel : ObservableObject
 		var selected = keepSelection ? SelectedArticle : null;
 		var selectedMany = keepSelection && SelectedArticles.Count > 1 ? SelectedArticles : null;
 		var pairs = _searchString is { } search
-			? Accounts.ToList().SelectMany(account => account.Store.Search(search).Select(article => (Account: account, Article: article)))
+			? SearchResults(search)
 			: ArticlesFor(SelectedSidebarItem);
 		if (_searchString is null && SelectedSidebarItem is { } item && HidesReadArticles(item))
 		{
@@ -1430,10 +1455,9 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			list.Add((selected.Account, current));
 		}
-		var newestFirst = list.OrderByDescending(pair => pair.Article.LogicalDatePublished).ThenBy(pair => pair.Article.ArticleId, StringComparer.Ordinal);
-		var ordered = Settings.SortOldestFirst ? newestFirst.Reverse() : newestFirst;
 		var feedNames = list.Select(pair => pair.Account).Distinct()
 			.ToDictionary(account => account, account => account.Store.GetFeeds().ToDictionary(feed => feed.FeedId, NameSorting.DisplayName));
+		var ordered = Ordered(list, feedNames);
 		Articles = [.. ordered.Select(pair => new ArticleItem(pair.Account, pair.Article,
 			feedNames[pair.Account].GetValueOrDefault(pair.Article.FeedId, ""), _icons.GetValueOrDefault(IconKey(pair.Account, pair.Article.FeedId))))];
 		// Keeping the selection across a reload isn't the reader choosing the article again, so it doesn't mark it
@@ -1460,6 +1484,35 @@ public sealed partial class MainViewModel : ObservableObject
 		{
 			_restoringSelection = false;
 		}
+	}
+
+	/// <summary>
+	/// The timeline's order: by date, newest first unless the reader chose oldest first, with the feeds' articles kept
+	/// together, in the order of the feeds' names, when "Group by Feed" is on.
+	/// </summary>
+	private IEnumerable<(IAccount Account, StoredArticle Article)> Ordered(
+		List<(IAccount Account, StoredArticle Article)> list,
+		Dictionary<IAccount, Dictionary<string, string>> feedNames)
+	{
+		var newestFirst = list.OrderByDescending(pair => pair.Article.LogicalDatePublished).ThenBy(pair => pair.Article.ArticleId, StringComparer.Ordinal).ToList();
+		if (Settings.SortOldestFirst)
+		{
+			newestFirst.Reverse();
+		}
+		return Settings.GroupByFeed
+			? newestFirst.OrderBy(pair => feedNames[pair.Account].GetValueOrDefault(pair.Article.FeedId, ""), StringComparer.CurrentCultureIgnoreCase)
+			: newestFirst;
+	}
+
+	private IEnumerable<(IAccount Account, StoredArticle Article)> SearchResults(string search)
+	{
+		var hits = Accounts.ToList().SelectMany(account => account.Store.Search(search).Select(article => (Account: account, Article: article))).ToList();
+		if (!SearchCurrentTimeline || SelectedSidebarItem is not { IsGroup: false } scope)
+		{
+			return hits;
+		}
+		var inScope = ArticlesFor(scope).Select(pair => (pair.Account, pair.Article.ArticleId)).ToHashSet();
+		return hits.Where(hit => inScope.Contains((hit.Account, hit.Article.ArticleId)));
 	}
 
 	/// <summary>The articles a row shows, each with its account. Smart feeds gather from every account.</summary>
