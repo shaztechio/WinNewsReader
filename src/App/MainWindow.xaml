@@ -26,6 +26,29 @@
             </Style>
             <MenuFlyout x:Key="SidebarMenu" Opening="OnSidebarMenuOpening" />
             <MenuFlyout x:Key="ArticleMenu" Opening="OnArticleMenuOpening" />
+            <!-- NetNewsWire's column layout: one line per article, in the columns unread, starred, feed, title and date. The
+                 column header over the timeline uses the same widths. -->
+            <DataTemplate x:Key="ColumnRowTemplate" x:DataType="vm:ArticleItem">
+                <Grid Padding="0,6" ColumnSpacing="8" ContextFlyout="{StaticResource ArticleMenu}"
+                      BorderThickness="{x:Bind vm:ArticleItem.SeparatorThickness}" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                      AutomationProperties.Name="{x:Bind Title}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="76" />
+                    </Grid.ColumnDefinitions>
+                    <Ellipse Width="8" Height="8" Fill="{ThemeResource AccentFillColorDefaultBrush}" Visibility="{x:Bind IsUnread, Mode=OneWay}" />
+                    <FontIcon Grid.Column="1" Glyph="&#xE735;" FontSize="12" Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                              Visibility="{x:Bind IsStarred, Mode=OneWay}" />
+                    <TextBlock Grid.Column="2" Text="{x:Bind FeedName}" TextTrimming="CharacterEllipsis"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Column="3" Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                    <TextBlock Grid.Column="4" Text="{x:Bind DateText}" TextTrimming="CharacterEllipsis"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </DataTemplate>
         </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -95,6 +118,14 @@
                                 <RadioMenuFlyoutItem Text="Newest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortNewestFirst, Mode=OneWay}" Click="OnSortNewestFirst" />
                                 <RadioMenuFlyoutItem Text="Oldest Article on Top" GroupName="Sort" IsChecked="{x:Bind ViewModel.SortOldestFirst, Mode=OneWay}" Click="OnSortOldestFirst" />
                                 <ToggleMenuFlyoutItem Text="Group by Feed" IsChecked="{x:Bind ViewModel.GroupByFeed, Mode=OneWay}" Click="OnToggleGroupByFeed" />
+                                <ToggleMenuFlyoutItem Text="Use Column Layout" IsChecked="{x:Bind ViewModel.UseColumnLayout, Mode=OneWay}" Click="OnToggleColumnLayout" />
+                                <MenuFlyoutSubItem Text="Sort Articles By" IsEnabled="{x:Bind ViewModel.UseColumnLayout, Mode=OneWay}">
+                                    <MenuFlyoutItem Text="Date" Tag="Date" Click="OnSortByField" />
+                                    <MenuFlyoutItem Text="Feed" Tag="Feed" Click="OnSortByField" />
+                                    <MenuFlyoutItem Text="Title" Tag="Title" Click="OnSortByField" />
+                                    <MenuFlyoutItem Text="Unread" Tag="Unread" Click="OnSortByField" />
+                                    <MenuFlyoutItem Text="Starred" Tag="Starred" Click="OnSortByField" />
+                                </MenuFlyoutSubItem>
                                 <MenuFlyoutItem Text="Clean Up" KeyboardAcceleratorTextOverride="Ctrl+'"
                                                 IsEnabled="{x:Bind ViewModel.IsHidingReadArticles, Mode=OneWay}" Click="OnCleanUp" />
                                 <MenuFlyoutSeparator />
@@ -186,18 +217,24 @@
                     </Button>
                 </StackPanel>
                 <!-- NetNewsWire's toolbar search field: searches every article in every account. -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <!-- The box takes up to 220 wide, and gives way when the article pane is narrow; the spare room goes to the left. -->
+                <Grid Grid.Column="1" ColumnSpacing="4" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.01*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="60" MaxWidth="220" />
+                    </Grid.ColumnDefinitions>
                     <!-- NetNewsWire's search scope: this feed, folder or smart feed only, rather than every article. -->
-                    <ToggleButton Style="{StaticResource ToolbarToggleButtonStyle}" Click="OnToggleSearchScope"
+                    <ToggleButton Grid.Column="1" Style="{StaticResource ToolbarToggleButtonStyle}" Click="OnToggleSearchScope"
                                   IsChecked="{x:Bind ViewModel.SearchCurrentTimeline, Mode=OneWay}"
                                   ToolTipService.ToolTip="Search only the current feed, folder or smart feed" AutomationProperties.Name="Search Current Feed Only">
                         <FontIcon Glyph="&#xE8FD;" FontSize="16" />
                     </ToggleButton>
-                    <TextBox x:Name="SearchBox" Width="220"
+                    <TextBox x:Name="SearchBox" Grid.Column="2" HorizontalAlignment="Stretch"
                              PlaceholderText="Search (Ctrl+Alt+F)" AutomationProperties.Name="Search Articles"
                              Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              TextChanged="OnSearchTextChanged" KeyDown="OnSearchKeyDown" />
-                </StackPanel>
+                </Grid>
             </Grid>
 
             <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}" DoubleTapped="OnSidebarDoubleTapped"
@@ -235,6 +272,38 @@
             <local:PaneSplitter x:Name="SidebarSplitter" Grid.RowSpan="2" Grid.Column="1">
                 <Rectangle Width="1" HorizontalAlignment="Center" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
             </local:PaneSplitter>
+
+            <!-- The column layout's header: click a column to sort by it, again to reverse it. -->
+            <Grid x:Name="ColumnHeader" Grid.Row="1" Grid.Column="2" Height="30" VerticalAlignment="Top" Padding="12,0,12,0" ColumnSpacing="8"
+                  Visibility="Collapsed" Background="{ThemeResource LayerFillColorDefaultBrush}" Canvas.ZIndex="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="76" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="HeaderUnread" Tag="Unread" Click="OnColumnHeader" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0"
+                        Width="16" Height="26" Padding="0" AutomationProperties.Name="Sort by Unread" ToolTipService.ToolTip="Sort by Unread">
+                    <Ellipse Width="8" Height="8" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+                <Button x:Name="HeaderStarred" Grid.Column="1" Tag="Starred" Click="OnColumnHeader" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0"
+                        Width="16" Height="26" Padding="0" AutomationProperties.Name="Sort by Starred" ToolTipService.ToolTip="Sort by Starred">
+                    <FontIcon Glyph="&#xE735;" FontSize="11" />
+                </Button>
+                <Button x:Name="HeaderFeed" Grid.Column="2" Tag="Feed" Click="OnColumnHeader" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0"
+                        Width="100" Height="26" Padding="0" HorizontalContentAlignment="Left" AutomationProperties.Name="Sort by Feed">
+                    <TextBlock x:Name="HeaderFeedText" Text="Feed" />
+                </Button>
+                <Button x:Name="HeaderTitle" Grid.Column="3" Tag="Title" Click="OnColumnHeader" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0"
+                        HorizontalAlignment="Stretch" Height="26" Padding="0" HorizontalContentAlignment="Left" AutomationProperties.Name="Sort by Title">
+                    <TextBlock x:Name="HeaderTitleText" Text="Title" />
+                </Button>
+                <Button x:Name="HeaderDate" Grid.Column="4" Tag="Date" Click="OnColumnHeader" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0"
+                        Width="76" Height="26" Padding="0" HorizontalContentAlignment="Left" AutomationProperties.Name="Sort by Date">
+                    <TextBlock x:Name="HeaderDateText" Text="Date" />
+                </Button>
+            </Grid>
 
             <ListView x:Name="Timeline" Grid.Row="1" Grid.Column="2" SelectionMode="Extended" SelectionChanged="OnTimelineSelectionChanged"
                       Background="{ThemeResource LayerFillColorDefaultBrush}" AutomationProperties.Name="Timeline">

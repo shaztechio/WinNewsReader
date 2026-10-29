@@ -729,9 +729,12 @@ public sealed partial class MainViewModel : ObservableObject
 	public void SetSortOldestFirst(bool oldestFirst)
 	{
 		Settings.SortOldestFirst = oldestFirst;
+		// Newest or Oldest Article on Top is a sort by date.
+		Settings.SortField = ArticleSortField.Date;
 		SaveSettings();
 		OnPropertyChanged(nameof(SortNewestFirst));
 		OnPropertyChanged(nameof(SortOldestFirst));
+		ColumnLayoutChanged?.Invoke(this, EventArgs.Empty);
 		LoadArticles(keepSelection: true);
 	}
 
@@ -1457,9 +1460,13 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		var feedNames = list.Select(pair => pair.Account).Distinct()
 			.ToDictionary(account => account, account => account.Store.GetFeeds().ToDictionary(feed => feed.FeedId, NameSorting.DisplayName));
-		var ordered = Ordered(list, feedNames);
-		Articles = [.. ordered.Select(pair => new ArticleItem(pair.Account, pair.Article,
-			feedNames[pair.Account].GetValueOrDefault(pair.Article.FeedId, ""), _icons.GetValueOrDefault(IconKey(pair.Account, pair.Article.FeedId))))];
+		// Sorted as shown: a title is what the row displays, which for a feed's untitled posts is the start of the text.
+		Articles = [.. ArticleSorting.Sort(
+			list.Select(pair => new ArticleItem(pair.Account, pair.Article,
+				feedNames[pair.Account].GetValueOrDefault(pair.Article.FeedId, ""), _icons.GetValueOrDefault(IconKey(pair.Account, pair.Article.FeedId)))),
+			ColumnSortField, ColumnSortReversed, Settings.GroupByFeed,
+			item => item.Article.LogicalDatePublished, item => item.ArticleId, item => item.FeedName, item => item.Title,
+			item => !item.IsRead, item => item.IsStarred)];
 		// Keeping the selection across a reload isn't the reader choosing the article again, so it doesn't mark it
 		// read; otherwise an article marked unread would turn read at the next refresh.
 		_restoringSelection = true;
@@ -1486,22 +1493,45 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>
-	/// The timeline's order: by date, newest first unless the reader chose oldest first, with the feeds' articles kept
-	/// together, in the order of the feeds' names, when "Group by Feed" is on.
-	/// </summary>
-	private IEnumerable<(IAccount Account, StoredArticle Article)> Ordered(
-		List<(IAccount Account, StoredArticle Article)> list,
-		Dictionary<IAccount, Dictionary<string, string>> feedNames)
+	public bool UseColumnLayout => Settings.UseColumnLayout;
+
+	/// <summary>The sort column. Only the column layout sorts by anything but date.</summary>
+	public ArticleSortField ColumnSortField => Settings.UseColumnLayout ? Settings.SortField : ArticleSortField.Date;
+
+	public bool ColumnSortReversed => ColumnSortField == ArticleSortField.Date ? Settings.SortOldestFirst : Settings.SortFieldReversed;
+
+	/// <summary>Raised when the layout or the sort column or its direction changes, so the column headers can show it.</summary>
+	public event EventHandler? ColumnLayoutChanged;
+
+	public void SetColumnLayout(bool on)
 	{
-		var newestFirst = list.OrderByDescending(pair => pair.Article.LogicalDatePublished).ThenBy(pair => pair.Article.ArticleId, StringComparer.Ordinal).ToList();
-		if (Settings.SortOldestFirst)
+		Settings.UseColumnLayout = on;
+		SaveSettings();
+		OnPropertyChanged(nameof(UseColumnLayout));
+		ColumnLayoutChanged?.Invoke(this, EventArgs.Empty);
+		LoadArticles(keepSelection: true);
+	}
+
+	/// <summary>A column header was clicked, or a sort menu item chosen: sort by it, or flip the order if it's the sort column already.</summary>
+	public void SortBy(ArticleSortField field)
+	{
+		if (field == ColumnSortField)
 		{
-			newestFirst.Reverse();
+			if (field == ArticleSortField.Date)
+			{
+				SetSortOldestFirst(!Settings.SortOldestFirst);
+				return;
+			}
+			Settings.SortFieldReversed = !Settings.SortFieldReversed;
 		}
-		return Settings.GroupByFeed
-			? newestFirst.OrderBy(pair => feedNames[pair.Account].GetValueOrDefault(pair.Article.FeedId, ""), StringComparer.CurrentCultureIgnoreCase)
-			: newestFirst;
+		else
+		{
+			Settings.SortField = field;
+			Settings.SortFieldReversed = false;
+		}
+		SaveSettings();
+		ColumnLayoutChanged?.Invoke(this, EventArgs.Empty);
+		LoadArticles(keepSelection: true);
 	}
 
 	private IEnumerable<(IAccount Account, StoredArticle Article)> SearchResults(string search)

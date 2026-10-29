@@ -109,6 +109,8 @@ public sealed partial class MainWindow : Window
 		}
 		ApplyToolbarVisibility();
 		ApplyPaneStyles();
+		ViewModel.ColumnLayoutChanged += (_, _) => ApplyColumnLayout();
+		ApplyColumnLayout();
 
 		_badge = new TaskbarBadge(this);
 		ViewModel.UnreadBadgeChanged += (_, _) => _badge.Update(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts);
@@ -514,6 +516,63 @@ public sealed partial class MainWindow : Window
 	{
 		ViewModel.SetSortOldestFirst(oldestFirst);
 		button.IsChecked = true;
+	}
+
+	private DataTemplate? _rowTemplate;
+
+	private const double ColumnLayoutWidth = 560;
+
+	private double? _widthBeforeColumns;
+
+	private void OnToggleColumnLayout(object sender, RoutedEventArgs e) => ViewModel.SetColumnLayout(((ToggleMenuFlyoutItem)sender).IsChecked);
+
+	private void OnSortByField(object sender, RoutedEventArgs e) => ViewModel.SortBy(Enum.Parse<ArticleSortField>((string)((FrameworkElement)sender).Tag));
+
+	private void OnColumnHeader(object sender, RoutedEventArgs e) => ViewModel.SortBy(Enum.Parse<ArticleSortField>((string)((FrameworkElement)sender).Tag));
+
+	/// <summary>NetNewsWire's column layout: the timeline as a table, with a header to sort by.</summary>
+	private void ApplyColumnLayout()
+	{
+		_rowTemplate ??= Timeline.ItemTemplate;
+		var on = ViewModel.UseColumnLayout;
+		Timeline.ItemTemplate = on ? (DataTemplate)Root.Resources["ColumnRowTemplate"] : _rowTemplate;
+		ColumnHeader.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		Timeline.Margin = new Thickness(0, on ? ColumnHeader.Height : 0, 0, 0);
+		// A table needs more room than a list of cards: widen the timeline for it, and put it back after.
+		if (on && TimelineColumn.ActualWidth is > 0 and < ColumnLayoutWidth && _widthBeforeColumns is null)
+		{
+			_widthBeforeColumns = TimelineColumn.ActualWidth;
+			TimelineColumn.Width = new GridLength(ColumnLayoutWidth);
+		}
+		else if (!on && _widthBeforeColumns is { } before)
+		{
+			TimelineColumn.Width = new GridLength(before);
+			_widthBeforeColumns = null;
+		}
+		UpdateColumnHeaders();
+	}
+
+	/// <summary>The sort column's header is bold, with an arrow for its direction where there's room for one.</summary>
+	private void UpdateColumnHeaders()
+	{
+		var field = ViewModel.ColumnSortField;
+		var up = field switch
+		{
+			ArticleSortField.Date or ArticleSortField.Feed or ArticleSortField.Title => ViewModel.ColumnSortReversed == (field == ArticleSortField.Date),
+			_ => ViewModel.ColumnSortReversed,
+		};
+		var arrow = up ? " ▲" : " ▼";
+		void Set(TextBlock text, string name, ArticleSortField column)
+		{
+			text.Text = field == column ? name + arrow : name;
+			text.FontWeight = field == column ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+		}
+		Set(HeaderFeedText, "Feed", ArticleSortField.Feed);
+		Set(HeaderTitleText, "Title", ArticleSortField.Title);
+		Set(HeaderDateText, "Date", ArticleSortField.Date);
+		// The icon columns have no room for an arrow, so the sort column's icon is just stronger than the others.
+		HeaderUnread.Opacity = field == ArticleSortField.Unread ? 1 : 0.5;
+		HeaderStarred.Opacity = field == ArticleSortField.Starred ? 1 : 0.5;
 	}
 
 	private void OnToggleGroupByFeed(object sender, RoutedEventArgs e) => ViewModel.SetGroupByFeed(((ToggleMenuFlyoutItem)sender).IsChecked);

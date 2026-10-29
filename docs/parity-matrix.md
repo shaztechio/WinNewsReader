@@ -25,9 +25,9 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 149 |
+| Done | 151 |
 | Partial | 17 |
-| Open | 18 |
+| Open | 16 |
 | Unchecked | 26 |
 | Installer | 6 |
 | Keys | 2 |
@@ -40,10 +40,10 @@ By section:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 13 |  | 1 |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
-| Main window and layout | 6 | 2 | 3 |  |  |  | 1 |
+| Main window and layout | 7 | 2 | 2 |  |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
 | Sidebar | 13 | 2 | 2 | 3 |  |  |  |
-| Smart feeds and timeline | 12 | 1 | 2 |  |  |  |  |
+| Smart feeds and timeline | 13 | 1 | 1 |  |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 11 | 1 | 1 | 1 |  |  |  |
 | Feed management and import/export | 2 | 3 | 2 |  |  |  | 1 |
@@ -105,7 +105,7 @@ By section:
 | ID | Feature | Mac source | Decision | Status | Test / reason |
 | --- | --- | --- | --- | --- | --- |
 | MW-01 | Three-pane layout (sidebar, timeline, article) | `MainWindow/` | Port | Done | UI: all three panes present and resizable |
-| MW-02 | Column layout (timeline as table: unread, starred, feed, title, date) | `Timeline/TimelineColumn.swift`, `+ColumnLayout.swift` | Port | Open: no column layout | UI: View > Use Column Layout switches layout; columns sort |
+| MW-02 | Column layout (timeline as table: unread, starred, feed, title, date) | `Timeline/TimelineColumn.swift`, `+ColumnLayout.swift` | Port | Done | UI: View > Use Column Layout switches layout; columns sort |
 | MW-03 | Toggle sidebar | `toggleSidebar:` | Port | Done | UI: shortcut hides and shows sidebar |
 | MW-04 | Status bar (counts or last refresh, click to cycle; link hover URL) | `StatusBar/` | Port | Partial: a status line; no cycling through counts | UI: click cycles unread count, folders/feeds, last refresh |
 | MW-05 | Status bar gear menu (selection actions) | `statusBarMenu()` | Port | Open: no status bar menu | UI: menu matches sidebar context menu for selection |
@@ -167,7 +167,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SF-04 | Search (as a feed, across all accounts) | `SearchFeedDelegate.swift` | Port | Done | Unit: title and body match; side-by-side same results |
 | SF-05 | Search within current timeline | `SearchTimelineFeedDelegate.swift` | Port | Done | Unit: limited to selected feed |
 | TL-01 | Sort by date, ascending/descending | `ArticleSorter.swift` | Port | Done | Unit: sort order matches NNW for fixtures |
-| TL-02 | Sort by feed, title, unread, starred (column layout) | `sortArticlesByField:` | Port | Open: tied to the column layout | UI: View > Sort Articles By changes order |
+| TL-02 | Sort by feed, title, unread, starred (column layout) | `sortArticlesByField:` | Port | Done | UI: View > Sort Articles By changes order |
 | TL-03 | Group by feed | `timelineGroupByFeed` | Port | Done | Unit + UI |
 | TL-04 | Hide read articles | `toggleReadArticlesFilter:` | Port | Done | UI: read articles hide; current selection stays |
 | TL-05 | Clean up (drop read from current view) | `cleanUp:` | Port | Done | UI: read rows removed |
@@ -380,7 +380,7 @@ Mapping rule: Cmd → Ctrl, Option → Alt, Shift stays. Mac Control combination
 | View | Show Sidebar | Ctrl+Cmd+S | Ctrl+Alt+S | Done |
 | View | Show Toolbar | Opt+Cmd+T | Ctrl+Alt+T | Unchecked: Ctrl+Alt+T built, not pressed; the +▾ menu item hides it |
 | View | Full Screen | Ctrl+Cmd+F | F11 | Unchecked: F11 built; the +▾ menu item works |
-| View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Partial: sort by date only |
+| View | Sort Articles By, Use Column Layout, Show Status Bar, Theme Menu in Status Bar | none | none | Partial: Sort Articles By and Use Column Layout are in the +▾ menu; no status bar toggle |
 | Go | Next Unread | Cmd+/ | Ctrl+/ | Done |
 | Go | Today / All Unread / Starred | Cmd+1 / 2 / 3 | Ctrl+1 / 2 / 3 | Done |
 | Article | Mark as Read | Shift+Cmd+U | Ctrl+Shift+U | Done |

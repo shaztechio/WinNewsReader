@@ -108,6 +108,23 @@ public sealed class AppSettingsTests : IDisposable
 	}
 
 	[Fact]
+	public void ColumnLayoutSettingsDefaultToTheDatedCardsAndRoundTrip()
+	{
+		var defaults = new AppSettings();
+		Assert.False(defaults.UseColumnLayout);
+		Assert.Equal(ArticleSortField.Date, defaults.SortField);
+		Assert.False(defaults.SortFieldReversed);
+
+		new AppSettings { UseColumnLayout = true, SortField = ArticleSortField.Title, SortFieldReversed = true }.Save(SettingsPath);
+		var loaded = AppSettings.Load(SettingsPath);
+
+		Assert.True(loaded.UseColumnLayout);
+		Assert.Equal(ArticleSortField.Title, loaded.SortField);
+		Assert.True(loaded.SortFieldReversed);
+		Assert.Contains("\"Title\"", File.ReadAllText(SettingsPath));
+	}
+
+	[Fact]
 	public void MissingFileGivesDefaults()
 	{
 		var settings = AppSettings.Load(SettingsPath);

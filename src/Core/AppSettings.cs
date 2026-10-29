@@ -36,6 +36,16 @@ public sealed class AppSettings
 	/// <summary>Accounts the reader has turned off: hidden from the sidebar and skipped when refreshing.</summary>
 	public HashSet<string> DisabledAccountIds { get; set; } = [];
 
+	/// <summary>NetNewsWire's View > Use Column Layout: the timeline as a table with sortable columns.</summary>
+	public bool UseColumnLayout { get; set; }
+
+	/// <summary>The column the table is sorted by. Date, the default, is the plain timeline's order too.</summary>
+	[JsonConverter(typeof(JsonStringEnumConverter))]
+	public ArticleSortField SortField { get; set; }
+
+	/// <summary>Whether a sort by Feed, Title, Unread or Starred runs backwards. Date has its own, <see cref="SortOldestFirst"/>.</summary>
+	public bool SortFieldReversed { get; set; }
+
 	/// <summary>NetNewsWire's "Group by Feed": the timeline lists each feed's articles together, feeds in name order.</summary>
 	public bool GroupByFeed { get; set; }
 
