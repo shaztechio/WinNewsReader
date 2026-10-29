@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+	<title>WinNewsReader News</title>
+	<subtitle>What's new in WinNewsReader, a feed reader for Windows in the spirit of NetNewsWire.</subtitle>
+	<link rel="self" type="application/atom+xml" href="https://winnewsreader.com/feed.xml"/>
+	<link rel="alternate" type="text/html" href="https://winnewsreader.com/"/>
+	<id>https://winnewsreader.com/feed.xml</id>
+	<updated>2026-10-29T12:00:00Z</updated>
+	<author><name>WinNewsReader</name></author>
+	<entry>
+		<title>Utility windows, a column layout and a status bar</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/help/#windows"/>
+		<id>https://winnewsreader.com/news/2026-10-29-windows-columns-status-bar</id>
+		<updated>2026-10-29T12:00:00Z</updated>
+		<summary type="html">&lt;p&gt;Current Activity, Activity Log, Error Log, Account Stats and Dinosaurs windows (Ctrl+6 to Ctrl+9); a table-style column layout with sorting by feed, title, unread and starred; Group by Feed; a search scope button; a status bar with a selection menu, a theme menu and click-to-cycle counts; and dragging links onto the sidebar to subscribe.&lt;/p&gt;</summary>
+	</entry>
+	<entry>
+		<title>Find in Article, undo, and a taskbar badge</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/help/#find"/>
+		<id>https://winnewsreader.com/news/2026-10-28-find-undo-badge</id>
+		<updated>2026-10-28T12:00:00Z</updated>
+		<summary type="html">&lt;p&gt;Ctrl+F finds text in the article you're reading, Ctrl+Z undoes marking read or starred and deleting a feed or folder, the taskbar icon shows your unread count, and feeds show their sites' icons.&lt;/p&gt;</summary>
+	</entry>
+	<entry>
+		<title>WinNewsReader is in development</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/"/>
+		<id>https://winnewsreader.com/news/2026-10-24-in-development</id>
+		<updated>2026-10-24T12:00:00Z</updated>
+		<summary type="html">&lt;p&gt;WinNewsReader is a Windows port of NetNewsWire that reads RSS, Atom, JSON Feed and RSS-in-JSON, keeps your feeds on your PC or syncs with FreshRSS, and uses NetNewsWire's article themes. It isn't released yet; the source is on GitHub and an installer is still to come.&lt;/p&gt;</summary>
+	</entry>
+</feed>

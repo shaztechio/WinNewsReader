@@ -25,10 +25,10 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 153 |
-| Partial | 15 |
-| Open | 13 |
-| Unchecked | 29 |
+| Done | 155 |
+| Partial | 16 |
+| Open | 9 |
+| Unchecked | 30 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -45,13 +45,13 @@ By section:
 | Sidebar | 13 | 2 | 1 | 4 |  |  |  |
 | Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
-| Article view | 11 | 1 | 1 | 1 |  |  |  |
-| Feed management and import/export | 2 | 3 | 2 |  |  |  | 1 |
+| Article view | 12 | 1 |  | 1 |  |  |  |
+| Feed management and import/export | 2 | 3 | 1 | 1 |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
 | Notifications | 3 | 1 |  |  |  |  |  |
-| Preferences | 8 | 1 | 1 | 3 | 3 |  | 2 |
+| Preferences | 9 | 1 |  | 3 | 3 |  | 2 |
 | Utility windows | 3 | 1 |  | 2 | 1 |  | 1 |
-| Other | 3 | 3 | 1 |  | 2 |  |  |
+| Other | 3 | 4 |  |  | 2 |  |  |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 | 1 |  |  |  |  |  |
 | Timeline and article | 4 |  |  |  |  |  |  |
@@ -207,7 +207,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | AV-11 | Find in article (find, next, previous) | Edit > Find | Port | Done | UI: Ctrl+F, F3, Shift+F3 |
 | AV-12 | Feed icons in article header via custom scheme | `DetailIconSchemeHandler.swift` | Port | Done | WebView2 resource handler. UI: icon renders |
 | AV-13 | Special-case rendering rules | `ArticleRenderingSpecialCases.swift` | Port | Done | Golden: same HTML output for affected fixtures |
-| AV-14 | Web Inspector (debug) | `toggleWebInspectorEnabled:` | Port | Open: no debug menu | WebView2 DevTools behind debug menu |
+| AV-14 | Web Inspector (debug) | `toggleWebInspectorEnabled:` | Port | Done | WebView2 DevTools behind debug menu |
 
 ## Feed management and import/export
 
@@ -219,7 +219,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | FD-04 | Import OPML into chosen account | `importOPMLFromFile:` | Port | Partial: On This PC only; importing into FreshRSS is open | Unit: `Subs.opml` round trip |
 | FD-05 | Export OPML from chosen account | `exportOPML:` | Port | Partial: On This PC only | Unit: export, re-import, same tree |
 | FD-06 | Import NNW 3 subscriptions | `importNNW3FromFile:` | Drop | Dropped | Legacy Mac-only file format |
-| FD-07 | Add NetNewsWire News feed (Help menu) | `addAppNews:` | Port | Open: no app news feed | Point at this app's own news feed |
+| FD-07 | Add NetNewsWire News feed (Help menu) | `addAppNews:` | Port | Unchecked: Help → Add WinNewsReader News Feed subscribes to winnewsreader.com/feed.xml (the feed is tested); not yet tried against the live site | Point at this app's own news feed |
 | FD-08 | Dinosaurs window: feeds not updated in N months (default 6), select, delete, open home page, copy URL, undo | `Mac/Dinosaurs` | Port | Done | UI: stale fixture feed listed; delete undoes |
 
 ## Inspector
@@ -259,7 +259,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | PR-11 | Advanced | App updates: check automatically, release vs test builds, Check Now | Port | Installer: needs the installer | Velopack channels. UI |
 | PR-12 | Advanced | Send crash logs automatically | Port | Installer: needs the installer | Tied to crash reporting choice |
 | PR-13 | Advanced | Privacy policy link | Port | Installer: needs the installer | Needs own policy |
-| PR-14 | Hidden | `ShowDebugMenu` | Port | Open | Unit |
+| PR-14 | Hidden | `ShowDebugMenu` | Port | Done | Unit |
 | PR-15 | Hidden | `CorreiaSeparators` (timeline separators) | Port | Done | See TL-07 |
 | PR-16 | Hidden | `KafasisTitleMode` (title on main window) | Port | Unchecked: ArticleTitleInWindowTitle in settings.json; setting tested, behavior not run | UI |
 | PR-17 | Hidden | `GruberFeedDoubleClickMarkAsRead` | Port | Unchecked: DoubleClickFeedMarksRead in settings.json; setting tested, behavior not run | See SB-09 |
@@ -288,7 +288,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | OT-04 | Register as default feed reader | Port | Installer: needs the installer | Installer writes handler; removed on uninstall |
 | OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Partial: no release notes or forum yet | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
 | OT-06 | Open Application Support folder | Port | Done | Opens `%LOCALAPPDATA%\<AppName>` |
-| OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Open: no debug menu | Behind PR-14 |
+| OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Partial: Web Inspector, icon cache folder and rebuild search index; no crash tests (nothing to test them against) | Behind PR-14 |
 | OT-08 | Accessibility | Port | Partial: names on the controls; no Narrator pass yet | Narrator / UI Automation names on every control |
 | SH-01 | Share (macOS sharing services on the Mac) | Port | Done | Windows' share sheet with the article's title and link; see TB-10 |
 

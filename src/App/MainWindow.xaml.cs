@@ -666,6 +666,7 @@ public sealed partial class MainWindow : Window
 	private void ApplyPaneStyles()
 	{
 		var settings = ViewModel.Settings;
+		DebugMenu.Visibility = settings.ShowDebugMenu ? Visibility.Visible : Visibility.Collapsed;
 		// The rows' own styles set a font size, so it has to be set on them rather than inherited from the list.
 		if (settings.SidebarFontSize > 0)
 		{
@@ -1117,6 +1118,31 @@ public sealed partial class MainWindow : Window
 
 	private void OnToggleToolbar(object sender, RoutedEventArgs e) => ToggleToolbar();
 
+	// NetNewsWire's debug items, behind the ShowDebugMenu setting.
+
+	private void OnOpenWebInspector(object sender, RoutedEventArgs e)
+	{
+		if (_articleViewReady)
+		{
+			ArticleView.CoreWebView2.OpenDevToolsWindow();
+		}
+	}
+
+	private void OnOpenIconCache(object sender, RoutedEventArgs e)
+	{
+		Directory.CreateDirectory(MainViewModel.FeedIconsDirectory);
+		System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(MainViewModel.FeedIconsDirectory) { UseShellExecute = true });
+	}
+
+	private async void OnRebuildSearchIndex(object sender, RoutedEventArgs e) =>
+		await RunReportingErrorsAsync("Couldn’t Rebuild the Search Index", () => Task.Run(() =>
+		{
+			foreach (var account in ViewModel.Accounts.ToList())
+			{
+				account.Store.RebuildSearchIndex();
+			}
+		}));
+
 	private void OnOpenAppDataFolder(object sender, RoutedEventArgs e)
 	{
 		Directory.CreateDirectory(App.DataDirectory);
@@ -1158,6 +1184,10 @@ public sealed partial class MainWindow : Window
 	private void OnWebsite(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://winnewsreader.com/");
 
 	private void OnSourceCode(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://github.com/shaztechio/WinNewsReader");
+
+	/// <summary>NetNewsWire's Help → Add NetNewsWire News Feed: subscribes On This PC to this app's own news.</summary>
+	private async void OnAddNewsFeed(object sender, RoutedEventArgs e) =>
+		await RunReportingErrorsAsync("Couldn’t Add the News Feed", () => ViewModel.SubscribeAsync("https://winnewsreader.com/feed.xml", ViewModel.Accounts[0], null));
 
 	private void OnReportProblem(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://github.com/shaztechio/WinNewsReader/issues");
 

@@ -151,6 +151,12 @@
                                 <MenuFlyoutItem Text="Full Screen" Click="OnFullScreen" KeyboardAcceleratorTextOverride="F11" />
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="Preferences…" Click="OnPreferences" KeyboardAcceleratorTextOverride="Ctrl+," />
+                                <!-- NetNewsWire's hidden Debug menu, shown by the ShowDebugMenu setting. -->
+                                <MenuFlyoutSubItem x:Name="DebugMenu" Text="Debug" Visibility="Collapsed">
+                                    <MenuFlyoutItem Text="Open Web Inspector" Click="OnOpenWebInspector" />
+                                    <MenuFlyoutItem Text="Open Icon Cache Folder" Click="OnOpenIconCache" />
+                                    <MenuFlyoutItem Text="Rebuild Search Index" Click="OnRebuildSearchIndex" />
+                                </MenuFlyoutSubItem>
                                 <!-- NetNewsWire's Help menu, pointing at this project's own pages. -->
                                 <MenuFlyoutSubItem Text="Help">
                                     <MenuFlyoutItem Text="WinNewsReader Help" Click="OnHelp" KeyboardAcceleratorTextOverride="F1" />
@@ -159,6 +165,7 @@
                                     <MenuFlyoutItem Text="Website" Click="OnWebsite" />
                                     <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
                                     <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
+                                    <MenuFlyoutItem Text="Add WinNewsReader News Feed" Click="OnAddNewsFeed" />
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Open App Data Folder" Click="OnOpenAppDataFolder" />
                                     <MenuFlyoutItem Text="About WinNewsReader" Click="OnAbout" />

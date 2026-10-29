@@ -96,6 +96,16 @@ public sealed class SearchTests : IDisposable
 		Assert.Equal(["old"], reopened.Search("older").Select(a => a.UniqueId));
 	}
 
+	[Fact]
+	public void RebuildingTheIndexKeepsEveryArticleFindable()
+	{
+		_store.RebuildSearchIndex();
+
+		Assert.Equal(["reader"], _store.Search("reading").Select(a => a.UniqueId));
+		Assert.Equal(["summary"], _store.Search("croissants").Select(a => a.UniqueId));
+		Assert.Empty(_store.Search("scriptword"));
+	}
+
 	private static ParsedItem Item(string uniqueId, string title, string? html, string? summary = null, string? author = null) => new()
 	{
 		FeedUrl = Feed,

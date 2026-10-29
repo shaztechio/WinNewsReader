@@ -875,6 +875,19 @@ public sealed class ArticlesStore : IDisposable
 		}
 	}
 
+	/// <summary>Throws the search index away and builds it again from the articles, for the Debug menu.</summary>
+	public void RebuildSearchIndex()
+	{
+		lock (_lock)
+		{
+			using var transaction = _connection.BeginTransaction();
+			Execute("DELETE FROM search");
+			Execute("UPDATE articles SET searchRowID = NULL");
+			IndexUnindexedArticles();
+			transaction.Commit();
+		}
+	}
+
 	/// <summary>Indexes new articles and ones whose text changed. Call inside a transaction.</summary>
 	private void IndexUnindexedArticles()
 	{
