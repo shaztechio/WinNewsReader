@@ -2,7 +2,7 @@
 
 A tour of what the app does and how to drive it. The same material, with screenshots, is on the [help page](https://winnewsreader.com/help/). Shortcuts follow NetNewsWire's, with Ctrl for Cmd.
 
-The first launch adds NetNewsWire's starter feeds. The app refreshes at launch and every hour. It remembers its window, pane widths, open folders and selection between runs. To use a different data folder, start it with `--data <folder>`.
+The first launch adds NetNewsWire's starter feeds and the WinNewsReader News feed. The app refreshes at launch and every hour. It remembers its window, pane widths, open folders and selection between runs. To use a different data folder, start it with `--data <folder>`.
 
 ## The window
 

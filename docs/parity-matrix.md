@@ -98,7 +98,7 @@ By section:
 | AC-10 | Sync status database (pending changes queue) | `Modules/SyncDatabase` | Port | Done | Unit: offline mark-read is sent on next sync |
 | AC-11 | Multiple accounts, enable/disable each | `Preferences/Accounts` | Port | Done | UI: disabled account hides from sidebar and skips refresh |
 | AC-12 | Credentials storage | Keychain via `Modules/Secrets` | Port | Done | Windows Credential Manager. Unit: save, read, delete |
-| AC-13 | Default feeds on first run | `Shared/Importers/DefaultFeeds.opml` | Port | Done | UI: fresh profile shows the default feeds |
+| AC-13 | Default feeds on first run | `Shared/Importers/DefaultFeeds.opml` | Port | Done: NetNewsWire's ten, plus WinNewsReader News | UI: fresh profile shows the default feeds |
 
 ## Main window and layout
 

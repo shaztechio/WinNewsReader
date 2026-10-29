@@ -14,5 +14,6 @@
 	  <outline text="NetNewsWire Blog" title="NetNewsWire Blog" type="rss" version="RSS" htmlUrl="https://netnewswire.blog/" xmlUrl="https://netnewswire.blog/feed.json"/>
 	  <outline text="Scripting News" title="Scripting News" type="rss" version="RSS" htmlUrl="http://scripting.com/" xmlUrl="http://scripting.com/rss.xml"/>
 	  <outline text="Six Colors" title="Six Colors" type="rss" version="RSS" htmlUrl="https://sixcolors.com/" xmlUrl="https://feedpress.me/sixcolors?type=xml"/>
+	  <outline text="WinNewsReader News" title="WinNewsReader News" type="rss" version="RSS" htmlUrl="https://winnewsreader.com/news/" xmlUrl="https://winnewsreader.com/feed.xml"/>
   </body>
 </opml>
