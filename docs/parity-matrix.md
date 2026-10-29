@@ -27,8 +27,8 @@ Audited against the app on 2026-10-29. Each row has a status:
 | --- | --- |
 | Done | 153 |
 | Partial | 15 |
-| Open | 15 |
-| Unchecked | 27 |
+| Open | 13 |
+| Unchecked | 29 |
 | Installer | 6 |
 | Keys | 2 |
 | Dropped | 19 |
@@ -42,8 +42,8 @@ By section:
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
 | Main window and layout | 9 |  | 1 | 1 |  |  | 1 |
 | Toolbar items | 14 |  |  |  |  |  |  |
-| Sidebar | 13 | 2 | 2 | 3 |  |  |  |
-| Smart feeds and timeline | 13 | 1 | 1 |  |  |  |  |
+| Sidebar | 13 | 2 | 1 | 4 |  |  |  |
+| Smart feeds and timeline | 13 | 1 |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
 | Article view | 11 | 1 | 1 | 1 |  |  |  |
 | Feed management and import/export | 2 | 3 | 2 |  |  |  | 1 |
@@ -146,7 +146,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | SB-02 | Unread counts: show, dot, hide | `UnreadCountDisplay.swift` | Port | Done | UI: each setting renders |
 | SB-03 | Favicons and feed icons | `Modules/Images`, `IconImageCache.swift` | Port | Done | UI: icons load; cache folder populated |
 | SB-04 | Drag and drop: move feeds/folders, between accounts | `SidebarOutlineDataSource.swift` | Port | Partial: feeds, within and between accounts; folders can't be dragged | UI: drag moves feed; sync account reflects it |
-| SB-05 | Drag URL or feed onto sidebar to subscribe | `PasteboardFeed.swift` | Port | Open: dropping a URL does nothing | UI: dropping a URL opens Add Feed |
+| SB-05 | Drag URL or feed onto sidebar to subscribe | `PasteboardFeed.swift` | Port | Unchecked: built (drop on a row picks its account and folder); dragging needs a mouse, not tried; address parsing is unit tested | UI: dropping a URL opens Add Feed |
 | SB-06 | Inline rename | `Sidebar/Renaming` | Port | Partial: Rename… dialog, not in place | UI: F2 / Rename edits in place |
 | SB-07 | Delete with confirmation, undo | `SidebarDeleteItemsAlert.swift` | Port | Unchecked: asks first; undo built (store steps tested), delete not driven in the app | UI: delete asks; Ctrl+Z restores |
 | SB-08 | Hide read feeds | `toggleReadFeedsFilter:` | Port | Done | UI: feeds with no unread hide |
@@ -174,7 +174,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | TL-06 | Row shows title, summary, feed, date, icon, author avatar, unread dot, star | `Timeline/Cell` | Port | Partial: no author avatar | Side-by-side screenshot review |
 | TL-07 | Separators (hidden pref) | `CorreiaSeparators` | Port | Done | UI: setting toggles separators |
 | TL-08 | Context menu: Mark Read/Unread, Star/Unstar, Mark Above/Below as Read, Select Feed in Sidebar, Mark All as Read in feed, Open in Browser, Copy Article URL, Copy External URL, Share | `menu(for:)` | Port | Done | UI: items present in this order |
-| TL-09 | Drag article out as URL | `ArticlePasteboardWriter.swift` | Port | Open: articles can't be dragged out | UI: drop on browser opens URL |
+| TL-09 | Drag article out as URL | `ArticlePasteboardWriter.swift` | Port | Unchecked: built (one article drags as a web link, several as lines of text); dragging needs a mouse, not tried | UI: drop on browser opens URL |
 | TL-10 | Undo for mark read / star | `MarkStatusCommand.swift` | Port | Done | UI: Ctrl+Z reverts |
 
 ## Reading state

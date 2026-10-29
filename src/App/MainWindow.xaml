@@ -238,7 +238,7 @@
             </Grid>
 
             <TreeView x:Name="Sidebar" Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.SidebarItems}" DoubleTapped="OnSidebarDoubleTapped"
-                      SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="True"
+                      SelectionMode="Single" CanDragItems="True" CanReorderItems="False" AllowDrop="True" DragOver="OnSidebarDragOver" Drop="OnSidebarDrop"
                       DragItemsStarting="OnSidebarDragItemsStarting" DragItemsCompleted="OnSidebarDragItemsCompleted"
                       SelectionChanged="OnSidebarSelectionChanged"
                       Expanding="OnSidebarExpanding" Collapsed="OnSidebarCollapsed"
@@ -306,6 +306,7 @@
             </Grid>
 
             <ListView x:Name="Timeline" Grid.Row="1" Grid.Column="2" SelectionMode="Extended" SelectionChanged="OnTimelineSelectionChanged"
+                      CanDragItems="True" DragItemsStarting="OnTimelineDragItemsStarting"
                       Background="{ThemeResource LayerFillColorDefaultBrush}" AutomationProperties.Name="Timeline">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ArticleItem">

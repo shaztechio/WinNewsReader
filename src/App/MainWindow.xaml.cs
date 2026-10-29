@@ -294,11 +294,80 @@ public sealed partial class MainWindow : Window
 			var place = target.Account != feed.Account && target.Kind == SidebarItemKind.Folder ? $"{target.Account!.Name} › {target.Title}" : target.Title;
 			e.DragUIOverride.Caption = $"{(copy ? "Copy" : "Move")} to {place}";
 		}
+		else if (_draggedFeed is null && CanSubscribeFrom(e.DataView))
+		{
+			e.AcceptedOperation = DataPackageOperation.Copy;
+			e.DragUIOverride.Caption = "Subscribe";
+		}
 		else
 		{
 			e.AcceptedOperation = DataPackageOperation.None;
 		}
 		e.Handled = true;
+	}
+
+	/// <summary>NetNewsWire's drop of a URL on the sidebar: a link or text dragged from a browser starts Add Feed.</summary>
+	private static bool CanSubscribeFrom(DataPackageView data) =>
+		data.Contains(StandardDataFormats.WebLink) || data.Contains(StandardDataFormats.Text);
+
+	private async Task SubscribeFromDropAsync(DataPackageView data, SidebarItem? target)
+	{
+		string? text = null;
+		if (data.Contains(StandardDataFormats.WebLink))
+		{
+			text = (await data.GetWebLinkAsync()).AbsoluteUri;
+		}
+		else if (data.Contains(StandardDataFormats.Text))
+		{
+			text = await data.GetTextAsync();
+		}
+		if (DroppedUrl.Feed(text) is { } url)
+		{
+			await ShowNewFeedDialogAsync(url, target is { Account: not null } ? target : null);
+		}
+	}
+
+	/// <summary>Dropping a link on the empty part of the sidebar subscribes in the default account.</summary>
+	private void OnSidebarDragOver(object sender, DragEventArgs e)
+	{
+		if (_draggedFeed is null && CanSubscribeFrom(e.DataView))
+		{
+			e.AcceptedOperation = DataPackageOperation.Copy;
+			e.DragUIOverride.Caption = "Subscribe";
+		}
+	}
+
+	private async void OnSidebarDrop(object sender, DragEventArgs e)
+	{
+		if (_draggedFeed is null && CanSubscribeFrom(e.DataView))
+		{
+			var deferral = e.GetDeferral();
+			try
+			{
+				await SubscribeFromDropAsync(e.DataView, null);
+			}
+			finally
+			{
+				deferral.Complete();
+			}
+		}
+	}
+
+	/// <summary>NetNewsWire's drag of articles out of the timeline: dropped on a browser or a note, they're their web addresses.</summary>
+	private void OnTimelineDragItemsStarting(object sender, DragItemsStartingEventArgs args)
+	{
+		var links = args.Items.OfType<ArticleItem>().Select(article => article.LinkUrl).Where(link => !string.IsNullOrEmpty(link)).Select(link => link!).ToList();
+		if (links.Count == 0)
+		{
+			args.Cancel = true;
+			return;
+		}
+		args.Data.SetText(string.Join(Environment.NewLine, links));
+		if (links.Count == 1 && Uri.TryCreate(links[0], UriKind.Absolute, out var uri))
+		{
+			args.Data.SetWebLink(uri);
+		}
+		args.Data.RequestedOperation = DataPackageOperation.Copy;
 	}
 
 	private async void OnSidebarRowDrop(object sender, DragEventArgs e)
@@ -309,6 +378,18 @@ public sealed partial class MainWindow : Window
 		{
 			_draggedFeed = null;
 			await RunReportingErrorsAsync("Couldn’t Move Feed", () => ViewModel.MoveFeedAsync(feed, target.Account!, target.Folder, copy));
+		}
+		else if (_draggedFeed is null && CanSubscribeFrom(e.DataView))
+		{
+			var deferral = e.GetDeferral();
+			try
+			{
+				await SubscribeFromDropAsync(e.DataView, DataContextOf(sender as FrameworkElement) as SidebarItem);
+			}
+			finally
+			{
+				deferral.Complete();
+			}
 		}
 	}
 
@@ -1389,12 +1470,16 @@ public sealed partial class MainWindow : Window
 	// Dialogs
 
 	/// <summary>NetNewsWire's Add Feed sheet: URL, prefilled from the clipboard, then the account and folder.</summary>
-	private async Task ShowNewFeedDialogAsync()
+	/// <summary>
+	/// NetNewsWire's Add Feed sheet. A link dragged onto the sidebar fills in the address, and the row it was dropped on
+	/// picks the account and folder; otherwise the address on the clipboard is offered.
+	/// </summary>
+	private async Task ShowNewFeedDialogAsync(string? droppedUrl = null, SidebarItem? target = null)
 	{
 		var url = new TextBox { Header = "URL", PlaceholderText = "Feed or website address" };
-		if (await ClipboardUrlAsync() is { } clipboardUrl)
+		if ((droppedUrl ?? await ClipboardUrlAsync()) is { } prefill)
 		{
-			url.Text = clipboardUrl;
+			url.Text = prefill;
 			url.SelectAll();
 		}
 		var accounts = ViewModel.Accounts.ToList();
@@ -1402,7 +1487,7 @@ public sealed partial class MainWindow : Window
 		{
 			Header = "Account",
 			ItemsSource = accounts.Select(account => account.Name).ToList(),
-			SelectedIndex = Math.Max(0, accounts.IndexOf(ViewModel.DefaultAccountForNewFeed)),
+			SelectedIndex = Math.Max(0, accounts.IndexOf(target?.Account ?? ViewModel.DefaultAccountForNewFeed)),
 			HorizontalAlignment = HorizontalAlignment.Stretch,
 			Visibility = accounts.Count > 1 ? Visibility.Visible : Visibility.Collapsed,
 		};
@@ -1416,7 +1501,7 @@ public sealed partial class MainWindow : Window
 			folderBox.ItemsSource = folders.Select(folder => folder.Name).ToList();
 			folderBox.SelectedIndex = Math.Max(0, folders.FindIndex(folder => folder.Folder?.FolderId == select?.FolderId));
 		}
-		ShowFolders(ViewModel.DefaultFolderForNewFeed);
+		ShowFolders(target is null ? ViewModel.DefaultFolderForNewFeed : target.Folder ?? target.ParentFolder);
 		accountBox.SelectionChanged += (_, _) => ShowFolders(null);
 		var progress = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
 		var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Style = (Style)Application.Current.Resources["ErrorTextStyle"] };
