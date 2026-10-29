@@ -8,8 +8,9 @@ WinNewsReader is packaged with [Velopack](https://velopack.io). The installer an
 1. Bump `<Version>` in `src/App/WinNewsReader.App.csproj`, and add an entry to `site/feed.xml` and `site/news/index.html`.
 2. Tag the commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`. A tag with a hyphen, such as `v0.2.0-test.1`, goes to
    the test channel, which only people who chose "Test builds" in Preferences → Advanced follow.
-3. The **Release** workflow tests, publishes, packs and deploys the site with the new files in `releases/`. The
-   **Pages** workflow carries those files along whenever the rest of the site changes.
+3. The **Release** workflow tests, publishes and packs, attaches the installer and portable zip to a GitHub Release (visible only to
+   people with access to the private repository), and deploys the site with the new files in `releases/`. The **Pages** workflow
+   carries those files along whenever the rest of the site changes.
 
 ## Build one by hand
 
