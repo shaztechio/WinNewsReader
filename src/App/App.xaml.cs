@@ -8,9 +8,18 @@ namespace WinNewsReader.App;
 
 public partial class App : Application
 {
-	public App()
+	private readonly IReadOnlyList<string> _launchTargets;
+
+	/// <summary>Where crash reports are kept, until the reader has looked at them.</summary>
+	public static string CrashDirectory => Path.Combine(DataDirectory, "Crashes");
+
+	public App(IReadOnlyList<string> launchTargets)
 	{
+		_launchTargets = launchTargets;
 		InitializeComponent();
+		// An unhandled exception ends the app, but first leaves a report for the next start to offer.
+		UnhandledException += (_, e) => LogCrash(e.Exception);
+		AppDomain.CurrentDomain.UnhandledException += (_, e) => LogCrash(e.ExceptionObject as Exception);
 		// Unpackaged, WebView2 would otherwise keep its profile next to the executable, which may not be writable.
 		Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", Path.Combine(DataDirectory, "WebView2"));
 	}
@@ -40,6 +49,53 @@ public partial class App : Application
 	private readonly ActivityLog _activity = new();
 	private readonly List<MainWindow> _windows = [];
 
+	private static void LogCrash(Exception? exception)
+	{
+		if (exception is null)
+		{
+			return;
+		}
+		try
+		{
+			CrashLog.Write(CrashDirectory, exception, UpdateService.CurrentVersion, DateTimeOffset.Now);
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			// Nowhere to write it; the app is going down anyway.
+		}
+	}
+
+	/// <summary>
+	/// What a launch asked for: a <c>feed:</c> link opens Add Feed with its address, and a theme file installs. A later launch
+	/// passes its arguments here from <see cref="SingleInstance"/>; with none, the window just comes forward.
+	/// </summary>
+	private void HandleLaunch(IReadOnlyList<string> targets)
+	{
+		if (_windows.FirstOrDefault() is not { } window)
+		{
+			return;
+		}
+		var handled = false;
+		foreach (var target in targets)
+		{
+			if (File.Exists(target) && (target.EndsWith(ShellRegistration.ThemeExtension, StringComparison.OrdinalIgnoreCase)
+				|| target.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || target.EndsWith(".plist", StringComparison.OrdinalIgnoreCase)))
+			{
+				window.InstallThemeFile(target);
+				handled = true;
+			}
+			else if (DroppedUrl.Feed(target) is { } url)
+			{
+				window.OpenFeedLink(url);
+				handled = true;
+			}
+		}
+		if (!handled)
+		{
+			window.BringToFront();
+		}
+	}
+
 	protected override void OnLaunched(LaunchActivatedEventArgs args)
 	{
 		_downloader = new FeedDownloader();
@@ -62,6 +118,13 @@ public partial class App : Application
 		var window = OpenWindow(isPrimary: true);
 		StartNotifications(window.ViewModel, window);
 		window.Activate();
+		SingleInstance.Launched += targets => window.DispatcherQueue.TryEnqueue(() => HandleLaunch(targets));
+		// Once the window is up: what the launch was asked to open, then last time's crash report and the update check.
+		window.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+		{
+			HandleLaunch(_launchTargets);
+			_ = window.StartupChecksAsync();
+		});
 	}
 
 	/// <summary>A main window over the shared accounts. Windows after the first start empty, a little below and to the right of the last.</summary>

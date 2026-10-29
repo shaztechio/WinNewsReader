@@ -166,6 +166,7 @@
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Website" Click="OnWebsite" />
                                     <MenuFlyoutItem Text="Release Notes" Click="OnReleaseNotes" />
+                                    <MenuFlyoutItem Text="Check for Updates…" Click="OnCheckForUpdates" />
                                     <MenuFlyoutItem Text="Source Code" Click="OnSourceCode" />
                                     <MenuFlyoutItem Text="Report a Problem" Click="OnReportProblem" />
                                     <MenuFlyoutItem Text="Add WinNewsReader News Feed" Click="OnAddNewsFeed" />

@@ -65,6 +65,11 @@ public sealed class AppSettings
 
 	public string? LastFeedFolderName { get; set; }
 
+	/// <summary>NetNewsWire's Advanced preferences: check for updates at launch, and whether to follow the test channel.</summary>
+	public bool CheckForUpdatesAutomatically { get; set; } = true;
+
+	public bool UpdateTestBuilds { get; set; }
+
 	/// <summary>NetNewsWire's Hide Status Bar state.</summary>
 	public bool StatusBarHidden { get; set; }
 

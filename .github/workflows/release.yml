@@ -1,0 +1,84 @@
+# Builds and publishes a release when a version tag is pushed: v1.2.3 for the release channel, v1.2.3-test.1 for the test one.
+# The installer and the update feed go to winnewsreader.com/releases/, where the app looks for updates.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test --nologo
+
+      - name: Work out the version and channel
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $channel = if ($version -match "-") { "test" } else { "release" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "channel=$channel" >> $env:GITHUB_OUTPUT
+
+      - name: Publish
+        run: dotnet publish src/App -c Release -r win-x64 --self-contained -p:Platform=x64 -p:Version=${{ steps.version.outputs.version }} -o artifacts/publish --nologo
+
+      - name: Install Velopack
+        run: dotnet tool install -g vpk
+
+      # The earlier releases in this channel, so Velopack can make delta updates from them. The first release has none.
+      - name: Download the earlier releases
+        shell: pwsh
+        run: vpk download http --url https://winnewsreader.com/releases/ --channel ${{ steps.version.outputs.channel }} --allowEmptyChannel -o artifacts/releases
+
+      # Signing is optional: with the Azure Trusted Signing secrets set, the installer and the app are signed; without them they
+      # aren't, and Windows SmartScreen will warn about them.
+      - name: Pack
+        shell: pwsh
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          SIGN_METADATA: ${{ secrets.AZURE_TRUSTED_SIGNING_METADATA }}
+        run: |
+          $notes = "artifacts/notes.md"
+          "# WinNewsReader ${{ steps.version.outputs.version }}`n`nSee https://winnewsreader.com/news/ for what is new." | Set-Content $notes
+          $packArgs = @("pack", "-u", "WinNewsReaderApp", "-v", "${{ steps.version.outputs.version }}", "-c", "${{ steps.version.outputs.channel }}",
+            "-p", "artifacts/publish", "-e", "WinNewsReader.exe", "-o", "artifacts/releases",
+            "--packTitle", "WinNewsReader", "--packAuthors", "WinNewsReader", "--framework", "webview2",
+            "--icon", "src/App/Assets/AppIcon.ico", "--releaseNotes", $notes)
+          if ($env:SIGN_METADATA) { $packArgs += @("--azureTrustedSignFile", $env:SIGN_METADATA) }
+          vpk @packArgs
+
+      - name: Assemble the site
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse site _site
+          New-Item -ItemType Directory -Force _site/releases | Out-Null
+          Copy-Item artifacts/releases/* _site/releases/
+
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v5

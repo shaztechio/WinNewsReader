@@ -25,13 +25,13 @@ Audited against the app on 2026-10-29. Each row has a status:
 
 | Status | Rows |
 | --- | --- |
-| Done | 164 |
+| Done | 168 |
 | Partial | 1 |
 | Open | 4 |
-| Unchecked | 36 |
-| Installer | 8 |
+| Unchecked | 39 |
+| Installer | 0 |
 | Keys | 2 |
-| Dropped | 22 |
+| Dropped | 23 |
 | **Total** | **237** |
 
 By section:
@@ -45,13 +45,13 @@ By section:
 | Sidebar | 13 |  |  | 7 |  |  |  |
 | Smart feeds and timeline | 14 |  |  | 1 |  |  |  |
 | Reading state | 8 |  |  |  |  |  |  |
-| Article view | 12 |  |  | 1 | 1 |  |  |
+| Article view | 12 |  |  | 2 |  |  |  |
 | Feed management and import/export | 4 |  |  | 3 |  |  | 1 |
 | Inspector | 6 |  |  |  |  |  |  |
-| Notifications | 3 |  |  |  | 1 |  |  |
-| Preferences | 9 | 1 |  | 3 | 3 |  | 2 |
-| Utility windows | 4 |  |  | 2 | 1 |  | 1 |
-| Other | 5 |  |  |  | 2 |  | 2 |
+| Notifications | 3 |  |  | 1 |  |  |  |
+| Preferences | 10 | 1 |  | 4 |  |  | 3 |
+| Utility windows | 5 |  |  | 2 |  |  | 1 |
+| Other | 7 |  |  |  |  |  | 2 |
 | Dropped Apple-only features |  |  |  |  |  |  | 13 |
 | Single-key shortcuts (global) | 14 |  |  |  |  |  | 1 |
 | Timeline and article | 4 |  |  |  |  |  |  |
@@ -196,7 +196,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | --- | --- | --- | --- | --- | --- |
 | AV-01 | HTML template, core and stylesheet CSS, scripts | `Shared/Article Rendering` | Port | Done | Side-by-side screenshot of 10 fixture articles |
 | AV-02 | Bundled themes (Default, Appanoose, Biblioteca, Hyperlegible, NewsFax, Promenade, Sepia, Tiqoe Dark, Verdana Revival) | `Resources/Themes` | Port | Done | Side-by-side screenshot per theme |
-| AV-03 | `.nnwtheme` import by double-click | Info.plist doc type | Port | Installer: Install Theme… takes a zip or Info.plist now; opening a .nnwtheme by double-click needs the installer to register the file type | UI: opening a file installs the theme |
+| AV-03 | `.nnwtheme` import by double-click | Info.plist doc type | Port | Unchecked: .nnwtheme is registered to open with the app and a launch with a theme path installs it; not tried with a real theme file or a double-click | UI: opening a file installs the theme |
 | AV-04 | Theme download from http(s) URL (zip) | `ArticleThemeDownloader.swift` | Port | Done | Unit: download, unzip, install; rejects non-http |
 | AV-05 | Open Themes Folder | `showThemesFolder:` | Port | Done | UI: Explorer opens folder |
 | AV-06 | Article text size: S, M, L, XL, XXL | `ArticleTextSize.swift` | Port | Done | UI: each size changes rendered CSS |
@@ -239,7 +239,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | --- | --- | --- | --- | --- |
 | NT-01 | New-article toast per feed | Port | Done | Windows toasts via AppUserModelID + COM activator. UI: toast appears |
 | NT-02 | Toast actions: Mark as Read, Mark as Starred | Port | Done | UI: action updates state without opening app |
-| NT-03 | Clicking toast opens article | Port | Installer: clicking a toast opens the article while the app is running; starting the app from a toast needs the installer's app registration | UI |
+| NT-03 | Clicking toast opens article | Port | Unchecked: a toast click works while the app runs; starting the app from a toast needs an installed copy to try | UI |
 | NT-04 | Dock/badge unread count | Port | Done | Taskbar badge. UI: badge shows count |
 
 ## Preferences
@@ -256,9 +256,9 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | PR-08 | General | Refresh interval: manual, 30 min, 1/2/4/8 h | Port | Done | Unit: scheduler fires at interval |
 | PR-09 | Accounts | Add, remove, enable, edit credentials per account | Port | Done | UI |
 | PR-10 | Accounts | Add-account list grouped: local, web, self-hosted | Port | Partial: FreshRSS only | UI; iCloud group dropped |
-| PR-11 | Advanced | App updates: check automatically, release vs test builds, Check Now | Port | Installer: needs the installer | Velopack channels. UI |
-| PR-12 | Advanced | Send crash logs automatically | Port | Installer: needs the installer | Tied to crash reporting choice |
-| PR-13 | Advanced | Privacy policy link | Port | Installer: needs the installer | Needs own policy |
+| PR-11 | Advanced | App updates: check automatically, release vs test builds, Check Now | Port | Unchecked: Preferences → Advanced and Help → Check for Updates… use Velopack against winnewsreader.com/releases/; the packaged app knows it is installed and reports the empty feed; no release has been published yet to update to | Velopack channels. UI |
+| PR-12 | Advanced | Send crash logs automatically | Port | Dropped: the app never sends crash reports; they stay on the PC and the next start offers them (see UW-08) | Tied to crash reporting choice |
+| PR-13 | Advanced | Privacy policy link | Port | Done: privacy policy at winnewsreader.com/privacy/, linked from Preferences → Advanced | Needs own policy |
 | PR-14 | Hidden | `ShowDebugMenu` | Port | Done | Unit |
 | PR-15 | Hidden | `CorreiaSeparators` (timeline separators) | Port | Done | See TL-07 |
 | PR-16 | Hidden | `KafasisTitleMode` (title on main window) | Port | Unchecked: ArticleTitleInWindowTitle in settings.json; setting tested, behavior not run | UI |
@@ -276,7 +276,7 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | UW-05 | iCloud Storage Stats | `Mac/CloudKitStats` | Drop | Dropped | iCloud dropped |
 | UW-06 | Keyboard Shortcuts window | `KeyboardShortcuts.html` | Port | Done | Regenerate from this app's map |
 | UW-07 | About window, credits | `Mac/About`, `Credits.rtf` | Port | Done | Credit NetNewsWire and MIT notice |
-| UW-08 | Crash reporter window and sender | `Mac/CrashReporter` | Port | Installer: tool choice open | Infrastructure; tool choice open |
+| UW-08 | Crash reporter window and sender | `Mac/CrashReporter` | Port | Done: a crash leaves a report on the PC and the next start offers Show Report, Report a Problem or Dismiss (nothing is sent) | Infrastructure; tool choice open |
 
 ## Other
 
@@ -284,8 +284,8 @@ Default order: Toggle Sidebar, Refresh, New (Feed/Folder menu) | Mark All as Rea
 | --- | --- | --- | --- | --- |
 | OT-01 | Dark mode, follows system | Port | Done | UI: theme switches live |
 | OT-02 | Open in browser, foreground or background | Port | Dropped: Windows gives no way to open a browser tab in the background from another app (see PR-06) | UI |
-| OT-03 | `feed:`, `feeds:`, app-named scheme URLs open Add Feed | Port | Installer: needs the installer | HKCU registration. UI: launching URL opens sheet |
-| OT-04 | Register as default feed reader | Port | Installer: needs the installer | Installer writes handler; removed on uninstall |
+| OT-03 | `feed:`, `feeds:`, app-named scheme URLs open Add Feed | Port | Done: feed:, feeds: and winnewsreader: links open Add Feed in the running copy (a second launch hands its arguments over; driven with a feed: link) | HKCU registration. UI: launching URL opens sheet |
+| OT-04 | Register as default feed reader | Port | Done: the installer hook registers the schemes, .nnwtheme and a Default apps entry, and uninstall removes them (both hooks run and the registry checked); the Default apps page itself wasn't looked at | Installer writes handler; removed on uninstall |
 | OT-05 | Help menu links (website, release notes, support, repository, bug tracker, forum) | Port | Done: help, keyboard shortcuts, website, release notes (the site's news page), source code and bug tracker; no forum, since the repository has no discussions | Point at this project's own links: help, keyboard shortcuts, website, source code, issues. Release notes and a forum wait for releases |
 | OT-06 | Open Application Support folder | Port | Done | Opens `%LOCALAPPDATA%\<AppName>` |
 | OT-07 | Debug menu (crash tests, image cache folder, search debug) | Port | Dropped: Web Inspector, icon cache folder and rebuild search index are in the hidden Debug menu; there is no crash reporter here to test with crash items (see UW-08) | Behind PR-14 |

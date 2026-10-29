@@ -41,6 +41,7 @@
 				<li><a href="#notifications">Notifications</a></li>
 				<li><a href="#freshrss">Syncing with FreshRSS</a></li>
 				<li><a href="#keyboard">Keyboard shortcuts</a></li>
+				<li><a href="#installing">Installing and updating</a></li>
 				<li><a href="#data">Your data</a></li>
 			</ol>
 		</nav>
@@ -211,6 +212,7 @@
 				<img src="images/preferences-accounts.png" width="684" height="612" alt="The Accounts preferences, listing the On This PC account with an On switch, and the Add, Edit and Remove buttons below." loading="lazy">
 				<figcaption>Accounts.</figcaption>
 			</figure>
+			<p>The <strong>Advanced</strong> tab has the update settings (check automatically, release or test builds, Check for Updates Now), a link to the <a href="/privacy/">privacy policy</a>, and a button that opens the folder where crash reports are kept.</p>
 			<h3>Hidden settings</h3>
 			<p>NetNewsWire has a few preferences with no window. Here they are in <code>settings.json</code> in the app data folder (<strong>+▾ → Help → Open App Data Folder</strong>); close WinNewsReader before editing it. Each is <code>true</code> or <code>false</code>, and off by default.</p>
 			<ul>
@@ -303,6 +305,14 @@
 				<tr><td><kbd>F1</kbd></td><td>This help</td></tr>
 				<tr><td><kbd>Ctrl</kbd>+<kbd>Q</kbd></td><td>Quit</td></tr>
 			</table>
+		</section>
+
+		<section id="installing">
+			<h2>Installing and updating</h2>
+			<p>The installer puts WinNewsReader in your own folder, so it needs no administrator rights, and sets up the WebView2 runtime if your PC lacks it. Your feeds and settings are kept apart from the program, so uninstalling or updating never touches them. Until the installer is code-signed, Windows SmartScreen may warn about it; choose <strong>More info → Run anyway</strong> if you trust where you got it.</p>
+			<p>An installed copy checks for updates when it starts and offers to install them and restart. <strong>+▾ → Help → Check for Updates…</strong> looks when you ask, and <strong>Preferences → Advanced</strong> turns the automatic check off or switches to test builds.</p>
+			<p>The installer also tells Windows to open <code>feed:</code> and <code>feeds:</code> links, and <code>winnewsreader:</code> links, with WinNewsReader: clicking one in a browser opens Add Feed with its address filled in, in the copy that is already running. It lists WinNewsReader under <strong>Settings → Apps → Default apps</strong>, where you can choose it for those links, and it opens <code>.nnwtheme</code> files by installing the theme.</p>
+			<p>If WinNewsReader quits unexpectedly, the next start offers the report it saved. Nothing is sent; see the <a href="/privacy/">privacy policy</a>.</p>
 		</section>
 
 		<section id="data">

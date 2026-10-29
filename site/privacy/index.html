@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WinNewsReader Privacy Policy</title>
+	<meta name="description" content="What WinNewsReader does and doesn't do with your data.">
+	<meta name="color-scheme" content="light dark">
+	<link rel="icon" href="../favicon.ico" sizes="any">
+	<link rel="icon" href="../icon.png" type="image/png">
+	<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+	<header class="top">
+		<a class="brand" href="/">
+			<img src="../icon.png" alt="" width="32" height="32">
+			<span>WinNewsReader</span>
+		</a>
+		<nav class="links"><a href="/">Home</a> <a href="/help/">Help</a> <a href="/news/">News</a></nav>
+	</header>
+
+	<main class="doc">
+		<h1>Privacy Policy</h1>
+		<p class="lede">WinNewsReader doesn't collect anything about you. There is no account to make, no analytics, and no tracking, and the app never sends crash reports on its own.</p>
+
+		<h2>What stays on your PC</h2>
+		<p>Your subscriptions, the articles you've downloaded, what you've read and starred, your settings and the icons of your feeds are kept in the <code>WinNewsReader</code> folder under <code>%LOCALAPPDATA%</code> on your PC (<strong>+▾ → Help → Open App Data Folder</strong> opens it). Passwords for a sync account are kept in Windows Credential Manager, not in that folder. Nothing in it is sent to us, because there is no “us” to send it to: the app has no server of its own.</p>
+
+		<h2>What the app does over the network</h2>
+		<ul>
+			<li><strong>It fetches your feeds.</strong> To refresh, WinNewsReader asks each site you subscribe to for its feed, the way any feed reader does. Those sites can see your IP address and that the request came from WinNewsReader. It also fetches each feed's home page and icon, to show the icon, and the images, styles and scripts in the articles you open, from the sites that publish them. Requests to well-known ad and tracking hosts are blocked, using the same list as NetNewsWire.</li>
+			<li><strong>It talks to a sync service, if you add one.</strong> With a FreshRSS account, the app sends your login and your read and starred changes to the server you chose, and downloads your feeds and articles from it. That server's operator, not WinNewsReader, handles that data.</li>
+			<li><strong>It checks for updates.</strong> An installed copy asks <code>winnewsreader.com</code> for the list of releases when it starts, and when you ask it to, unless you turn that off in <strong>Preferences → Advanced</strong>. The request says nothing about you, but the website is hosted on GitHub Pages, which keeps ordinary web server logs under <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
+			<li><strong>It opens links in your browser.</strong> What happens next is between you and that site.</li>
+			<li><strong>It downloads a theme or news feed only when you ask,</strong> from the address you give it or from <code>winnewsreader.com</code>.</li>
+		</ul>
+
+		<h2>Crashes</h2>
+		<p>If WinNewsReader quits unexpectedly it saves a short report (the error, the app and Windows versions, and the time) in a <code>Crashes</code> folder inside its data folder, and the next start offers to show it to you. It is never sent by the app. If you'd like to help fix the problem, you can open an issue on GitHub and paste it in yourself.</p>
+
+		<h2>Changes</h2>
+		<p>If this changes, it will change here and be mentioned in the <a href="/news/">news</a>. Questions can go in an issue on <a href="https://github.com/shaztechio/WinNewsReader/issues">GitHub</a>.</p>
+	</main>
+
+	<footer>
+		<p>
+			WinNewsReader is a Windows port of <a href="https://github.com/Ranchero-Software/NetNewsWire">NetNewsWire</a>
+			by Brent Simmons and contributors, used under the MIT license. It isn’t affiliated with or endorsed by NetNewsWire.
+		</p>
+	</footer>
+</body>
+</html>

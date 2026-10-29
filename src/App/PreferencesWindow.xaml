@@ -12,9 +12,10 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="General" Tag="General" Icon="Setting" />
                 <NavigationViewItem Content="Accounts" Tag="Accounts" Icon="People" />
+                <NavigationViewItem Content="Advanced" Tag="Advanced" Icon="Repair" />
             </NavigationView.MenuItems>
 
-            <Grid>
+            <Grid x:Name="PanelHost">
                 <ScrollViewer x:Name="GeneralPanel" VerticalScrollBarVisibility="Auto">
                     <Grid Padding="32,24,32,24" RowSpacing="18" ColumnSpacing="16" MaxWidth="640">
                         <Grid.ColumnDefinitions>

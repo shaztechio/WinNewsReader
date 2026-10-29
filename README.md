@@ -30,6 +30,12 @@ Needs the .NET 10 SDK on Windows 10 1809 or later. The app also needs the WebVie
 dotnet test
 ```
 
+## Install
+
+There is no public release yet. The installer is built with [Velopack](https://velopack.io) (see [docs/RELEASING.md](docs/RELEASING.md)):
+it installs for the current user without administrator rights, sets up the WebView2 runtime if needed, registers `feed:` links and
+`.nnwtheme` files, and updates itself from winnewsreader.com. It isn't code-signed yet, so Windows SmartScreen will warn about it.
+
 ## Try it
 
 Run the app:

@@ -11,6 +11,8 @@ public sealed class DroppedUrlTests
 	[InlineData("feed://example.com/rss", "http://example.com/rss")]
 	[InlineData("feeds://example.com/rss", "https://example.com/rss")]
 	[InlineData("FEED://example.com/rss", "http://example.com/rss")]
+	[InlineData("winnewsreader:https://example.com/atom", "https://example.com/atom")]
+	[InlineData("winnewsreader://https://example.com/atom", "https://example.com/atom")]
 	[InlineData("https://a.example/one\r\nhttps://b.example/two", "https://a.example/one")]
 	public void FindsTheFeedAddress(string dropped, string expected) => Assert.Equal(expected, DroppedUrl.Feed(dropped));
 

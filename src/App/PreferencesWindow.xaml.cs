@@ -28,9 +28,14 @@ public sealed partial class PreferencesWindow : Window
 	/// <summary>Set while the controls are being filled from the settings, so that doesn't count as the reader choosing.</summary>
 	private bool _loading;
 
-	public PreferencesWindow(MainViewModel viewModel)
+	private readonly Func<Task> _checkForUpdates;
+
+	private ScrollViewer AdvancedPanel { get; set; } = null!;
+
+	public PreferencesWindow(MainViewModel viewModel, Func<Task> checkForUpdates)
 	{
 		_viewModel = viewModel;
+		_checkForUpdates = checkForUpdates;
 		InitializeComponent();
 		AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 		SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop();
@@ -39,6 +44,8 @@ public sealed partial class PreferencesWindow : Window
 		WindowAppearance.Apply(this, Root, _viewModel.Settings.Appearance);
 
 		FillChoices();
+		AdvancedPanel = BuildAdvancedPanel();
+		PanelHost.Children.Add(AdvancedPanel);
 		Tabs.SelectedItem = Tabs.MenuItems[0];
 		Load();
 
@@ -75,9 +82,59 @@ public sealed partial class PreferencesWindow : Window
 
 	private void OnTabChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
 	{
-		var accounts = (args.SelectedItem as NavigationViewItem)?.Tag as string == "Accounts";
-		GeneralPanel.Visibility = accounts ? Visibility.Collapsed : Visibility.Visible;
-		AccountsPanel.Visibility = accounts ? Visibility.Visible : Visibility.Collapsed;
+		var tab = (args.SelectedItem as NavigationViewItem)?.Tag as string;
+		GeneralPanel.Visibility = tab is "Accounts" or "Advanced" ? Visibility.Collapsed : Visibility.Visible;
+		AccountsPanel.Visibility = tab == "Accounts" ? Visibility.Visible : Visibility.Collapsed;
+		AdvancedPanel.Visibility = tab == "Advanced" ? Visibility.Visible : Visibility.Collapsed;
+	}
+
+	// Advanced: NetNewsWire's app updates, privacy policy link and crash reports, built here since there's little of it.
+
+	private ScrollViewer BuildAdvancedPanel()
+	{
+		var settings = _viewModel.Settings;
+		var panel = new StackPanel { Spacing = 14, Padding = new Thickness(32, 24, 32, 24), MaxWidth = 640 };
+
+		panel.Children.Add(new TextBlock { Text = "Updates", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+		var automatic = new CheckBox { Content = "Check for updates automatically", IsChecked = settings.CheckForUpdatesAutomatically };
+		automatic.Click += (_, _) =>
+		{
+			settings.CheckForUpdatesAutomatically = automatic.IsChecked == true;
+			_viewModel.SaveSettings();
+		};
+		panel.Children.Add(automatic);
+		var channel = new ComboBox { Header = "Update to", ItemsSource = new[] { "Release builds", "Test builds" }, SelectedIndex = settings.UpdateTestBuilds ? 1 : 0, MinWidth = 220 };
+		channel.SelectionChanged += (_, _) =>
+		{
+			settings.UpdateTestBuilds = channel.SelectedIndex == 1;
+			_viewModel.SaveSettings();
+		};
+		AutomationProperties.SetName(channel, "Update to");
+		panel.Children.Add(channel);
+		var check = new Button { Content = "Check for Updates Now" };
+		check.Click += async (_, _) => await _checkForUpdates();
+		panel.Children.Add(check);
+		panel.Children.Add(new TextBlock
+		{
+			Text = $"You have WinNewsReader {UpdateService.CurrentVersion}.",
+			Style = (Style)Application.Current.Resources["SecondaryTextStyle"],
+		});
+
+		panel.Children.Add(new TextBlock { Text = "Privacy", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 0) });
+		panel.Children.Add(new TextBlock
+		{
+			Text = "WinNewsReader collects nothing about you. It never sends crash reports on its own; one is saved on this PC, and the next start offers it to you.",
+			TextWrapping = TextWrapping.Wrap,
+		});
+		panel.Children.Add(new HyperlinkButton { Content = "Privacy policy", NavigateUri = new Uri("https://winnewsreader.com/privacy/"), Padding = new Thickness(0) });
+		var crashes = new Button { Content = "Open Crash Reports Folder" };
+		crashes.Click += (_, _) =>
+		{
+			Directory.CreateDirectory(App.CrashDirectory);
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(App.CrashDirectory) { UseShellExecute = true });
+		};
+		panel.Children.Add(crashes);
+		return new ScrollViewer { Content = panel, Visibility = Visibility.Collapsed, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
 	}
 
 	// General

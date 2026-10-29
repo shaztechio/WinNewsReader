@@ -1107,12 +1107,128 @@ public sealed partial class MainWindow : Window
 
 	private void OnPreferences(object sender, RoutedEventArgs e) => OpenPreferences();
 
+	/// <summary>Add Feed with an address from a <c>feed:</c> link someone opened.</summary>
+	public void OpenFeedLink(string url)
+	{
+		BringToFront();
+		_ = ShowNewFeedDialogAsync(url);
+	}
+
+	/// <summary>A theme file someone opened, such as a downloaded .nnwtheme zip.</summary>
+	public void InstallThemeFile(string path)
+	{
+		BringToFront();
+		_ = InstallThemeAsync(() => Task.FromResult(ViewModel.ThemeInstaller.Open(path)));
+	}
+
+	/// <summary>What the first window does once it's up: show the report of a crash last time, then look for an update.</summary>
+	public async Task StartupChecksAsync()
+	{
+		await ShowCrashReportsAsync();
+		if (ViewModel.Settings.CheckForUpdatesAutomatically)
+		{
+			await CheckForUpdatesAsync(userAsked: false);
+		}
+	}
+
+	/// <summary>
+	/// NetNewsWire's crash reporter, kept on this PC: after a crash, the next start says so and offers the report. Nothing is
+	/// sent; Report a Problem opens a new issue for the reader to describe and paste the report into.
+	/// </summary>
+	private async Task ShowCrashReportsAsync()
+	{
+		var pending = CrashLog.Pending(App.CrashDirectory);
+		if (pending.Count == 0)
+		{
+			return;
+		}
+		var dialog = new ContentDialog
+		{
+			XamlRoot = Content.XamlRoot,
+			Title = "WinNewsReader quit unexpectedly",
+			Content = new TextBlock
+			{
+				Text = "A report of what went wrong was saved on this PC. Nothing was sent anywhere. You can read it, and if you'd like to help fix the problem, report it on GitHub and paste the report in.",
+				TextWrapping = TextWrapping.Wrap,
+			},
+			PrimaryButtonText = "Show Report",
+			SecondaryButtonText = "Report a Problem",
+			CloseButtonText = "Dismiss",
+			DefaultButton = ContentDialogButton.Primary,
+		};
+		dialog.CloseButtonClick += (_, _) => dialog.Tag = "closed-by-reader";
+		var result = await ShowDialogAsync(dialog);
+		if (result == ContentDialogResult.None && dialog.Tag is not "closed-by-reader")
+		{
+			// Another dialog was open, so this one never appeared; the report stays for the next start.
+			return;
+		}
+		if (result == ContentDialogResult.Primary)
+		{
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pending[^1]) { UseShellExecute = true });
+		}
+		else if (result == ContentDialogResult.Secondary)
+		{
+			MainViewModel.OpenInBrowser("https://github.com/shaztechio/WinNewsReader/issues/new?title=" + Uri.EscapeDataString("Crash: " + Path.GetFileNameWithoutExtension(pending[^1])));
+		}
+		foreach (var report in pending)
+		{
+			CrashLog.Dismiss(report);
+		}
+	}
+
+	/// <summary>
+	/// NetNewsWire's Check for Updates. At launch it says nothing unless there's something new; asked for, it also says when
+	/// there isn't, or why it can't look.
+	/// </summary>
+	public async Task CheckForUpdatesAsync(bool userAsked)
+	{
+		var updates = new UpdateService(ViewModel.Settings.UpdateTestBuilds);
+		if (!updates.IsInstalled)
+		{
+			if (userAsked)
+			{
+				await ShowMessageAsync("Check for Updates", $"This copy of WinNewsReader {UpdateService.CurrentVersion} isn’t installed, so it can’t update itself. Installed copies check for updates.");
+			}
+			return;
+		}
+		try
+		{
+			if (await updates.CheckAsync() is not { } update)
+			{
+				if (userAsked)
+				{
+					await ShowMessageAsync("Check for Updates", $"WinNewsReader {UpdateService.CurrentVersion} is the latest version.");
+				}
+				return;
+			}
+			var dialog = Dialog("Update Available", "Install and Restart", new TextBlock
+			{
+				Text = $"WinNewsReader {update.TargetFullRelease.Version} is available; you have {UpdateService.CurrentVersion}.",
+				TextWrapping = TextWrapping.Wrap,
+			});
+			dialog.CloseButtonText = "Later";
+			if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
+			{
+				await updates.InstallAsync(update);
+			}
+		}
+		catch (Exception ex) when (userAsked)
+		{
+			await ShowMessageAsync("Couldn’t Check for Updates", ex.Message);
+		}
+		catch (Exception)
+		{
+			// A failed check at launch isn't worth interrupting for; the next launch tries again.
+		}
+	}
+
 	/// <summary>NetNewsWire's Preferences (Cmd+,): one window, brought forward if it's already open.</summary>
 	public void OpenPreferences()
 	{
 		if (_preferences is null)
 		{
-			_preferences = new PreferencesWindow(ViewModel);
+			_preferences = new PreferencesWindow(ViewModel, () => CheckForUpdatesAsync(userAsked: true));
 			_preferences.Closed += (_, _) => _preferences = null;
 		}
 		_preferences.Activate();
@@ -1278,6 +1394,8 @@ public sealed partial class MainWindow : Window
 
 	/// <summary>NetNewsWire's Keyboard Shortcuts window: the shortcuts, listed in a window of their own.</summary>
 	private void OnKeyboardShortcutsHelp(object sender, RoutedEventArgs e) => OpenUtilityWindow("Shortcuts");
+
+	private async void OnCheckForUpdates(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync(userAsked: true);
 
 	private void OnReleaseNotes(object sender, RoutedEventArgs e) => MainViewModel.OpenInBrowser("https://winnewsreader.com/news/");
 

@@ -25,6 +25,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
+      # Pages replaces the whole site, so the releases that the Release workflow published have to come along with it. Until
+      # there has been a release there is nothing to keep, and this does nothing.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Keep the published releases
+        continue-on-error: true
+        run: |
+          dotnet tool install -g vpk
+          mkdir -p site/releases
+          for channel in release test; do
+            vpk download http --url https://winnewsreader.com/releases/ --channel "$channel" --allowEmptyChannel -o site/releases || true
+            for file in "WinNewsReaderApp-$channel-Setup.exe" "WinNewsReaderApp-$channel-Portable.zip"; do
+              curl -fsSL -o "site/releases/$file" "https://winnewsreader.com/releases/$file" || rm -f "site/releases/$file"
+            done
+          done
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site

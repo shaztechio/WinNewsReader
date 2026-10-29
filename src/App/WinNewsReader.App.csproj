@@ -15,6 +15,10 @@
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Program.cs is the entry point, so Velopack's hooks and the single-instance check run before WinUI starts. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- Shown in About and used for updates. Bump it for each release. -->
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +26,7 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.14" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,5 +41,15 @@
     <ProjectReference Include="..\Core\WinNewsReader.Core.csproj" />
     <ProjectReference Include="..\Sync.GoogleReader\WinNewsReader.Sync.GoogleReader.csproj" />
   </ItemGroup>
+
+  <!-- An unpackaged WinUI app's publish leaves out its compiled XAML and resource index, which the build puts beside the
+       exe; without them the window can't load. Copy them in. -->
+  <Target Name="CopyXamlToPublishDir" AfterTargets="Publish">
+    <ItemGroup>
+      <XamlOutput Include="$(OutDir)*.xbf" />
+      <XamlOutput Include="$(OutDir)$(AssemblyName).pri" />
+    </ItemGroup>
+    <Copy SourceFiles="@(XamlOutput)" DestinationFolder="$(PublishDir)" />
+  </Target>
 
 </Project>

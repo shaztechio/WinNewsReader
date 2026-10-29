@@ -21,6 +21,7 @@ public static class DroppedUrl
 		}
 		line = line switch
 		{
+			_ when line.StartsWith("winnewsreader:", StringComparison.OrdinalIgnoreCase) => line["winnewsreader:".Length..].TrimStart('/') is var inner && inner.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? inner : line,
 			_ when line.StartsWith("feed://", StringComparison.OrdinalIgnoreCase) => "http://" + line["feed://".Length..],
 			_ when line.StartsWith("feeds://", StringComparison.OrdinalIgnoreCase) => "https://" + line["feeds://".Length..],
 			_ when line.StartsWith("feed:", StringComparison.OrdinalIgnoreCase) => line["feed:".Length..],
