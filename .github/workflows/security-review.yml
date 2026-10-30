@@ -56,7 +56,7 @@ jobs:
       pull-requests: write
       security-events: write # code scanning upload
       actions: read          # needed by the SARIF upload on private repos
-    uses: shaztechio/multi-llm-security-review/.github/workflows/security-review.yml@707eccf396bf4ce9e77607d3d0eb889078b0d8d2 # 1.1.3, pinned by commit; bump deliberately after reviewing the tool repo
+    uses: shaztechio/multi-llm-security-review/.github/workflows/security-review.yml@37c13b73aa799ffc49433f5754553877d109a7a4 # 1.1.4, pinned by commit; bump deliberately after reviewing the tool repo
     with:
       anthropic: ${{ inputs.anthropic }}
       openai: ${{ inputs.openai }}
@@ -71,7 +71,7 @@ jobs:
       codex-model: ""
       draft: ${{ inputs.draft }}
       upload-sarif: true
-      tool-ref: 707eccf396bf4ce9e77607d3d0eb889078b0d8d2 # 1.1.3; keep in step with the @ref on the uses: line
+      tool-ref: 37c13b73aa799ffc49433f5754553877d109a7a4 # 1.1.4; keep in step with the @ref on the uses: line
     secrets: # only what the review needs, not every secret in the repo
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
