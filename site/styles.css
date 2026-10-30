@@ -117,6 +117,48 @@ h1 {
 	color: var(--muted);
 }
 
+.download {
+	margin-top: 28px;
+}
+
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 22px 10px 16px;
+	border-radius: 12px;
+	background: var(--blue);
+	color: #fff;
+	text-decoration: none;
+	text-align: left;
+	box-shadow: 0 8px 20px -8px rgb(29 78 216 / 0.6);
+}
+
+.badge:hover {
+	background: #1e40af;
+}
+
+.badge:focus-visible {
+	outline: 3px solid var(--blue-bright);
+	outline-offset: 3px;
+}
+
+.badge span {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.2;
+}
+
+.badge small {
+	font-size: 0.75rem;
+	opacity: 0.85;
+}
+
+.badge strong {
+	font-size: 1.2rem;
+	font-weight: 600;
+}
+
 .note {
 	margin-top: 20px;
 	font-size: 0.95rem;
