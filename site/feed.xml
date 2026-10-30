@@ -5,8 +5,15 @@
 	<link rel="self" type="application/atom+xml" href="https://winnewsreader.com/feed.xml"/>
 	<link rel="alternate" type="text/html" href="https://winnewsreader.com/"/>
 	<id>https://winnewsreader.com/feed.xml</id>
-	<updated>2026-10-30T12:00:00Z</updated>
+	<updated>2026-10-30T18:00:00Z</updated>
 	<author><name>WinNewsReader</name></author>
+	<entry>
+		<title>WinNewsReader 1.0.1</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.1"/>
+		<id>https://winnewsreader.com/news/2026-10-30-1-0-1</id>
+		<updated>2026-10-30T18:00:00Z</updated>
+		<summary type="html">&lt;p&gt;The installer and the app are now signed with a Certum code-signing certificate, so Windows shows the publisher when you install. A new copy of an app can still get a SmartScreen warning until enough people have installed it.&lt;/p&gt;</summary>
+	</entry>
 	<entry>
 		<title>WinNewsReader 1.0.0</title>
 		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.0"/>
