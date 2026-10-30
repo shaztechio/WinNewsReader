@@ -41,28 +41,22 @@ function Draw([int]$size) {
 	$g.ScaleTransform($size / 256, $size / 256)
 
 	# Background: a rounded square with a blue gradient.
-	$inset = if ($size -le 16) { 4 } else { 8 }
-	$background = RoundedRect $inset $inset (256 - 2 * $inset) (256 - 2 * $inset) 56
+	$background = RoundedRect 8 8 240 240 56
 	$gradient = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new(0, 0)), ([System.Drawing.PointF]::new(0, 256)), (Color "#3D8BFF"), (Color "#1D4ED8")
 	$g.FillPath($gradient, $background)
 
-	if ($size -le 16) {
-		FeedSymbol $g ([System.Drawing.Color]::White) 76 180 24 72 132 30
+	# A page of news: a white sheet with a headline and lines of text.
+	$g.FillPath([System.Drawing.Brushes]::White, (RoundedRect 52 46 130 160 16))
+	$line = New-Object System.Drawing.SolidBrush (Color "#B9CEF3")
+	$headline = New-Object System.Drawing.SolidBrush (Color "#1D4ED8")
+	$g.FillPath($headline, (RoundedRect 72 70 90 16 8))
+	foreach ($row in @(@(102, 90), @(124, 76), @(146, 54))) {
+		$g.FillPath($line, (RoundedRect 72 $row[0] $row[1] 11 5.5))
 	}
-	else {
-		# A page of news: a white sheet with a headline and lines of text.
-		$g.FillPath([System.Drawing.Brushes]::White, (RoundedRect 52 46 130 160 16))
-		$line = New-Object System.Drawing.SolidBrush (Color "#B9CEF3")
-		$headline = New-Object System.Drawing.SolidBrush (Color "#1D4ED8")
-		$g.FillPath($headline, (RoundedRect 72 70 90 16 8))
-		foreach ($row in @(@(102, 90), @(124, 76), @(146, 54))) {
-			$g.FillPath($line, (RoundedRect 72 $row[0] $row[1] 11 5.5))
-		}
-		# The feed badge: an orange disc with a ring of background blue around it, over the page corner.
-		$g.FillEllipse((New-Object System.Drawing.SolidBrush (Color "#1F55DF")), 120, 120, 112, 112)
-		$g.FillEllipse((New-Object System.Drawing.SolidBrush (Color "#FF8A1F")), 130, 130, 92, 92)
-		FeedSymbol $g ([System.Drawing.Color]::White) 157 195 9 26 45 11
-	}
+	# The feed badge: an orange disc with a ring of background blue around it, over the page corner.
+	$g.FillEllipse((New-Object System.Drawing.SolidBrush (Color "#1F55DF")), 120, 120, 112, 112)
+	$g.FillEllipse((New-Object System.Drawing.SolidBrush (Color "#FF8A1F")), 130, 130, 92, 92)
+	FeedSymbol $g ([System.Drawing.Color]::White) 157 195 9 26 45 11
 
 	$g.Dispose()
 	$bitmap
