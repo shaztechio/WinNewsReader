@@ -262,6 +262,14 @@ public class ArticleRendererTests
 	}
 
 	[Fact]
+	public void ToastShowsTheMessageEscapedAndStylesItself()
+	{
+		var toasted = ArticleRenderer.WithToast(ArticleRenderer.NoSelection(Themes.Default), "Couldn’t load <b>x</b>");
+		Assert.Contains("<div class='wnrToast' role='alert'>Couldn’t load &lt;b&gt;x&lt;/b&gt;</div>", toasted.Html);
+		Assert.Contains("@keyframes wnrToast", toasted.Style);
+	}
+
+	[Fact]
 	public void NoSelectionSaysSo() => Assert.Contains("No Article Selected", ArticleRenderer.NoSelection(Themes.Default).Html);
 
 	[Fact]
