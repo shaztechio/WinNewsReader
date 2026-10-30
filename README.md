@@ -29,6 +29,12 @@ dotnet test
 dotnet run --project src/App
 ```
 
+## Security review workflows
+
+The Actions tab has two on-demand workflows from [multi-llm-security-review](https://github.com/shaztechio/multi-llm-security-review): **Security review** for provider selection, and **Security review (advanced)** for model overrides, OpenRouter tuning and SARIF controls. Both pin the workflow and tool to the same release 1.1.1 commit.
+
+Add repository Actions secrets for the providers you select: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` and/or `OPENROUTER_API_KEY`. Enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**, then choose a workflow and **Run workflow**. Claude and Codex are selected by default; Gemini and OpenRouter are opt-in. Each selected provider opens its own draft PR with fixes and a findings report; SARIF findings go to code scanning. Reports, PRs and log artifacts are public in this repository. These workflows do not run automatically on pushes or pull requests.
+
 ## Documentation
 
 - [docs/FEATURES.md](docs/FEATURES.md): using the app, accounts, shortcuts and the `wnr` command-line tool
