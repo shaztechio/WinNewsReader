@@ -1,0 +1,30 @@
+# Builds the app and runs the tests on every pull request and every push to main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test --nologo
+
+      # The tests don't build the WinUI app, so build it the way the release does.
+      - name: Build the app
+        run: dotnet build src/App -c Release -r win-x64 --self-contained -p:Platform=x64 --nologo
