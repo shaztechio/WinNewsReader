@@ -269,24 +269,25 @@ public sealed partial class MainViewModel : ObservableObject
 		_extracted = null;
 		_extractedArticleId = article.ArticleId;
 		ReaderView = ReaderViewState.Loading;
-		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
 		try
 		{
+			ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
 			_extracted = await _extractor.ExtractAsync(article.LinkUrl!, extraction.Token);
 			ReaderView = ReaderViewState.On;
 		}
-		catch (OperationCanceledException)
+		catch (Exception) when (extraction.IsCancellationRequested)
 		{
 			return;
 		}
-		catch (Exception ex) when (ex is ArticleExtractionException or HttpRequestException or IOException)
+		catch (Exception ex)
 		{
-			if (extraction.IsCancellationRequested)
-			{
-				return;
-			}
+			// Any failure, such as a timeout, ends the "Loading" state and says why; the status bar shows it
+			// whichever view it was cycled to.
 			ReaderView = ReaderViewState.Failed;
-			StatusText = ex.Message;
+			_statusMode = StatusMode.LastRefresh;
+			var message = ex is ArticleExtractionException ? ex.Message : $"Reader View couldn’t load the page: {ex.Message}";
+			StatusText = StatusText == message ? message + " " : message;
+			OnPropertyChanged(nameof(StatusLine));
 		}
 		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
 	}
