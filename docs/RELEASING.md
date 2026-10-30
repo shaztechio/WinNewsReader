@@ -43,5 +43,5 @@ Runtime, DirectML and more) and added about 27 MB to the installer. Updates afte
 Without signing, SmartScreen warns about the installer. The workflow signs with a Certum certificate through SimplySign when the
 `CERTUM_USERNAME`, `CERTUM_OTP_URI` and `CERTUM_KEY_ID` repository secrets are all set, and publishes unsigned otherwise. It also
 builds an unsigned MSIX for the Microsoft Store and uploads it as a workflow artifact. Both follow the sibling bunyi-app project; how
-they work, the Partner Center identity still to fill in, and what to test before submitting are in
-[packaging/windows/README.md](../packaging/windows/README.md). Getting the certificate and reserving the name are the open items in PLAN.md.
+they work, the Partner Center identity, and what to test before submitting are in
+[packaging/windows/README.md](../packaging/windows/README.md). Testing the package on a clean VM and submitting it are the open items in PLAN.md.

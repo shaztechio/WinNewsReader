@@ -2,14 +2,13 @@
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          IgnorableNamespaces="uap rescap">
-  <!-- The Identity values below are placeholders until the app's name is reserved in Partner Center. Copy the package name,
-       publisher and publisher display name from Product identity there; build-msix.ps1 refuses a Store build while REPLACE
-       is still in them. build-msix.ps1 sets the version. -->
-  <Identity Name="REPLACE.WinNewsReader" Publisher="CN=REPLACE-WITH-PARTNER-CENTER-PUBLISHER"
+  <!-- Store identity from Partner Center (Product identity). These are public package metadata, not credentials.
+       build-msix.ps1 sets the version and refuses a Store build if REPLACE is ever left in these values. -->
+  <Identity Name="13743Shazron.WinNewsReader" Publisher="CN=47FEF9A0-273C-4EA1-A295-51AC5D89C37C"
             Version="1.0.0.0" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>WinNewsReader</DisplayName>
-    <PublisherDisplayName>REPLACE</PublisherDisplayName>
+    <PublisherDisplayName>Shazron</PublisherDisplayName>
     <Description>A free feed reader for Windows, a port of NetNewsWire.</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>

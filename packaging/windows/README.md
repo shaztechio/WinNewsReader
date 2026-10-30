@@ -20,12 +20,20 @@ app already restores (or pass `-SdkBinPath`).
 
 `test-msix.ps1` runs on the finished package: the manifest, version, executable, resource indexes and every logo the manifest names.
 
-### Identity: still to do
+### Identity
 
-The name isn't reserved in Partner Center yet, so `AppxManifest.xml` has placeholders (`REPLACE`), and `build-msix.ps1` refuses a Store
-build until they're replaced. To fill them in, reserve the name in Partner Center, then copy **Product identity** (Package/Identity/Name,
-Package/Identity/Publisher and Package/Properties/PublisherDisplayName) into the manifest. These are public package metadata, not
-credentials. The release workflow builds the `-LocalTest` package while the placeholders remain, and the Store package after.
+The manifest uses the product identity from Partner Center, reserved on 30 October 2026. These values are public package metadata,
+not credentials. The package family name is derived by Windows, so it isn't a manifest field.
+
+| Field | Value |
+|---|---|
+| Package name | `13743Shazron.WinNewsReader` |
+| Publisher | `CN=47FEF9A0-273C-4EA1-A295-51AC5D89C37C` |
+| Publisher display name | `Shazron` |
+| Display name | `WinNewsReader` |
+
+`build-msix.ps1` refuses a Store build if `REPLACE` is in the identity, and the release workflow then builds the `-LocalTest` package
+instead. With the real identity in place, every release builds the Store package.
 
 ### Artwork and listing
 
