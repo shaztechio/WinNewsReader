@@ -21,7 +21,7 @@ vpk pack -u WinNewsReaderApp -v 1.0.0 -c release -p artifacts/publish -e WinNews
 ```
 
 `artifacts/releases/WinNewsReaderApp-release-Setup.exe` installs it for the current user, with no administrator rights, and the
-`-Portable.zip` runs from any folder. Both install the WebView2 runtime first if the PC lacks it.
+`-Portable.zip` runs from any folder. On the GitHub Release they are attached as `WinNewsReader-<version>-Setup.exe` and `WinNewsReader-<version>-Portable.zip`; the feed keeps Velopack's names. Both install the WebView2 runtime first if the PC lacks it.
 
 ## Size
 
