@@ -51,6 +51,14 @@ public sealed partial class MainWindow : Window
 	/// <summary>Navigations the app started and hasn't seen begin yet; the article pane allows only those.</summary>
 	private int _pendingArticleNavigations;
 
+	/// <summary>The article view is see-through while a page the app started loads, so no half-drawn page or blank frame shows; it fades in once the page has rendered.</summary>
+	private bool _articleViewHidden;
+
+	/// <summary>Brings the article view back if a load never reports that it finished.</summary>
+	private Microsoft.UI.Dispatching.DispatcherQueueTimer? _articleFadeSafety;
+
+	private static readonly TimeSpan ArticleFadeDuration = TimeSpan.FromMilliseconds(150);
+
 	/// <summary>
 	/// Proves a key message came from <see cref="ArticleKeysScript"/>, which keeps it out of reach of article and theme
 	/// scripts, rather than from one of them posting a shortcut of their own.
@@ -581,8 +589,12 @@ public sealed partial class MainWindow : Window
 		// Matches are counted by the page, and a new article starts the search over.
 		core.Find.MatchCountChanged += (find, _) => UpdateFindCount(find);
 		core.Find.ActiveMatchIndexChanged += (find, _) => UpdateFindCount(find);
-		core.NavigationCompleted += (_, _) =>
+		core.NavigationCompleted += (sender, args) =>
 		{
+			if (args.IsSuccess)
+			{
+				_ = ShowArticleViewAfterPaintAsync();
+			}
 			if (FindBar.Visibility == Visibility.Visible && FindBox.Text.Length > 0)
 			{
 				_ = StartFindAsync();
@@ -633,6 +645,7 @@ public sealed partial class MainWindow : Window
 		// Takes effect on the navigation that follows. Scripts the app adds to the page aren't affected.
 		ArticleView.CoreWebView2.Settings.IsScriptEnabled = ViewModel.AllowsContentJavaScript(item);
 		_pendingArticleNavigations++;
+		HideArticleView();
 		if (html.Length < MaxNavigateToStringLength)
 		{
 			ArticleView.NavigateToString(html);
@@ -644,6 +657,46 @@ public sealed partial class MainWindow : Window
 			File.WriteAllText(path, html);
 			ArticleView.CoreWebView2.Navigate(new Uri(path).AbsoluteUri);
 		}
+	}
+
+	/// <summary>Makes the article view see-through at once, before a new page loads into it. The pane's own background shows meanwhile.</summary>
+	private void HideArticleView()
+	{
+		ArticleView.OpacityTransition = null;
+		ArticleView.Opacity = 0;
+		_articleViewHidden = true;
+		// If the load never reports back (a failed or replaced one), the view still comes back.
+		_articleFadeSafety ??= DispatcherQueue.CreateTimer();
+		_articleFadeSafety.Interval = TimeSpan.FromSeconds(2);
+		_articleFadeSafety.IsRepeating = false;
+		_articleFadeSafety.Tick -= OnArticleFadeSafety;
+		_articleFadeSafety.Tick += OnArticleFadeSafety;
+		_articleFadeSafety.Start();
+	}
+
+	private void OnArticleFadeSafety(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args) => FadeInArticleView();
+
+	/// <summary>A moment after a page finishes loading, for its first paint, brings the article view back with a short fade.</summary>
+	private async Task ShowArticleViewAfterPaintAsync()
+	{
+		if (!_articleViewHidden)
+		{
+			return;
+		}
+		await Task.Delay(60);
+		FadeInArticleView();
+	}
+
+	private void FadeInArticleView()
+	{
+		if (!_articleViewHidden)
+		{
+			return;
+		}
+		_articleViewHidden = false;
+		_articleFadeSafety?.Stop();
+		ArticleView.OpacityTransition = new ScalarTransition { Duration = ArticleFadeDuration };
+		ArticleView.Opacity = 1;
 	}
 
 	/// <summary>Stands for the "Multiple selection" page in <see cref="_shownArticleId"/>.</summary>
