@@ -6,7 +6,7 @@ WinNewsReader is packaged with [Velopack](https://velopack.io). The installer an
 ## Cut a release
 
 1. Bump `<Version>` in `src/App/WinNewsReader.App.csproj`, and add an entry to `site/feed.xml` and `site/news/index.html`.
-2. Tag the commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`. A tag with a hyphen, such as `v0.2.0-test.1`, goes to
+2. Tag the commit and push the tag: `git tag v1.0.0 && git push origin v1.0.0`. A tag with a hyphen, such as `v1.0.0-test.1`, goes to
    the test channel, which only people who chose "Test builds" in Preferences → Advanced follow.
 3. The **Release** workflow tests, publishes and packs, attaches the installer and portable zip to a GitHub Release (public, on the
    repository's Releases page), and deploys the site with the new files in `releases/`. The **Pages** workflow
@@ -17,7 +17,7 @@ WinNewsReader is packaged with [Velopack](https://velopack.io). The installer an
 ```
 dotnet publish src/App -c Release -r win-x64 --self-contained -p:Platform=x64 -o artifacts/publish
 dotnet tool install -g vpk
-vpk pack -u WinNewsReaderApp -v 0.1.0 -c release -p artifacts/publish -e WinNewsReader.exe -o artifacts/releases --packTitle WinNewsReader --framework webview2 --icon src/App/Assets/AppIcon.ico
+vpk pack -u WinNewsReaderApp -v 1.0.0 -c release -p artifacts/publish -e WinNewsReader.exe -o artifacts/releases --packTitle WinNewsReader --framework webview2 --icon src/App/Assets/AppIcon.ico
 ```
 
 `artifacts/releases/WinNewsReaderApp-release-Setup.exe` installs it for the current user, with no administrator rights, and the
