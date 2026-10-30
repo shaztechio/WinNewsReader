@@ -60,6 +60,13 @@ The manifest also declares the runtime with `win32dependencies:ExternalDependenc
 only when the package is installed through App Installer, and ignored for any other install, the Store's included; makeappx
 doesn't validate it. It is harmless, but the bootstrapper above is what covers Store installs.
 
+### Submission
+
+Version 1.0.1 (`WinNewsReader-1.0.1-win-x64-store.msix`) was submitted for certification on 30 October 2026, with the en-US listing
+from `StoreListing/text`, IARC ratings answered as a news reader whose feeds can carry any content (they come out at 12+), and two
+screenshots from `site/help/images`. The Windows App Certification Kit was skipped. If certification rejects the WebView2 bootstrapper,
+see the fallback under WebView2.
+
 ### Before submitting
 
 Nothing here has been installed yet. Do these first, on a clean Windows VM: build with `-LocalTest`, sign that package with a test
