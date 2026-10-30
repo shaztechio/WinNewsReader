@@ -48,11 +48,23 @@ Updates says so. The installer's registry entries for `feed:`, `feeds:` and `win
 Velopack's install hooks, so an MSIX doesn't make them; the package would need protocol and file-type extensions in the manifest
 (not added yet: how a packaged full-trust app receives the link needs trying).
 
+### WebView2
+
+An MSIX can't install the WebView2 runtime the way the Velopack installer does. Windows 11 and recent Windows 10 have it, but a PC
+without it would show only the control's error. So the package carries Microsoft's bootstrapper, `WebView2/MicrosoftEdgeWebview2Setup.exe`
+(downloaded from `https://go.microsoft.com/fwlink/p/?LinkId=2124703`, signed by Microsoft; replace it from that link when Microsoft
+updates it), and `WebView2Runtime.EnsureInstalled` asks to run it at startup when the runtime is missing. Whether Store certification
+accepts an app running it is confirmed only by submitting; the fallback is to drop the install and keep the message with the link.
+
+The manifest also declares the runtime with `win32dependencies:ExternalDependency` (optional). Microsoft documents that this is honoured
+only when the package is installed through App Installer, and ignored for any other install, the Store's included; makeappx
+doesn't validate it. It is harmless, but the bootstrapper above is what covers Store installs.
+
 ### Before submitting
 
 Nothing here has been installed yet. Do these first, on a clean Windows VM: build with `-LocalTest`, sign that package with a test
 certificate whose subject is exactly `CN=WinNewsReader Local Test`, trust the certificate, and `Add-AppxPackage` it. Then start the
-app (the window must load: `resources.pri` indexes only the package images, and the app's own `WinNewsReader.pri` sits beside it),
+app (the window must load: `resources.pri` merges the app's and the framework's `.pri` files with the package images),
 add and read a feed, and check that Preferences, Help → Check for Updates and uninstall behave. Run the Windows App Certification
 Kit on the installed package. Do not distribute the local-test package or commit a private key.
 

@@ -1,6 +1,6 @@
 # Draws the app icon and writes src/App/Assets/AppIcon.ico (16-256 px) and AppIcon.png (256 px), and the Microsoft Store images in packaging/windows.
 # Run from the repository root with PowerShell 7 on Windows: ./tools/make-icon.ps1
-# Shapes are laid out on a 256 x 256 grid and scaled to each size. Sizes of 24 px and under drop
+# Shapes are laid out on a 256 x 256 grid and scaled to each size. Sizes of 16 px and under drop
 # the page and draw a larger feed symbol, so they stay legible.
 
 Add-Type -AssemblyName System.Drawing
@@ -41,12 +41,12 @@ function Draw([int]$size) {
 	$g.ScaleTransform($size / 256, $size / 256)
 
 	# Background: a rounded square with a blue gradient.
-	$inset = if ($size -le 24) { 4 } else { 8 }
+	$inset = if ($size -le 16) { 4 } else { 8 }
 	$background = RoundedRect $inset $inset (256 - 2 * $inset) (256 - 2 * $inset) 56
 	$gradient = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new(0, 0)), ([System.Drawing.PointF]::new(0, 256)), (Color "#3D8BFF"), (Color "#1D4ED8")
 	$g.FillPath($gradient, $background)
 
-	if ($size -le 24) {
+	if ($size -le 16) {
 		FeedSymbol $g ([System.Drawing.Color]::White) 76 180 24 72 132 30
 	}
 	else {

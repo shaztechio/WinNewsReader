@@ -70,6 +70,8 @@ foreach ($required in @('WinNewsReader.exe', 'WinNewsReader.dll', 'WinNewsReader
 	}
 }
 Get-ChildItem -LiteralPath $publish | Copy-Item -Destination $stage -Recurse
+# Microsoft's WebView2 bootstrapper (signed by Microsoft); the app runs it on a PC without the runtime. See WebView2Runtime.cs.
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'WebView2/MicrosoftEdgeWebview2Setup.exe') -Destination $stage
 Copy-Item -Path (Join-Path $PSScriptRoot 'Assets/*') -Destination (New-Item -ItemType Directory -Path (Join-Path $stage 'Assets') -Force) -Recurse -Force
 
 $manifest.Package.Identity.SetAttribute('Name', $packageName)
@@ -86,13 +88,15 @@ $manifest.Save($manifestPath)
 $imageRoot = Join-Path $runDirectory 'images'
 New-Item -ItemType Directory -Path $imageRoot | Out-Null
 Copy-Item -LiteralPath (Join-Path $stage 'Assets') -Destination $imageRoot -Recurse
+# A packaged app reads one resources.pri, so the app's own .pri (its compiled XAML) and the framework's are merged into it. Indexing
+# the loose framework files as well would list their assets twice, so only the .pri files and the package images go in.
+Get-ChildItem -LiteralPath $stage -Filter '*.pri' | Copy-Item -Destination $imageRoot
 $priConfig = Join-Path $runDirectory 'priconfig.xml'
 & $makePri createconfig /cf $priConfig /dq en-US /o
 if ($LASTEXITCODE -ne 0) { throw 'MakePri createconfig failed.' }
 [xml]$config = Get-Content -LiteralPath $priConfig -Raw
 $null = $config.resources.RemoveChild($config.resources.packaging)   # One package, every scale: no resource packs.
 $config.Save($priConfig)
-# Only the package's images are indexed. Indexing the whole folder also picks up the Windows App SDK's own assets, which clash.
 & $makePri new /pr $imageRoot /cf $priConfig /mn $manifestPath /of (Join-Path $stage 'resources.pri') /o
 if ($LASTEXITCODE -ne 0) { throw 'MakePri resource indexing failed.' }
 

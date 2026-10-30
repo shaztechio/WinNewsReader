@@ -1,7 +1,8 @@
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-         IgnorableNamespaces="uap rescap">
+         xmlns:win32dependencies="http://schemas.microsoft.com/appx/manifest/externaldependencies"
+         IgnorableNamespaces="uap rescap win32dependencies">
   <!-- Store identity from Partner Center (Product identity). These are public package metadata, not credentials.
        build-msix.ps1 sets the version and refuses a Store build if REPLACE is ever left in these values. -->
   <Identity Name="13743Shazron.WinNewsReader" Publisher="CN=47FEF9A0-273C-4EA1-A295-51AC5D89C37C"
@@ -18,6 +19,11 @@
   <Dependencies>
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0"
                         MaxVersionTested="10.0.17763.0" />
+    <!-- Has App Installer fetch the WebView2 runtime. Ignored for any other kind of install, such as the Store's; the app's own
+         check (WebView2Runtime.cs) covers those. Optional, so an offline install still completes. -->
+    <win32dependencies:ExternalDependency Name="Microsoft.WebView2"
+        Publisher="CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+        MinVersion="1.0.0.0" Optional="true" />
   </Dependencies>
   <Applications>
     <Application Id="WinNewsReader" Executable="WinNewsReader.exe"

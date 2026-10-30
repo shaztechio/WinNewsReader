@@ -98,6 +98,7 @@ public partial class App : Application
 
 	protected override void OnLaunched(LaunchActivatedEventArgs args)
 	{
+		WebView2Runtime.EnsureInstalled();
 		_downloader = new FeedDownloader();
 		_favicons = new FaviconDownloader(_downloader, Path.Combine(DataDirectory, "Favicons"));
 		_accounts = new AccountManager(DataDirectory, _downloader, new WindowsCredentialStore());

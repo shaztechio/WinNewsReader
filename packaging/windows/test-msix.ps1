@@ -9,7 +9,7 @@ $package = (Resolve-Path -LiteralPath $PackagePath).Path
 $work = Join-Path ([IO.Path]::GetTempPath()) ('wnr-msix-test-' + [guid]::NewGuid().ToString('N'))
 [IO.Compression.ZipFile]::ExtractToDirectory($package, $work)
 Write-Host "Extracted MSIX for validation: $work"
-foreach ($name in @('AppxManifest.xml', 'resources.pri', 'WinNewsReader.exe', 'WinNewsReader.dll', 'WinNewsReader.pri')) {
+foreach ($name in @('AppxManifest.xml', 'resources.pri', 'WinNewsReader.exe', 'WinNewsReader.dll', 'WinNewsReader.pri', 'MicrosoftEdgeWebview2Setup.exe')) {
 	if (-not (Test-Path -LiteralPath (Join-Path $work $name) -PathType Leaf)) { throw "The MSIX is missing $name." }
 }
 [xml]$manifest = Get-Content -LiteralPath (Join-Path $work 'AppxManifest.xml') -Raw
