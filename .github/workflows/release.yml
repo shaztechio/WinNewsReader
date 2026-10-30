@@ -111,8 +111,8 @@ jobs:
       - name: Build the Store MSIX
         shell: pwsh
         run: |
-          $local = if ((Get-Content packaging/windows/AppxManifest.xml -Raw) -match 'REPLACE') { @("-LocalTest") } else { @() }
-          ./packaging/windows/build-msix.ps1 -PublishDirectory artifacts/publish -Version "${{ steps.version.outputs.version }}" @local
+          $extra = @{ LocalTest = ((Get-Content packaging/windows/AppxManifest.xml -Raw) -match 'REPLACE') }
+          ./packaging/windows/build-msix.ps1 -PublishDirectory artifacts/publish -Version "${{ steps.version.outputs.version }}" @extra
 
       - uses: actions/upload-artifact@v4
         with:
