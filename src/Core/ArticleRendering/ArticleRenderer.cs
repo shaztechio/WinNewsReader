@@ -133,7 +133,7 @@ public static class ArticleRenderer
 		""";
 
 	/// <summary>
-	/// The rendering with a message toast over the article: it drops in at the top, then fades out on its own after a few
+	/// The rendering with a message toast over the article, in the system colors so it follows light and dark: it drops in at the top, then fades out on its own after a few
 	/// seconds. Pure CSS, so it works with the article's scripts off, and it never takes a click.
 	/// </summary>
 	public static ArticleRendering WithToast(ArticleRendering rendering, string message) => rendering with
@@ -146,7 +146,8 @@ public static class ArticleRenderer
 
 		.wnrToast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483647; max-width: min(560px, 90vw); box-sizing: border-box;
 			padding: 12px 18px; border-radius: 10px; font: 14px/1.4 system-ui, sans-serif; text-align: left; word-break: break-word;
-			background: #3b2323; color: #fff; box-shadow: 0 8px 24px rgb(0 0 0 / 0.35); pointer-events: none; opacity: 0;
+			color-scheme: light dark; background: Canvas; color: CanvasText; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-left: 5px solid #d83b01;
+			box-shadow: 0 8px 24px color-mix(in srgb, CanvasText 28%, transparent); pointer-events: none; opacity: 0;
 			animation: wnrToast 8s ease-in-out forwards; }
 		@keyframes wnrToast { 0% { opacity: 0; top: 0; } 6%, 85% { opacity: 1; top: 16px; } 100% { opacity: 0; top: 16px; } }
 		""";
