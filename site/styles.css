@@ -159,6 +159,24 @@ h1 {
 	font-weight: 600;
 }
 
+.badge.soon {
+	margin-left: 12px;
+	background: transparent;
+	color: var(--muted);
+	border: 1px solid var(--line);
+	box-shadow: none;
+}
+
+.badge.soon:hover {
+	background: transparent;
+}
+
+@media (max-width: 640px) {
+	.badge.soon {
+		margin: 12px 0 0;
+	}
+}
+
 .note {
 	margin-top: 20px;
 	font-size: 0.95rem;
