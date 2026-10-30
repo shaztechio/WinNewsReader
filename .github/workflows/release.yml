@@ -61,7 +61,7 @@ jobs:
           SIGN_METADATA: ${{ secrets.AZURE_TRUSTED_SIGNING_METADATA }}
         run: |
           $notes = "artifacts/notes.md"
-          "# WinNewsReader ${{ steps.version.outputs.version }}`n`nSee https://winnewsreader.com/news/ for what is new." | Set-Content $notes
+          "# WinNewsReader ${{ steps.version.outputs.version }}`n`nSee https://winnewsreader.com/news/#v${{ steps.version.outputs.version }} for what is new." | Set-Content $notes
           $packArgs = @("pack", "-u", "WinNewsReaderApp", "-v", "${{ steps.version.outputs.version }}", "-c", "${{ steps.version.outputs.channel }}",
             "-p", "artifacts/publish", "-e", "WinNewsReader.exe", "-o", "artifacts/releases",
             "--packTitle", "WinNewsReader", "--packAuthors", "WinNewsReader", "--framework", "webview2",

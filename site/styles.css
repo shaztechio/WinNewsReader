@@ -402,6 +402,19 @@ footer {
 	scroll-margin-top: 16px;
 }
 
+.doc article {
+	scroll-margin-top: 16px;
+}
+
+.doc article h2 a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.doc article h2 a:hover {
+	text-decoration: underline;
+}
+
 .doc h3 {
 	margin: 24px 0 8px;
 	font-size: 1.05rem;

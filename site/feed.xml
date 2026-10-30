@@ -9,7 +9,7 @@
 	<author><name>WinNewsReader</name></author>
 	<entry>
 		<title>WinNewsReader 1.0.0</title>
-		<link rel="alternate" type="text/html" href="https://winnewsreader.com/help/"/>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.0"/>
 		<id>https://winnewsreader.com/news/2026-10-30-1-0-0</id>
 		<updated>2026-10-30T12:00:00Z</updated>
 		<summary type="html">&lt;p&gt;The first release: a native Windows port of NetNewsWire.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Reads&lt;/strong&gt; RSS, Atom, JSON Feed and RSS-in-JSON, with NetNewsWire's article themes.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Syncs&lt;/strong&gt; with FreshRSS, Feedbin, NewsBlur, The Old Reader and BazQux (File → Add Account…), or keeps your feeds on your PC.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Reading:&lt;/strong&gt; Find in Article (Ctrl+F), undo for marking read or starred and deleting a feed or folder, a taskbar unread badge, and feed site icons.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Layout:&lt;/strong&gt; a mail-style column layout with the table across the top, sorting by feed, title, unread and starred, Group by Feed, and a search scope button.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Status bar:&lt;/strong&gt; a selection menu, a theme menu and click-to-cycle counts.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Windows:&lt;/strong&gt; Current Activity, Activity Log, Error Log, Account Stats and Dinosaurs (Ctrl+6 to Ctrl+9).&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Subscribe&lt;/strong&gt; by dragging links onto the sidebar.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;The installer isn't code-signed yet, so Windows SmartScreen warns when you install.&lt;/p&gt;</summary>
