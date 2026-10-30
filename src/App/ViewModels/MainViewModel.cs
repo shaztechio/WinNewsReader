@@ -141,6 +141,9 @@ public sealed partial class MainViewModel : ObservableObject
 	// changes, unless the article's feed has Always Use Reader View on.
 
 	private readonly ArticleExtractor _extractor;
+
+	/// <summary>Why Reader View failed, shown once as a toast over the article, which the status bar alone made too easy to miss.</summary>
+	private string? _extractionFailure;
 	private CancellationTokenSource? _extraction;
 	private ExtractedArticle? _extracted;
 	private string? _extractedArticleId;
@@ -287,6 +290,7 @@ public sealed partial class MainViewModel : ObservableObject
 			_statusMode = StatusMode.LastRefresh;
 			var message = ex is ArticleExtractionException ? ex.Message : $"Reader View couldn’t load the page: {ex.Message}";
 			StatusText = StatusText == message ? message + " " : message;
+			_extractionFailure = message;
 			OnPropertyChanged(nameof(StatusLine));
 		}
 		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
@@ -343,7 +347,13 @@ public sealed partial class MainViewModel : ObservableObject
 			? $"https://{FeedIconsHost}/{Uri.EscapeDataString(Path.GetFileName(path))}"
 			: TransparentPixel;
 		var context = new ArticleRenderContext(FeedFor(item), item.Account.Kind == AccountKind.FreshRss, Settings.ArticleTextSize.CssClass(), avatar);
-		return ArticleRenderer.PageHtml(ArticleRenderer.Render(item.Article, context, theme, extracted), Themes.PageTemplate);
+		var rendering = ArticleRenderer.Render(item.Article, context, theme, extracted);
+		if (_extractionFailure is { } failure && ReaderView == ReaderViewState.Failed && _extractedArticleId == item.ArticleId)
+		{
+			rendering = ArticleRenderer.WithToast(rendering, failure);
+		}
+		_extractionFailure = null;
+		return ArticleRenderer.PageHtml(rendering, Themes.PageTemplate);
 	}
 
 	/// <summary>NetNewsWire's <c>todayCutoffDate</c>: 24 hours ago, so Today doesn't empty out at midnight.</summary>

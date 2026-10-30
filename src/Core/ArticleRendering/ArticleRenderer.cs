@@ -132,6 +132,25 @@ public static class ArticleRenderer
 		.selectionStack .sheet.empty { background: transparent; box-shadow: none; border: 2px dashed color-mix(in srgb, CanvasText 20%, transparent); }
 		""";
 
+	/// <summary>
+	/// The rendering with a message toast over the article: it drops in at the top, then fades out on its own after a few
+	/// seconds. Pure CSS, so it works with the article's scripts off, and it never takes a click.
+	/// </summary>
+	public static ArticleRendering WithToast(ArticleRendering rendering, string message) => rendering with
+	{
+		Style = rendering.Style + ToastCss,
+		Html = rendering.Html + $"<div class='wnrToast' role='alert'>{WebUtility.HtmlEncode(message)}</div>",
+	};
+
+	private const string ToastCss = """
+
+		.wnrToast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483647; max-width: min(560px, 90vw); box-sizing: border-box;
+			padding: 12px 18px; border-radius: 10px; font: 14px/1.4 system-ui, sans-serif; text-align: left; word-break: break-word;
+			background: #3b2323; color: #fff; box-shadow: 0 8px 24px rgb(0 0 0 / 0.35); pointer-events: none; opacity: 0;
+			animation: wnrToast 8s ease-in-out forwards; }
+		@keyframes wnrToast { 0% { opacity: 0; top: 0; } 6%, 85% { opacity: 1; top: 16px; } 100% { opacity: 0; top: 16px; } }
+		""";
+
 	/// <summary>What NetNewsWire shows while Reader View fetches an article.</summary>
 	public static ArticleRendering Loading(ArticleTheme theme) => new(theme.Css, "<h3 class='systemMessage'>Loading…</h3>", "", "");
 
