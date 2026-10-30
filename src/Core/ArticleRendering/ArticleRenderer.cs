@@ -152,8 +152,21 @@ public static class ArticleRenderer
 		@keyframes wnrToast { 0% { opacity: 0; top: 0; } 6%, 85% { opacity: 1; top: 16px; } 100% { opacity: 0; top: 16px; } }
 		""";
 
-	/// <summary>What NetNewsWire shows while Reader View fetches an article.</summary>
-	public static ArticleRendering Loading(ArticleTheme theme) => new(theme.Css, "<h3 class='systemMessage'>Loading…</h3>", "", "");
+	/// <summary>
+	/// What NetNewsWire shows while Reader View fetches an article, with a spinner, since a page the browser has to load
+	/// can take a few seconds. Pure CSS, in the system colors, so it works in any theme and mode.
+	/// </summary>
+	public static ArticleRendering Loading(ArticleTheme theme, string message = "Loading…") => new(theme.Css + SpinnerCss,
+		"<div class='wnrLoading' role='status' aria-label='Loading Reader View'><div class='wnrSpinner'></div><h3 class='systemMessage'>" + WebUtility.HtmlEncode(message) + "</h3></div>", "", "");
+
+	private const string SpinnerCss = """
+
+		.wnrLoading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+		.wnrLoading .systemMessage { margin: 0; }
+		.wnrSpinner { width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; border: 3px solid color-mix(in srgb, CanvasText 16%, transparent);
+			border-top-color: #2f7bf5; animation: wnrSpin 0.9s linear infinite; }
+		@keyframes wnrSpin { to { transform: rotate(360deg); } }
+		""";
 
 	/// <summary>The full page for a rendering, ready to load into the article view.</summary>
 	public static string PageHtml(ArticleRendering rendering, string pageTemplate, int windowScrollY = 0)

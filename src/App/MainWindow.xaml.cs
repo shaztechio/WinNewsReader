@@ -550,6 +550,14 @@ public sealed partial class MainWindow : Window
 		Directory.CreateDirectory(MainViewModel.FeedIconsDirectory);
 		core.SetVirtualHostNameToFolderMapping(MainViewModel.FeedIconsHost, MainViewModel.FeedIconsDirectory, CoreWebView2HostResourceAccessKind.Allow);
 		core.WebMessageReceived += OnArticleMessage;
+		// Reader View's fallback for sites that turn a plain download away: load the page in a WebView2 the reader never sees.
+		var browserFetcher = new HiddenBrowserFetcher(core.Environment, WinRT.Interop.WindowNative.GetWindowHandle(this));
+		ViewModel.SetBrowserFetcher(browserFetcher.FetchAsync);
+		// Starting that browser takes seconds, so by default do it now, in the background, rather than on the first page that needs it.
+		if (ViewModel.Settings.PrepareReaderViewBrowserAtStartup)
+		{
+			DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => _ = browserFetcher.WarmUpAsync());
+		}
 		ViewModel.ArticleAppearanceChanged += (_, _) =>
 		{
 			_shownArticleId = "";

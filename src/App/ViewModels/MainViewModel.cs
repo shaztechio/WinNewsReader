@@ -144,6 +144,9 @@ public sealed partial class MainViewModel : ObservableObject
 
 	/// <summary>Why Reader View failed, shown once as a toast over the article, which the status bar alone made too easy to miss.</summary>
 	private string? _extractionFailure;
+
+	/// <summary>What the spinner says while Reader View loads: "Loading…", or a step of the hidden browser's.</summary>
+	private string _loadingMessage = "Loading…";
 	private CancellationTokenSource? _extraction;
 	private ExtractedArticle? _extracted;
 	private string? _extractedArticleId;
@@ -195,6 +198,9 @@ public sealed partial class MainViewModel : ObservableObject
 				break;
 		}
 	}
+
+	/// <summary>Gives Reader View a browser to fall back on for pages a plain download can't get.</summary>
+	public void SetBrowserFetcher(Func<string, CancellationToken, IProgress<string>?, Task<RenderedPage>>? fetcher) => _extractor.BrowserFetcher = fetcher;
 
 	public bool IsReaderViewAlwaysOn(SidebarItem feedItem) => Settings.ReaderViewFeedKeys.Contains(ReaderViewKey(feedItem.Account!, feedItem.Feed!.FeedId));
 
@@ -271,11 +277,21 @@ public sealed partial class MainViewModel : ObservableObject
 		var extraction = _extraction = new CancellationTokenSource();
 		_extracted = null;
 		_extractedArticleId = article.ArticleId;
+		_loadingMessage = "Loading…";
 		ReaderView = ReaderViewState.Loading;
 		try
 		{
 			ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
-			_extracted = await _extractor.ExtractAsync(article.LinkUrl!, extraction.Token);
+			// What the hidden browser is doing, such as starting up, shown under the spinner. The Progress captures the UI thread.
+			var progress = new Progress<string>(message =>
+			{
+				if (!extraction.IsCancellationRequested && ReaderView == ReaderViewState.Loading && _extractedArticleId == article.ArticleId)
+				{
+					_loadingMessage = message;
+					ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
+				}
+			});
+			_extracted = await _extractor.ExtractAsync(article.LinkUrl!, extraction.Token, progress);
 			ReaderView = ReaderViewState.On;
 		}
 		catch (Exception) when (extraction.IsCancellationRequested)
@@ -341,7 +357,7 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 		if (ReaderView == ReaderViewState.Loading && _extractedArticleId == item.ArticleId)
 		{
-			return ArticleRenderer.PageHtml(ArticleRenderer.Loading(theme), Themes.PageTemplate);
+			return ArticleRenderer.PageHtml(ArticleRenderer.Loading(theme, _loadingMessage), Themes.PageTemplate);
 		}
 		var extracted = ReaderView == ReaderViewState.On && _extractedArticleId == item.ArticleId ? _extracted : null;
 		var avatar = _iconPaths.TryGetValue(IconKey(item.Account, item.Article.FeedId), out var path)

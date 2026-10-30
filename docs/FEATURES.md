@@ -18,7 +18,7 @@ The first launch adds NetNewsWire's starter feeds and the WinNewsReader News fee
 
 - Ctrl-click or Shift-click articles to select several (Ctrl+A selects all). The article pane shows them as a stack, and Mark Read, Star, Share, Open in Browser and the right-click menu act on all of them.
 - The article right-click menu also has Mark Above as Read, Mark Below as Read, Select “Feed” in Sidebar and Mark All as Read in “Feed”.
-- **Reader View** (Ctrl+Shift+R) fetches the article's page and shows just the article. A feed's **Always Use Reader View** turns it on for every article in that feed.
+- **Reader View** (Ctrl+Shift+R) fetches the article's page and shows just the article. A spinner shows while it loads. If a site refuses a plain download or builds the page with scripts, the page is loaded in a hidden browser instead. If it still can't load, a message appears over the article, in the status bar and in the Error Log. A feed's **Always Use Reader View** turns it on for every article in that feed.
 - **Find in Article** is Ctrl+F (F3 and Shift+F3 step through matches). F11 toggles full screen.
 - **Search** (Ctrl+Alt+F) covers every article in every account, by title, text and author, matching the start of each word. Escape, or choosing a sidebar row, ends the search.
 - **Undo:** Ctrl+Z undoes marking read or starred and deleting feeds and folders; Ctrl+Y redoes.
@@ -47,7 +47,7 @@ Preferences → Accounts turns accounts on and off, and edits or removes them. E
 
 ## Preferences
 
-**File → Preferences…** (Ctrl+,) has Appearance (Same as Windows, Light or Dark, articles included), Unread Counts (number, dot or none, for the sidebar and for the taskbar badge, which shows the total of all unread articles, as 99+ past 99), article text size and theme, Enable JavaScript, the browser that opens links, how often to refresh (manually, or every 30 minutes to 8 hours), the Accounts tab, and an Advanced tab for updates.
+**File → Preferences…** (Ctrl+,) has Appearance (Same as Windows, Light or Dark, articles included), Unread Counts (number, dot or none, for the sidebar and for the taskbar badge, which shows the total of all unread articles, as 99+ past 99), article text size and theme, Enable JavaScript, the browser that opens links, how often to refresh (manually, or every 30 minutes to 8 hours), the Accounts tab, and an Advanced tab for updates and Reader View's hidden browser (start it when the app starts, on by default; off for readers who never use Reader View).
 
 ## Keyboard
 
