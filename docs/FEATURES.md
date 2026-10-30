@@ -47,7 +47,7 @@ Preferences → Accounts turns accounts on and off, and edits or removes them. E
 
 ## Preferences
 
-**File → Preferences…** (Ctrl+,) has Appearance (Same as Windows, Light or Dark, articles included), Unread Counts (number, dot or none, for the sidebar and for the taskbar badge, which shows the total of all unread articles, as 99+ past 99), article text size and theme, Enable JavaScript, the browser that opens links, how often to refresh (manually, or every 30 minutes to 8 hours), the Accounts tab, and an Advanced tab for updates.
+**File → Preferences…** (Ctrl+,) has Appearance (Same as Windows, Light or Dark, articles included), Unread Counts (number, dot or none, for the sidebar and for the taskbar badge, which shows the total of all unread articles, as 99+ past 99), article text size and theme, Enable JavaScript, the browser that opens links, how often to refresh (manually, or every 30 minutes to 8 hours), the Accounts tab, and an Advanced tab for updates and Reader View's hidden browser (start it when the app starts, on by default; off for readers who never use Reader View).
 
 ## Keyboard
 

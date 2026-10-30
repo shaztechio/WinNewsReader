@@ -58,7 +58,7 @@ public sealed class ReaderViewTests : IDisposable
 		var asked = new List<string>();
 		var extractor = new ArticleExtractor(_downloader)
 		{
-			BrowserFetcher = (url, _) =>
+			BrowserFetcher = (url, _, _) =>
 			{
 				asked.Add(url);
 				return Task.FromResult(new RenderedPage(ArticleUrl, Page(ArticleBody)));
@@ -77,10 +77,30 @@ public sealed class ReaderViewTests : IDisposable
 		_pages[ArticleUrl] = Page("<div id=\"app\"></div>");
 		var extractor = new ArticleExtractor(_downloader)
 		{
-			BrowserFetcher = (_, _) => Task.FromResult(new RenderedPage(ArticleUrl, Page(ArticleBody))),
+			BrowserFetcher = (_, _, _) => Task.FromResult(new RenderedPage(ArticleUrl, Page(ArticleBody))),
 		};
 
 		Assert.Contains("a quiet way", (await extractor.ExtractAsync(ArticleUrl)).Content);
+	}
+
+	[Fact]
+	public async Task TheBrowserCanReportProgress()
+	{
+		_forbidden.Add(ArticleUrl);
+		var reported = new List<string>();
+		var extractor = new ArticleExtractor(_downloader)
+		{
+			BrowserFetcher = (_, _, progress) =>
+			{
+				progress?.Report("Starting the browser…");
+				return Task.FromResult(new RenderedPage(ArticleUrl, Page(ArticleBody)));
+			},
+		};
+
+		await extractor.ExtractAsync(ArticleUrl, default, new Progress<string>(reported.Add));
+
+		await Task.Delay(50);
+		Assert.Equal(["Starting the browser…"], reported);
 	}
 
 	[Fact]
@@ -88,7 +108,7 @@ public sealed class ReaderViewTests : IDisposable
 	{
 		var extractor = new ArticleExtractor(_downloader)
 		{
-			BrowserFetcher = (_, _) => throw new InvalidOperationException("The browser shouldn't be asked."),
+			BrowserFetcher = (_, _, _) => throw new InvalidOperationException("The browser shouldn't be asked."),
 		};
 
 		await Assert.ThrowsAsync<ArticleExtractionException>(() => extractor.ExtractAsync(ArticleUrl));
@@ -100,7 +120,7 @@ public sealed class ReaderViewTests : IDisposable
 		_forbidden.Add(ArticleUrl);
 		var extractor = new ArticleExtractor(_downloader)
 		{
-			BrowserFetcher = (_, _) => throw new TimeoutException("Took too long."),
+			BrowserFetcher = (_, _, _) => throw new TimeoutException("Took too long."),
 		};
 
 		var error = await Assert.ThrowsAsync<ArticleExtractionException>(() => extractor.ExtractAsync(ArticleUrl));

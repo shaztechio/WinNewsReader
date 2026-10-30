@@ -20,13 +20,13 @@ public sealed record RenderedPage(string Url, string Html);
 public sealed class ArticleExtractor(FeedDownloader downloader)
 {
 	/// <summary>
-	/// Loads a page in a real browser and returns it once it has rendered. Set by the app, which owns a WebView2; throws if the
+	/// Loads a page in a real browser and returns it once it has rendered, reporting what it is doing as it goes. Set by the app, which owns a WebView2; throws if the
 	/// page can't be loaded.
 	/// </summary>
-	public Func<string, CancellationToken, Task<RenderedPage>>? BrowserFetcher { get; set; }
+	public Func<string, CancellationToken, IProgress<string>?, Task<RenderedPage>>? BrowserFetcher { get; set; }
 
 	/// <summary>Throws <see cref="ArticleExtractionException"/> when the page can't be fetched or has no readable article.</summary>
-	public async Task<ExtractedArticle> ExtractAsync(string url, CancellationToken cancellationToken = default)
+	public async Task<ExtractedArticle> ExtractAsync(string url, CancellationToken cancellationToken = default, IProgress<string>? progress = null)
 	{
 		var download = await downloader.DownloadAsync(url, null, null, cancellationToken);
 		string failure;
@@ -50,7 +50,7 @@ public sealed class ArticleExtractor(FeedDownloader downloader)
 		{
 			try
 			{
-				var page = await BrowserFetcher(url, cancellationToken);
+				var page = await BrowserFetcher(url, cancellationToken, progress);
 				// A byte-order mark, which outranks the page's own charset tag: the browser has already decoded this text.
 				using var rendered = new MemoryStream([.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(page.Html)]);
 				var article = await Task.Run(() => Reader.ParseArticle(page.Url, rendered), cancellationToken);

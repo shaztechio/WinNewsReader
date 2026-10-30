@@ -276,6 +276,7 @@ public class ArticleRendererTests
 		Assert.Contains("class='wnrSpinner'", loading.Html);
 		Assert.Contains("Loading…", loading.Html);
 		Assert.Contains("@keyframes wnrSpin", loading.Style);
+		Assert.Contains("Starting the browser…", ArticleRenderer.Loading(Themes.Default, "Starting the browser…").Html);
 	}
 
 	[Fact]

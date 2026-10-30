@@ -99,6 +99,9 @@ public sealed class AppSettings
 	/// <summary>NetNewsWire's "Enable JavaScript" preference for article content. On by default.</summary>
 	public bool ArticleContentJavaScriptEnabled { get; set; } = true;
 
+	/// <summary>Start the hidden browser Reader View falls back on when the app starts, so the first page that needs it doesn't wait. On by default; off for readers who never use Reader View.</summary>
+	public bool PrepareReaderViewBrowserAtStartup { get; set; } = true;
+
 	/// <summary>Feeds with NetNewsWire's "Show Notifications for New Articles" on, as <c>accountID|feedID</c>.</summary>
 	public HashSet<string> NotificationFeedKeys { get; set; } = [];
 

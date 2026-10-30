@@ -156,8 +156,8 @@ public static class ArticleRenderer
 	/// What NetNewsWire shows while Reader View fetches an article, with a spinner, since a page the browser has to load
 	/// can take a few seconds. Pure CSS, in the system colors, so it works in any theme and mode.
 	/// </summary>
-	public static ArticleRendering Loading(ArticleTheme theme) => new(theme.Css + SpinnerCss,
-		"<div class='wnrLoading' role='status' aria-label='Loading Reader View'><div class='wnrSpinner'></div><h3 class='systemMessage'>Loading…</h3></div>", "", "");
+	public static ArticleRendering Loading(ArticleTheme theme, string message = "Loading…") => new(theme.Css + SpinnerCss,
+		"<div class='wnrLoading' role='status' aria-label='Loading Reader View'><div class='wnrSpinner'></div><h3 class='systemMessage'>" + WebUtility.HtmlEncode(message) + "</h3></div>", "", "");
 
 	private const string SpinnerCss = """
 

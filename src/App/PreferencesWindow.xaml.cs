@@ -120,6 +120,21 @@ public sealed partial class PreferencesWindow : Window
 			Style = (Style)Application.Current.Resources["SecondaryTextStyle"],
 		});
 
+		panel.Children.Add(new TextBlock { Text = "Reader View", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 0) });
+		var prepareBrowser = new CheckBox { Content = "Prepare Reader View’s hidden browser when WinNewsReader starts", IsChecked = settings.PrepareReaderViewBrowserAtStartup };
+		prepareBrowser.Click += (_, _) =>
+		{
+			settings.PrepareReaderViewBrowserAtStartup = prepareBrowser.IsChecked == true;
+			_viewModel.SaveSettings();
+		};
+		panel.Children.Add(prepareBrowser);
+		panel.Children.Add(new TextBlock
+		{
+			Text = "Pages that turn away a plain download are loaded in a hidden browser. Starting it ahead of time saves a few seconds the first time Reader View needs it. Turn this off if you don’t use Reader View; it then starts when needed. Takes effect the next time WinNewsReader starts.",
+			TextWrapping = TextWrapping.Wrap,
+			Style = (Style)Application.Current.Resources["SecondaryTextStyle"],
+		});
+
 		panel.Children.Add(new TextBlock { Text = "Privacy", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 0) });
 		panel.Children.Add(new TextBlock
 		{
