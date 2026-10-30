@@ -291,6 +291,7 @@ public sealed partial class MainViewModel : ObservableObject
 			var message = ex is ArticleExtractionException ? ex.Message : $"Reader View couldn’t load the page: {ex.Message}";
 			StatusText = StatusText == message ? message + " " : message;
 			_extractionFailure = message;
+			Activity.Add(ActivityLevel.Error, article.Account.Name, article.FeedName, $"Reader View: {message}");
 			OnPropertyChanged(nameof(StatusLine));
 		}
 		ArticleAppearanceChanged?.Invoke(this, EventArgs.Empty);
