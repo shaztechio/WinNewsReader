@@ -12,9 +12,10 @@ public sealed class ReaderViewTests : IDisposable
 	private static readonly string ResourcesDirectory = Path.Combine(AppContext.BaseDirectory, "ArticleRendering", "Resources");
 
 	private readonly Dictionary<string, string> _pages = [];
+	private readonly HashSet<string> _forbidden = [];
 	private readonly FeedDownloader _downloader;
 
-	public ReaderViewTests() => _downloader = new FeedDownloader(new Handler(_pages));
+	public ReaderViewTests() => _downloader = new FeedDownloader(new Handler(_pages, _forbidden));
 
 	public void Dispose() => _downloader.Dispose();
 
@@ -39,6 +40,71 @@ public sealed class ReaderViewTests : IDisposable
 		Assert.Contains("styled like everything else you read", extracted.Content);
 		Assert.DoesNotContain("Privacy", extracted.Content);
 		Assert.DoesNotContain("Archive", extracted.Content);
+	}
+
+	private const string ArticleBody = """
+		<article>
+		<h1>On Reading Feeds</h1>
+		<p>Feed readers are a quiet way to follow the writers you care about. Instead of checking a dozen sites, the reader brings each new post to you, in order, without an algorithm deciding what you see first.</p>
+		<p>That calm is the point. A feed reader doesn't count your attention or pad the page with recommendations; it shows the article, and then it gets out of the way so you can read it from start to finish.</p>
+		<p>Some feeds send only a summary, though, which is where a reader view earns its keep: it fetches the page, finds the article in it, and shows that, styled like everything else you read.</p>
+		</article>
+		""";
+
+	[Fact]
+	public async Task ABrowserLoadsAPageTheSiteRefusedToDownload()
+	{
+		_forbidden.Add(ArticleUrl);
+		var asked = new List<string>();
+		var extractor = new ArticleExtractor(_downloader)
+		{
+			BrowserFetcher = (url, _) =>
+			{
+				asked.Add(url);
+				return Task.FromResult(new RenderedPage(ArticleUrl, Page(ArticleBody)));
+			},
+		};
+
+		var extracted = await extractor.ExtractAsync(ArticleUrl);
+
+		Assert.Equal([ArticleUrl], asked);
+		Assert.Contains("Feed readers are a quiet way", extracted.Content);
+	}
+
+	[Fact]
+	public async Task ABrowserBuildsAPageTheDownloadFoundEmpty()
+	{
+		_pages[ArticleUrl] = Page("<div id=\"app\"></div>");
+		var extractor = new ArticleExtractor(_downloader)
+		{
+			BrowserFetcher = (_, _) => Task.FromResult(new RenderedPage(ArticleUrl, Page(ArticleBody))),
+		};
+
+		Assert.Contains("a quiet way", (await extractor.ExtractAsync(ArticleUrl)).Content);
+	}
+
+	[Fact]
+	public async Task AMissingPageIsNotWorthABrowser()
+	{
+		var extractor = new ArticleExtractor(_downloader)
+		{
+			BrowserFetcher = (_, _) => throw new InvalidOperationException("The browser shouldn't be asked."),
+		};
+
+		await Assert.ThrowsAsync<ArticleExtractionException>(() => extractor.ExtractAsync(ArticleUrl));
+	}
+
+	[Fact]
+	public async Task WhenTheBrowserFailsTooTheDownloadsFailureIsReported()
+	{
+		_forbidden.Add(ArticleUrl);
+		var extractor = new ArticleExtractor(_downloader)
+		{
+			BrowserFetcher = (_, _) => throw new TimeoutException("Took too long."),
+		};
+
+		var error = await Assert.ThrowsAsync<ArticleExtractionException>(() => extractor.ExtractAsync(ArticleUrl));
+		Assert.Contains("403", error.Message);
 	}
 
 	[Fact]
@@ -72,13 +138,14 @@ public sealed class ReaderViewTests : IDisposable
 
 	private static string Page(string body) => $"<!doctype html><html><head><meta charset=\"utf-8\"><title>On Reading Feeds</title></head><body>{body}</body></html>";
 
-	private sealed class Handler(Dictionary<string, string> pages) : HttpMessageHandler
+	private sealed class Handler(Dictionary<string, string> pages, HashSet<string> forbidden) : HttpMessageHandler
 	{
 		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
-			var response = pages.TryGetValue(request.RequestUri!.AbsoluteUri, out var html)
-				? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html, Encoding.UTF8, "text/html") }
-				: new HttpResponseMessage(HttpStatusCode.NotFound);
+			var response = forbidden.Contains(request.RequestUri!.AbsoluteUri) ? new HttpResponseMessage(HttpStatusCode.Forbidden)
+				: pages.TryGetValue(request.RequestUri!.AbsoluteUri, out var html)
+					? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html, Encoding.UTF8, "text/html") }
+					: new HttpResponseMessage(HttpStatusCode.NotFound);
 			response.RequestMessage = request;
 			return Task.FromResult(response);
 		}

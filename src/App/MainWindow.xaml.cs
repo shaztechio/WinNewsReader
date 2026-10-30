@@ -550,6 +550,8 @@ public sealed partial class MainWindow : Window
 		Directory.CreateDirectory(MainViewModel.FeedIconsDirectory);
 		core.SetVirtualHostNameToFolderMapping(MainViewModel.FeedIconsHost, MainViewModel.FeedIconsDirectory, CoreWebView2HostResourceAccessKind.Allow);
 		core.WebMessageReceived += OnArticleMessage;
+		// Reader View's fallback for sites that turn a plain download away: load the page in a WebView2 the reader never sees.
+		ViewModel.SetBrowserFetcher(new HiddenBrowserFetcher(core.Environment, WinRT.Interop.WindowNative.GetWindowHandle(this)).FetchAsync);
 		ViewModel.ArticleAppearanceChanged += (_, _) =>
 		{
 			_shownArticleId = "";

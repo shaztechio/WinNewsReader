@@ -196,6 +196,9 @@ public sealed partial class MainViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>Gives Reader View a browser to fall back on for pages a plain download can't get.</summary>
+	public void SetBrowserFetcher(Func<string, CancellationToken, Task<RenderedPage>>? fetcher) => _extractor.BrowserFetcher = fetcher;
+
 	public bool IsReaderViewAlwaysOn(SidebarItem feedItem) => Settings.ReaderViewFeedKeys.Contains(ReaderViewKey(feedItem.Account!, feedItem.Feed!.FeedId));
 
 	public void SetReaderViewAlwaysOn(SidebarItem feedItem, bool on)

@@ -270,6 +270,15 @@ public class ArticleRendererTests
 	}
 
 	[Fact]
+	public void LoadingShowsASpinner()
+	{
+		var loading = ArticleRenderer.Loading(Themes.Default);
+		Assert.Contains("class='wnrSpinner'", loading.Html);
+		Assert.Contains("Loading…", loading.Html);
+		Assert.Contains("@keyframes wnrSpin", loading.Style);
+	}
+
+	[Fact]
 	public void NoSelectionSaysSo() => Assert.Contains("No Article Selected", ArticleRenderer.NoSelection(Themes.Default).Html);
 
 	[Fact]
