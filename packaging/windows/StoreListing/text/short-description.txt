@@ -1,0 +1,1 @@
+A free feed reader for Windows, a native port of NetNewsWire. Follow sites with RSS, Atom and JSON Feed, keep feeds on your PC or sync them, and read with NetNewsWire's article themes.

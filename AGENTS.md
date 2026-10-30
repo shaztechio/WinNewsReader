@@ -13,6 +13,7 @@ Read the one that matches the task before starting.
 | [docs/PLAN.md](docs/PLAN.md) | The plan, with a checkbox per piece of work. Tick boxes as work lands |
 | [docs/parity-matrix.md](docs/parity-matrix.md) | Every NetNewsWire feature, its status (Done, Unchecked, Keys, Dropped and so on) and how it is tested. Keep the status and the counts at the top current |
 | [docs/MANUAL-TEST-CHECKLIST.md](docs/MANUAL-TEST-CHECKLIST.md) | Steps for the features that are built but not yet confirmed by hand, and the real-account checks for the sync services |
+| [packaging/windows/README.md](packaging/windows/README.md) | The Microsoft Store MSIX and Certum code signing: how they work, and what is still to do |
 | [docs/FUTURE-SYNC-SERVICES.md](docs/FUTURE-SYNC-SERVICES.md) | Inoreader and Feedly: why they aren't built, what access they need, and what to do once it exists |
 | [docs/RELEASING.md](docs/RELEASING.md) | How a release is built and published (Velopack installer, GitHub Release, the update feed on winnewsreader.com) |
 | [docs/winnewsreader.com.zone](docs/winnewsreader.com.zone) | The DNS records for the website |

@@ -132,7 +132,10 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 
 The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 168 done, 1 partial, 4 open (all of them other sync accounts), 39 unchecked (built, but the shortcuts, dragging, multiple selection, file pickers, double-click, right-click menu, link hover, theme files, updates, and failures showing in the logs have not been tried with real input or a published release), 2 waiting for service keys, and 23 dropped.
 
-- [ ] Start the code-signing route (Trusted Signing eligibility or OV certificate); the Release workflow signs once the secrets are set (see docs/RELEASING.md)
+- [ ] Get a Certum code-signing certificate; the Release workflow signs once the `CERTUM_*` secrets are set (see docs/RELEASING.md)
+- [ ] Reserve the name in Partner Center and paste its Product identity into `packaging/windows/AppxManifest.xml`
+- [x] Microsoft Store package: unsigned MSIX build, checks, artwork and listing text (`packaging/windows`), built by the Release workflow
+- [ ] Install the MSIX on a clean VM, run the Windows App Certification Kit, then submit
 - [ ] Apply for Feedly API access
 - [ ] Pick the app's name
 - [ ] Email Brent Simmons about the port

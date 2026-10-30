@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Velopack;
 using Velopack.Sources;
 
@@ -20,6 +21,21 @@ public sealed class UpdateService
 	}
 
 	public bool IsInstalled => _manager.IsInstalled;
+
+	/// <summary>True when the app runs from its Microsoft Store (MSIX) package, which the Store updates, not Velopack.</summary>
+	public static bool IsStorePackage
+	{
+		get
+		{
+			var length = 0;
+			// APPMODEL_ERROR_NO_PACKAGE (15700) means there is no package identity; anything else, including the
+			// buffer being too small, means there is one.
+			return GetCurrentPackageFullName(ref length, null) != 15700;
+		}
+	}
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+	private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, char[]? packageFullName);
 
 	/// <summary>The installed version, or the one this build says it is when run from a folder.</summary>
 	public static string CurrentVersion => typeof(UpdateService).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "";

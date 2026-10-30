@@ -1249,7 +1249,9 @@ public sealed partial class MainWindow : Window
 		{
 			if (userAsked)
 			{
-				await ShowMessageAsync("Check for Updates", $"This copy of WinNewsReader {UpdateService.CurrentVersion} isn’t installed, so it can’t update itself. Installed copies check for updates.");
+				await ShowMessageAsync("Check for Updates", UpdateService.IsStorePackage
+					? $"WinNewsReader {UpdateService.CurrentVersion} came from the Microsoft Store, which installs its updates."
+					: $"This copy of WinNewsReader {UpdateService.CurrentVersion} isn’t installed, so it can’t update itself. Installed copies check for updates.");
 			}
 			return;
 		}

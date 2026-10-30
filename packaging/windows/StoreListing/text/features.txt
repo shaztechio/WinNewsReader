@@ -1,0 +1,8 @@
+Reads RSS, Atom, JSON Feed and RSS-in-JSON
+Syncs with FreshRSS, Feedbin, NewsBlur, The Old Reader and BazQux, or keeps feeds on your PC
+NetNewsWire's article themes
+Three-pane window, or a mail-style column layout with sorting
+Find in Article, undo, smart feeds and search
+Unread count on the taskbar
+Imports and exports OPML
+No account required

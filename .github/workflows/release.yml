@@ -50,15 +50,45 @@ jobs:
         shell: pwsh
         run: vpk download http --url https://winnewsreader.com/releases/ --channel ${{ steps.version.outputs.channel }} --allowEmptyChannel -o artifacts/releases
 
-      # Signing is optional: with the Azure Trusted Signing secrets set, the installer and the app are signed; without them they
-      # aren't, and Windows SmartScreen will warn about them.
+      # Signing is optional: with the three CERTUM_* secrets set, Velopack signs the app, Update.exe and the installer with the
+      # Certum certificate through SimplySign; without them nothing is signed and Windows SmartScreen warns. A partial set fails,
+      # as does a signing error: an unsigned build never goes out when signing was meant.
+      - name: Check signing configuration
+        id: signing
+        shell: pwsh
+        env:
+          CERTUM_USERNAME: ${{ secrets.CERTUM_USERNAME }}
+          CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
+          CERTUM_KEY_ID: ${{ secrets.CERTUM_KEY_ID }}
+        run: |
+          $names = 'CERTUM_USERNAME', 'CERTUM_OTP_URI', 'CERTUM_KEY_ID'
+          $set = @($names | Where-Object { -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_)) })
+          if ($set.Count -eq 0) { "sign=false" >> $env:GITHUB_OUTPUT; Write-Host "No signing secrets: this release is unsigned."; return }
+          if ($set.Count -ne $names.Count) { throw "Some signing secrets are set and some are not: $($names | Where-Object { $_ -notin $set })" }
+          if ($env:CERTUM_KEY_ID -notmatch '^[0-9A-Fa-f]{40}$') { throw 'CERTUM_KEY_ID must contain exactly 40 hexadecimal characters.' }
+          # Never echo the provisioning URI.
+          $uri = $null
+          if (-not [Uri]::TryCreate($env:CERTUM_OTP_URI, [UriKind]::Absolute, [ref]$uri) -or
+              $uri.Scheme -ne 'otpauth' -or $uri.Host -ne 'totp' -or $uri.Query -notmatch '[?&]secret=[A-Za-z2-7]+=*(&|$)') {
+            throw 'CERTUM_OTP_URI must be the full otpauth://totp provisioning URI, not a one-time code or activation link.'
+          }
+          "sign=true" >> $env:GITHUB_OUTPUT
+
+      # Reviewed at this immutable revision. Diagnostic screenshots stay disabled.
+      - name: Connect to Certum SimplySign
+        if: steps.signing.outputs.sign == 'true'
+        uses: dismine/windows-app-signing-setup-action@89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64
+        with:
+          certum-username: ${{ secrets.CERTUM_USERNAME }}
+          certum-otp-uri: ${{ secrets.CERTUM_OTP_URI }}
+          certum-key-id: ${{ secrets.CERTUM_KEY_ID }}
+          capture-diagnostics: 'false'
+
       - name: Pack
         shell: pwsh
         env:
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          SIGN_METADATA: ${{ secrets.AZURE_TRUSTED_SIGNING_METADATA }}
+          CERTUM_KEY_ID: ${{ secrets.CERTUM_KEY_ID }}
+          SIGN: ${{ steps.signing.outputs.sign }}
         run: |
           $notes = "artifacts/notes.md"
           "# WinNewsReader ${{ steps.version.outputs.version }}`n`nSee https://winnewsreader.com/news/#v${{ steps.version.outputs.version }} for what is new." | Set-Content $notes
@@ -66,8 +96,31 @@ jobs:
             "-p", "artifacts/publish", "-e", "WinNewsReader.exe", "-o", "artifacts/releases",
             "--packTitle", "WinNewsReader", "--packAuthors", "WinNewsReader", "--framework", "webview2",
             "--icon", "src/App/Assets/AppIcon.ico", "--releaseNotes", $notes)
-          if ($env:SIGN_METADATA) { $packArgs += @("--azureTrustedSignFile", $env:SIGN_METADATA) }
+          # One file at a time: SimplySign is a single authenticated session.
+          if ($env:SIGN -eq "true") { $packArgs += @("--signTemplate", "pwsh -NoProfile -File $PWD/packaging/windows/sign-files.ps1 -Path {{file}}", "--signParallel", "1") }
           vpk @packArgs
+          if ($LASTEXITCODE -ne 0) { throw "vpk pack failed." }
+          if ($env:SIGN -eq "true") {
+            # Velopack signs its own copy of the app files while packing, so the installer is what to check.
+            $files = @(Get-ChildItem artifacts/releases -Include "*Setup.exe" -Recurse | ForEach-Object { $_.FullName })
+            ./packaging/windows/sign-files.ps1 -Path $files -VerifyOnly
+          }
+
+      # The Microsoft Store package, unsigned because Partner Center signs it. With the placeholder identity still in the
+      # manifest this builds the local-test package instead, which proves the packaging works but can't be submitted.
+      - name: Build the Store MSIX
+        shell: pwsh
+        run: |
+          $local = if ((Get-Content packaging/windows/AppxManifest.xml -Raw) -match 'REPLACE') { @("-LocalTest") } else { @() }
+          ./packaging/windows/build-msix.ps1 -PublishDirectory artifacts/publish -Version "${{ steps.version.outputs.version }}" @local
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinNewsReader-MSIX-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/msix/*.msix
+            artifacts/msix/*.sha256
+          if-no-files-found: error
 
       # A GitHub Release with the installer, for anyone who can open this repository (it is private, so that is the owner and
       # collaborators). The public downloads are the ones on the website, below.

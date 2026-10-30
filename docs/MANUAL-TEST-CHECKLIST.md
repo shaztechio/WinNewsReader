@@ -86,6 +86,13 @@ The installer is unsigned, so SmartScreen warns first.
 - [ ] A second launch hands over to the running window instead of opening another
 - [ ] An update published later is found, downloaded and applied
 
+## 7b. Microsoft Store package (see [packaging/windows/README.md](../packaging/windows/README.md))
+
+- [ ] A `-LocalTest` MSIX, signed with a test certificate and trusted, installs with `Add-AppxPackage` and the window loads
+- [ ] Feeds can be added and read, and the data is kept after a restart
+- [ ] Help → Check for Updates says the Store installs updates
+- [ ] The Windows App Certification Kit passes on the installed package
+
 ## 8. Layout checks added recently
 
 - [ ] View → Use Column Layout: the table runs across the top and the article is below, both full width; dragging the bar changes the table's height; turning it off restores the three panes

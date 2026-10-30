@@ -38,9 +38,10 @@ Runtime, DirectML and more) and added about 27 MB to the installer. Updates afte
   `.nnwtheme` file type and a Default apps entry (`ShellRegistration`); uninstalling reverses it.
 - A second launch, such as clicking a `feed:` link, hands its arguments to the copy already running (`SingleInstance`).
 
-## Signing
+## Signing and the Microsoft Store
 
-Without signing, SmartScreen warns about the installer. The workflow signs with Azure Trusted Signing when these repository
-secrets are set: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_TRUSTED_SIGNING_METADATA` (the path to
-the metadata JSON in the repository). An OV certificate can be used instead by passing `--signParams` to `vpk pack`.
-Getting eligibility for either is the open item in PLAN.md.
+Without signing, SmartScreen warns about the installer. The workflow signs with a Certum certificate through SimplySign when the
+`CERTUM_USERNAME`, `CERTUM_OTP_URI` and `CERTUM_KEY_ID` repository secrets are all set, and publishes unsigned otherwise. It also
+builds an unsigned MSIX for the Microsoft Store and uploads it as a workflow artifact. Both follow the sibling bunyi-app project; how
+they work, the Partner Center identity still to fill in, and what to test before submitting are in
+[packaging/windows/README.md](../packaging/windows/README.md). Getting the certificate and reserving the name are the open items in PLAN.md.

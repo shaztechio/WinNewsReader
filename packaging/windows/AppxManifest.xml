@@ -1,0 +1,36 @@
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <!-- The Identity values below are placeholders until the app's name is reserved in Partner Center. Copy the package name,
+       publisher and publisher display name from Product identity there; build-msix.ps1 refuses a Store build while REPLACE
+       is still in them. build-msix.ps1 sets the version. -->
+  <Identity Name="REPLACE.WinNewsReader" Publisher="CN=REPLACE-WITH-PARTNER-CENTER-PUBLISHER"
+            Version="1.0.0.0" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>WinNewsReader</DisplayName>
+    <PublisherDisplayName>REPLACE</PublisherDisplayName>
+    <Description>A free feed reader for Windows, a port of NetNewsWire.</Description>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Resources>
+    <Resource Language="en-US" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0"
+                        MaxVersionTested="10.0.17763.0" />
+  </Dependencies>
+  <Applications>
+    <Application Id="WinNewsReader" Executable="WinNewsReader.exe"
+                 EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="WinNewsReader"
+                          Description="A free feed reader for Windows, a port of NetNewsWire."
+                          BackgroundColor="transparent"
+                          Square44x44Logo="Assets\Square44x44Logo.png"
+                          Square150x150Logo="Assets\Square150x150Logo.png" />
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

@@ -1,0 +1,7 @@
+WinNewsReader is a free feed reader for Windows 10 and 11, a native port of NetNewsWire for the Mac. Follow the sites you care about and read them in a clean three-pane window, with no account required.
+
+Reads RSS, Atom, JSON Feed and RSS-in-JSON. Keep your feeds on your PC, or sync them with FreshRSS, Feedbin, NewsBlur, The Old Reader or BazQux.
+
+Use NetNewsWire's article themes, search your articles, star what you want to keep, undo mistakes with Ctrl+Z, and see your unread count on the taskbar. A column layout turns the timeline into a table you can sort, and a status bar keeps the counts and theme close at hand.
+
+WinNewsReader is open source under the MIT license. It is a port of NetNewsWire by Brent Simmons and contributors, and isn't affiliated with or endorsed by NetNewsWire.

@@ -1,4 +1,4 @@
-# Draws the app icon and writes src/App/Assets/AppIcon.ico (16–256 px) and AppIcon.png (256 px).
+# Draws the app icon and writes src/App/Assets/AppIcon.ico (16-256 px) and AppIcon.png (256 px), and the Microsoft Store images in packaging/windows.
 # Run from the repository root with PowerShell 7 on Windows: ./tools/make-icon.ps1
 # Shapes are laid out on a 256 x 256 grid and scaled to each size. Sizes of 24 px and under drop
 # the page and draw a larger feed symbol, so they stay legible.
@@ -94,3 +94,27 @@ foreach ($image in $images) { $writer.Write($image.Bytes) }
 $writer.Flush()
 [System.IO.File]::WriteAllBytes((Join-Path $assets "AppIcon.ico"), $out.ToArray())
 "Wrote AppIcon.ico ($($sizes -join ', ') px) and AppIcon.png"
+
+# The Microsoft Store package's images (packaging/windows/Assets), each drawn at its own size rather than scaled up from 256 px.
+# The manifest names Square44x44Logo, Square150x150Logo and StoreLogo; MakePri picks the scale or target-size variant.
+$store = Join-Path $PSScriptRoot "..\packaging\windows\Assets"
+New-Item -ItemType Directory -Force $store | Out-Null
+function SavePng([int]$size, [string]$name) {
+	$bitmap = Draw $size
+	$bitmap.Save((Join-Path $store $name), [System.Drawing.Imaging.ImageFormat]::Png)
+	$bitmap.Dispose()
+}
+foreach ($scale in 100, 125, 150, 200, 400) {
+	SavePng ([int][math]::Round(44 * $scale / 100)) "Square44x44Logo.scale-$scale.png"
+	SavePng ([int][math]::Round(150 * $scale / 100)) "Square150x150Logo.scale-$scale.png"
+	SavePng ([int][math]::Round(50 * $scale / 100)) "StoreLogo.scale-$scale.png"
+}
+foreach ($size in 16, 24, 32, 48, 256) {
+	foreach ($form in "", "_altform-unplated", "_altform-lightunplated") { SavePng $size "Square44x44Logo.targetsize-$size$form.png" }
+}
+$listing = Join-Path $PSScriptRoot "..\packaging\windows\StoreListing"
+New-Item -ItemType Directory -Force $listing | Out-Null
+$bitmap = Draw 300
+$bitmap.Save((Join-Path $listing "StoreLogo-300.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+$bitmap.Dispose()
+"Wrote the Store images to packaging/windows/Assets and StoreLogo-300.png to packaging/windows/StoreListing"
