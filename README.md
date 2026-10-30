@@ -6,7 +6,7 @@ A free feed reader for Windows, a native port of [NetNewsWire](https://github.co
 
 ![WinNewsReader](site/help/images/window-light.png)
 
-**Status:** version 1.0.0. It is not code-signed yet, so Windows SmartScreen warns when you install.
+**Status:** version 1.0.1. The installer is code-signed, but a new publisher has little SmartScreen reputation, so Windows may still warn when you install.
 
 ## Features
 
