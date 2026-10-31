@@ -18,7 +18,7 @@ app already restores (or pass `-SdkBinPath`).
 ./packaging/windows/build-msix.ps1 -PublishDirectory artifacts/publish   # reuse a publish folder
 ```
 
-`test-msix.ps1` runs on the finished package: the manifest, version, executable, resource indexes and every logo the manifest names.
+`test-msix.ps1` runs on the finished package: the manifest, version, executable, resource indexes and every logo the manifest names. Store builds also pass `-Store` to verify that the package name, publisher and publisher display name match Partner Center and that the MSIX container is unsigned.
 
 ### Identity
 
@@ -32,8 +32,9 @@ not credentials. The package family name is derived by Windows, so it isn't a ma
 | Publisher display name | `Shazron` |
 | Display name | `WinNewsReader` |
 
-`build-msix.ps1` refuses a Store build if `REPLACE` is in the identity, and the release workflow then builds the `-LocalTest` package
-instead. With the real identity in place, every release builds the Store package.
+`build-msix.ps1` refuses a Store build if `REPLACE` is in the identity values. The Release workflow always requests a Store package and fails on invalid identity; manifest comments do not select the package type. Local-test packages require an explicit `-LocalTest` when building by hand.
+
+To regenerate a submission package without republishing the installer, choose **Actions → Store MSIX → Run workflow** on `main`. It builds the version in the app project and uploads `WinNewsReader-Store-MSIX-<version>`, containing the unsigned `-store.msix` and its SHA-256 file. Extract the ZIP before uploading the MSIX to Partner Center. This verifies the package contents and identity; it does not run the Windows App Certification Kit or submit to the Store.
 
 ### Artwork and listing
 

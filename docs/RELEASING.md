@@ -22,6 +22,8 @@ If Pages reports success but the update feed is missing or stale, run **Pages �
 
 After deployment, check `https://winnewsreader.com/releases/releases.release.json` contains the expected version and that the installer and portable downloads respond successfully. A green deployment alone does not prove the update feed is being served.
 
+For a Store-only rebuild of the current app version, run **Actions → Store MSIX → Run workflow** on `main`. Download the `WinNewsReader-Store-MSIX-<version>` artifact and extract its unsigned `-store.msix` for Partner Center. This does not republish the installer or update feed. See [Windows packaging](../packaging/windows/README.md) for validation and certification limits.
+
 ## Build one by hand
 
 ```
