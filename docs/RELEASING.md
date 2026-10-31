@@ -16,6 +16,12 @@ The workflow accepts only complete `v<major>.<minor>.<patch>` tags with an optio
 
 Both release and Pages workflows pin the `vpk` CLI to **1.2.161**, matching the app's `Velopack` package reference. Update both workflow pins and the manual command below when upgrading that package.
 
+## Republish a completed release site
+
+If Pages reports success but the update feed is missing or stale, run **Pages → Run workflow** and set `release-run-id` to the successful **Release** workflow run ID. This validates the source run and redeploys its complete `github-pages` artifact, including the signed packages and update feed, without rebuilding or signing again. Leave the input blank for the normal site update. The source artifact must still be retained by GitHub Actions.
+
+After deployment, check `https://winnewsreader.com/releases/releases.release.json` contains the expected version and that the installer and portable downloads respond successfully. A green deployment alone does not prove the update feed is being served.
+
 ## Build one by hand
 
 ```
