@@ -161,14 +161,13 @@ h1 {
 
 .badge.store {
 	margin-left: 12px;
-	background: transparent;
-	color: var(--muted);
-	border: 1px solid var(--line);
-	box-shadow: none;
+	background: #171717;
+	color: #fff;
+	box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.4);
 }
 
 .badge.store:hover {
-	background: var(--layer);
+	background: #333;
 }
 
 @media (max-width: 640px) {
