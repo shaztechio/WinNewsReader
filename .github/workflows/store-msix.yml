@@ -1,0 +1,34 @@
+# Rebuild the current app version as an unsigned Partner Center submission, without publishing a release.
+name: Store MSIX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Read the app version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Select-Xml -Path src/App/WinNewsReader.App.csproj -XPath '//Version').Node.InnerText
+          if ($version -notmatch '\A[0-9]+\.[0-9]+\.[0-9]+\z') { throw 'Expected a stable app version.' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Build and validate the Store MSIX
+        shell: pwsh
+        run: ./packaging/windows/build-msix.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinNewsReader-Store-MSIX-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/msix/*-store.msix
+            artifacts/msix/*-store.msix.sha256
+          if-no-files-found: error
