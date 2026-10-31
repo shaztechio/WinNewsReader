@@ -1326,24 +1326,55 @@ public sealed partial class MainWindow : Window
 				}
 				return;
 			}
-			var dialog = Dialog("Update Available", "Install and Restart", new TextBlock
+			var description = new TextBlock
 			{
 				Text = $"WinNewsReader {update.TargetFullRelease.Version} is available; you have {UpdateService.CurrentVersion}.",
 				TextWrapping = TextWrapping.Wrap,
-			});
+			};
+			var progress = new ProgressBar { Minimum = 0, Maximum = 100, Visibility = Visibility.Collapsed };
+			AutomationProperties.SetName(progress, "Update download progress");
+			var dialog = Dialog("Update Available", "Install and Restart",
+				new StackPanel { Spacing = 12, Children = { description, progress } });
 			dialog.CloseButtonText = "Later";
-			if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
+			Exception? installError = null;
+			dialog.PrimaryButtonClick += async (_, args) =>
 			{
-				await updates.InstallAsync(update);
+				var deferral = args.GetDeferral();
+				dialog.IsPrimaryButtonEnabled = false;
+				dialog.CloseButtonText = "";
+				description.Text = "Downloading update… 0%";
+				progress.Visibility = Visibility.Visible;
+				try
+				{
+					await updates.InstallAsync(update, percent => DispatcherQueue.TryEnqueue(() =>
+					{
+						progress.Value = percent;
+						description.Text = percent >= 100 ? "Preparing update and restarting…" : $"Downloading update… {percent}%";
+					}));
+				}
+				catch (Exception ex)
+				{
+					installError = ex;
+				}
+				finally
+				{
+					deferral.Complete();
+				}
+			};
+			await ShowDialogAsync(dialog);
+			if (installError is not null)
+			{
+				System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(installError).Throw();
 			}
 		}
-		catch (Exception ex) when (userAsked)
+		catch (Exception ex)
 		{
-			await ShowMessageAsync("Couldn’t Check for Updates", ex.Message);
-		}
-		catch (Exception)
-		{
-			// A failed check at launch isn't worth interrupting for; the next launch tries again.
+			ViewModel.Activity.Add(ActivityLevel.Error, "WinNewsReader", UpdateService.FeedUrl,
+				$"Update check or installation failed ({(ViewModel.Settings.UpdateTestBuilds ? "test" : "release")} channel): {ex}");
+			if (userAsked)
+			{
+				await ShowMessageAsync("Couldn’t Check for Updates", ex.Message);
+			}
 		}
 	}
 
