@@ -60,17 +60,19 @@ jobs:
           RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          vpk download http --url https://winnewsreader.com/releases/ --channel $env:RELEASE_CHANNEL --allowEmptyChannel -o artifacts/releases
-          if ($LASTEXITCODE -ne 0) { throw 'Downloading previous releases failed.' }
+          New-Item -ItemType Directory -Force artifacts/releases | Out-Null
+          $feed = Invoke-RestMethod "https://winnewsreader.com/releases/releases.$env:RELEASE_CHANNEL.json" -SkipHttpErrorCheck -StatusCodeVariable status
+          if ($status -ne 200 -and -not ($status -eq 404 -and $env:RELEASE_CHANNEL -eq 'test')) {
+            throw "Downloading previous release feed failed: HTTP $status"
+          }
           # Replacing an existing version must not use its old package as a delta base.
           $feedPath = "artifacts/releases/releases.$env:RELEASE_CHANNEL.json"
-          if (Test-Path $feedPath) {
-            $feed = Get-Content $feedPath -Raw | ConvertFrom-Json
-            foreach ($asset in @($feed.Assets | Where-Object Version -eq $env:RELEASE_VERSION)) {
-              if ($asset.FileName -notmatch '^[A-Za-z0-9._-]+$') { throw 'Invalid release filename.' }
-              Remove-Item -LiteralPath (Join-Path artifacts/releases $asset.FileName) -ErrorAction SilentlyContinue
-            }
+          if ($status -eq 200) {
             $feed.Assets = @($feed.Assets | Where-Object Version -ne $env:RELEASE_VERSION)
+            foreach ($asset in $feed.Assets) {
+              if ($asset.FileName -notmatch '^[A-Za-z0-9._-]+$') { throw 'Invalid release filename.' }
+              Invoke-WebRequest "https://winnewsreader.com/releases/$($asset.FileName)" -OutFile (Join-Path artifacts/releases $asset.FileName)
+            }
             $feed | ConvertTo-Json -Depth 10 | Set-Content $feedPath
           }
 
