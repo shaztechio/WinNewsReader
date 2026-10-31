@@ -44,9 +44,9 @@ public sealed class UpdateService
 	public async Task<UpdateInfo?> CheckAsync() => await _manager.CheckForUpdatesAsync();
 
 	/// <summary>Downloads <paramref name="update"/> and restarts the app into it.</summary>
-	public async Task InstallAsync(UpdateInfo update)
+	public async Task InstallAsync(UpdateInfo update, Action<int>? progress = null)
 	{
-		await _manager.DownloadUpdatesAsync(update);
+		await _manager.DownloadUpdatesAsync(update, progress);
 		_manager.ApplyUpdatesAndRestart(update);
 	}
 }
