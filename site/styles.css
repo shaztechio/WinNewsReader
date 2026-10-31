@@ -159,7 +159,7 @@ h1 {
 	font-weight: 600;
 }
 
-.badge.soon {
+.badge.store {
 	margin-left: 12px;
 	background: transparent;
 	color: var(--muted);
@@ -167,12 +167,12 @@ h1 {
 	box-shadow: none;
 }
 
-.badge.soon:hover {
-	background: transparent;
+.badge.store:hover {
+	background: var(--layer);
 }
 
 @media (max-width: 640px) {
-	.badge.soon {
+	.badge.store {
 		margin: 12px 0 0;
 	}
 }
