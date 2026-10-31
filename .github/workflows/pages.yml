@@ -73,21 +73,23 @@ jobs:
           [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Invalid release run ID"; exit 1; }
           eligible=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID" --jq '.path == ".github/workflows/release.yml" and .event == "push" and .conclusion == "success"')
           [[ "$eligible" == true ]] || { echo "Expected a successful Release workflow run"; exit 1; }
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: github-pages
           path: release-site
           run-id: ${{ inputs.release-run-id }}
           github-token: ${{ github.token }}
-      - name: Unpack the built release site
+      - name: Restore release files alongside the current site
         run: |
-          mkdir _site
-          tar -xf release-site/artifact.tar -C _site
-          test -s _site/releases/releases.release.json
-          jq -e '.Assets | length > 0' _site/releases/releases.release.json
+          mkdir release-content
+          tar -xf release-site/artifact.tar -C release-content
+          test -s release-content/releases/releases.release.json
+          jq -e '.Assets | length > 0' release-content/releases/releases.release.json
+          cp -a release-content/releases site/
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: _site
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v5
