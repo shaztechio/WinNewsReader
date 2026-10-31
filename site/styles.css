@@ -368,41 +368,99 @@ h2 {
 	margin: 0 0 24px;
 }
 
+.feature-eyebrow {
+	margin: 0 0 8px;
+	color: var(--blue);
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.features h2 {
+	margin-bottom: 10px;
+	font-size: clamp(1.8rem, 4vw, 2.5rem);
+	letter-spacing: -0.03em;
+}
+
+.feature-intro {
+	margin: 0 0 30px;
+	color: var(--muted);
+	font-size: 1.1rem;
+}
+
 .grid {
 	list-style: none;
 	padding: 0;
 	margin: 0 0 72px;
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	gap: 20px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
 }
 
-.grid li {
-	background: var(--surface);
-	border: 1px solid var(--line);
-	border-radius: 10px;
-	padding: 20px 22px;
+.grid > li {
+	--accent: var(--blue);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface) 75%);
+	border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+	border-radius: 20px;
+	padding: 28px;
+	box-shadow: 0 4px 16px rgb(20 40 90 / 0.04);
+}
+
+.grid > li:nth-child(3n + 2) { --accent: #c26b18; }
+.grid > li:nth-child(3n) { --accent: #8b6bd6; }
+
+.feature-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 52px;
+	height: 52px;
+	margin-bottom: 22px;
+	border-radius: 15px;
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+	border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .grid h3 {
-	margin: 0 0 6px;
-	font-size: 1.05rem;
+	margin: 0 0 10px;
+	font-size: 1.15rem;
+	letter-spacing: -0.015em;
 }
+
 
 .grid p {
 	margin: 0;
+	max-width: 46ch;
 	color: var(--muted);
 	font-size: 0.95rem;
+	line-height: 1.7;
 }
 
-.roadmap ul {
-	margin: 0 0 72px;
-	padding-left: 1.2em;
-	color: var(--muted);
+@media (max-width: 760px) {
+	.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 }
 
-.roadmap li {
-	margin-bottom: 6px;
+@media (max-width: 480px) {
+	.grid { grid-template-columns: minmax(0, 1fr); }
+	.grid > li { padding: 24px; }
+}
+
+.grid strong { color: var(--text); }
+
+.coming-soon {
+	display: inline-block;
+	margin-bottom: 22px;
+	padding: 4px 10px;
+	border: 1px solid #e9d58b;
+	background: #fff3c4;
+	border-radius: 6px;
+	color: #765b12;
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.5;
 }
 
 footer {
