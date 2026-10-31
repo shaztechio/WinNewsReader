@@ -182,7 +182,19 @@ public sealed partial class FeedbinCaller : IDisposable
 	private async Task<HttpResponseMessage> SendAsync(
 		HttpMethod method, string pathOrUrl, HttpContent? content, CancellationToken cancellationToken, HttpStatusCode[]? allowStatuses = null)
 	{
-		var uri = pathOrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? pathOrUrl : _baseAddress + pathOrUrl;
+		string uri;
+		if (pathOrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+		{
+			if (!pathOrUrl.StartsWith(_baseAddress, StringComparison.OrdinalIgnoreCase))
+			{
+				throw new FeedbinException("Feedbin pagination link points outside the configured server.");
+			}
+			uri = pathOrUrl;
+		}
+		else
+		{
+			uri = _baseAddress + pathOrUrl;
+		}
 		using var request = new HttpRequestMessage(method, uri) { Content = content };
 		request.Headers.Authorization = _authorization;
 		HttpResponseMessage response;

@@ -383,4 +383,24 @@ public class ArticleRendererTests
 		var feed = new StoredFeed("f", "f", "A Blog", null, null, null, null);
 		Assert.Contains("A Blog</a><br /></td>", ArticleRenderer.Render(article, new ArticleRenderContext(feed, false, "largeText", ""), Themes.Default).Html);
 	}
+
+	[Fact]
+	public void HeaderMetadataAndBylineEscapeHtmlAndAttributeCharacters()
+	{
+		var article = new StoredArticle("id", "https://a.example/feed", "u1", "Title", "https://a.example/post?a=1&b=\"2",
+			"https://elsewhere.example/story?x=1&y=<tag>", null, "Plain text", null, new DateTimeOffset(2026, 10, 28, 14, 5, 0, TimeSpan.Zero), null, DateTimeOffset.UnixEpoch, false, false)
+		{
+			AuthorsJson = """[{"Name":"Ana <script>evil()</script>","Url":"https://ana.example/?q=\"x\"","AvatarUrl":null,"EmailAddress":null}]""",
+		};
+		var feed = new StoredFeed("https://a.example/feed", "https://a.example/feed", "Blog <b>& \"More\"", "https://a.example/?h=\"1\"", null, null, null);
+
+		var rendering = ArticleRenderer.Render(article, new ArticleRenderContext(feed, IsFreshRss: false, ArticleTextSize.Large.CssClass(), "https://icons/a.png?v=\"1\""), Themes.Default);
+
+		Assert.DoesNotContain("<script>", rendering.Html);
+		Assert.Contains("Blog &lt;b&gt;&amp; &quot;More&quot;", rendering.Html);
+		Assert.Contains("Ana &lt;script&gt;evil()&lt;/script&gt;", rendering.Html);
+		Assert.Contains("href=\"https://ana.example/?q=&quot;x&quot;\"", rendering.Html);
+		Assert.Contains("href=\"https://a.example/post?a=1&amp;b=&quot;2\"", rendering.Html);
+		Assert.Contains("href=\"https://elsewhere.example/story?x=1&amp;y=&lt;tag&gt;\"", rendering.Html);
+	}
 }

@@ -229,17 +229,17 @@ public static class ArticleRenderer
 		return new Dictionary<string, string>
 		{
 			["title"] = title,
-			["preferred_link"] = preferredLink,
+			["preferred_link"] = ArticleText.EscapingSpecialXmlCharacters(preferredLink),
 			["external_link_label"] = externalLink is null ? "" : "Link:",
-			["external_link_stripped"] = externalLink is null ? "" : ArticleText.StrippingHttpOrHttpsScheme(externalLink),
-			["external_link"] = externalLink ?? "",
+			["external_link_stripped"] = externalLink is null ? "" : ArticleText.EscapingSpecialXmlCharacters(ArticleText.StrippingHttpOrHttpsScheme(externalLink)),
+			["external_link"] = externalLink is null ? "" : ArticleText.EscapingSpecialXmlCharacters(externalLink),
 			["body"] = templateHasEnclosures || enclosures.Length == 0 ? body : "<div>" + body + "</div>" + enclosures,
 			["enclosures"] = templateHasEnclosures ? enclosures : "",
 			["text_size_class"] = context.TextSizeClass,
-			["avatar_src"] = context.AvatarSource,
+			["avatar_src"] = ArticleText.EscapingSpecialXmlCharacters(context.AvatarSource),
 			["dateline_style"] = title.Length == 0 ? "articleDatelineTitle" : "articleDateline",
-			["feed_link_title"] = context.Feed is { } feed ? NameSorting.DisplayName(feed) : "",
-			["feed_link"] = context.Feed?.HomePageUrl ?? "",
+			["feed_link_title"] = context.Feed is { } feed ? ArticleText.EscapingSpecialXmlCharacters(NameSorting.DisplayName(feed)) : "",
+			["feed_link"] = ArticleText.EscapingSpecialXmlCharacters(context.Feed?.HomePageUrl ?? ""),
 			["byline"] = Byline(article.Authors, context.Feed),
 			["datetime_long"] = $"{dateLong}, {date:T}",
 			["datetime_medium"] = $"{dateMedium}, {date:t}",
@@ -277,27 +277,28 @@ public static class ArticleRenderer
 			var email = author.EmailAddress is { } address && !address.Contains("noreply@") && !address.Contains("no-reply@") ? address : null;
 			if (email is not null && email.Contains(' '))
 			{
-				byline.Append(email); // Probably a name and an address together.
+				byline.Append(ArticleText.EscapingSpecialXmlCharacters(email)); // Probably a name and an address together.
 			}
 			else if (author.Name is { } name && author.Url is { } url)
 			{
-				byline.Append($"<a href=\"{url}\">{name}</a>");
+				byline.Append($"<a href=\"{ArticleText.EscapingSpecialXmlCharacters(url)}\">{ArticleText.EscapingSpecialXmlCharacters(name)}</a>");
 			}
 			else if (author.Name is { } nameWithEmail && email is not null)
 			{
-				byline.Append($"{nameWithEmail} &lt;{email}&gt;");
+				byline.Append($"{ArticleText.EscapingSpecialXmlCharacters(nameWithEmail)} &lt;{ArticleText.EscapingSpecialXmlCharacters(email)}&gt;");
 			}
 			else if (author.Name is { } onlyName)
 			{
-				byline.Append(onlyName);
+				byline.Append(ArticleText.EscapingSpecialXmlCharacters(onlyName));
 			}
 			else if (email is not null)
 			{
-				byline.Append($"&lt;{email}&gt;");
+				byline.Append($"&lt;{ArticleText.EscapingSpecialXmlCharacters(email)}&gt;");
 			}
 			else if (author.Url is { } onlyUrl)
 			{
-				byline.Append($"<a href=\"{onlyUrl}\">{onlyUrl}</a>");
+				var escapedUrl = ArticleText.EscapingSpecialXmlCharacters(onlyUrl);
+				byline.Append($"<a href=\"{escapedUrl}\">{escapedUrl}</a>");
 			}
 		}
 		return byline.ToString();

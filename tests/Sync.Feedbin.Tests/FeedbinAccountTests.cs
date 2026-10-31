@@ -287,4 +287,15 @@ public sealed class FeedbinAccountTests : IDisposable
 	[Fact]
 	public void FeedbinDatesAreFormattedWithSixFractionalDigits() =>
 		Assert.Equal("2024-03-05T06:07:08.000000Z", FeedbinCaller.FormatDate(new DateTimeOffset(2024, 3, 5, 6, 7, 8, TimeSpan.Zero)));
+
+	[Theory]
+	[InlineData("https://evil.example/v2/entries.json?page=2")]
+	[InlineData("http://api.feedbin.com/v2/entries.json?page=2")]
+	public async Task PaginationUrlOutsideFeedbinBaseAddressIsRefused(string untrustedUrl)
+	{
+		using var caller = NewCaller();
+
+		await Assert.ThrowsAsync<FeedbinException>(() => caller.GetEntryPageAsync(untrustedUrl));
+		Assert.Empty(_server.Requests);
+	}
 }
