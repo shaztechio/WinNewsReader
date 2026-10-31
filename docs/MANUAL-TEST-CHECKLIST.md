@@ -4,6 +4,12 @@ The rows in [parity-matrix.md](parity-matrix.md) marked **Unchecked** are built 
 
 Run the app from a build (`dotnet build src/App`, then the exe in `src/App/bin/Debug/net10.0-windows10.0.19041.0/win-x64/`), or install the latest test release. Use `--data <folder>` to point it at a throwaway data folder so your real feeds stay untouched.
 
+## YouTube embedding regression
+
+- [x] Article embed playback confirmed by hand with [Six Colors: Designing Mac apps for touch and multitouch](https://sixcolors.com/link/2026/10/designing-mac-apps-for-touch-and-multitouch/) (2026-10-31).
+- [ ] With JavaScript enabled, play a YouTube channel feed video and an article's embedded YouTube video without Error 153 (including youtube-nocookie.com).
+- [ ] Repeat with an article large enough to use the file fallback; confirm playback and that disabling JavaScript still disables article scripts.
+
 ## 1. Sync accounts against the real services
 
 The sync code is tested only against fake servers, so each real service needs one pass. Use a spare account where you can.
