@@ -29,21 +29,6 @@ elseif ("$packageName$publisher$publisherDisplayName" -match 'REPLACE') {
 	throw 'AppxManifest.xml still has placeholder identity. Paste the Product identity from Partner Center, or use -LocalTest.'
 }
 
-# The SDK tools can come from the Windows SDK or from the Microsoft.Windows.SDK.BuildTools package the app already restores.
-if (-not $SdkBinPath) {
-	$roots = @((Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'), (Join-Path $HOME '.nuget/packages/microsoft.windows.sdk.buildtools'))
-	$candidates = foreach ($r in $roots) {
-		Get-ChildItem -LiteralPath $r -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-			Get-ChildItem -Path "$($_.FullName)/x64", "$($_.FullName)/bin/*/x64" -Directory -ErrorAction SilentlyContinue
-		}
-	}
-	$SdkBinPath = $candidates | Where-Object { (Test-Path "$($_.FullName)/MakeAppx.exe") -and (Test-Path "$($_.FullName)/MakePri.exe") } |
-		Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-}
-if (-not $SdkBinPath) { throw 'Install the Windows SDK or supply -SdkBinPath containing MakeAppx.exe and MakePri.exe.' }
-$makeAppx = Join-Path $SdkBinPath 'MakeAppx.exe'
-$makePri = Join-Path $SdkBinPath 'MakePri.exe'
-
 if (-not $Version) {
 	$Version = (Select-Xml -Path (Join-Path $root 'src/App/WinNewsReader.App.csproj') -XPath '//Version').Node.InnerText
 }
@@ -64,6 +49,23 @@ if (-not $PublishDirectory) {
 	if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed.' }
 }
 $publish = (Resolve-Path -LiteralPath $PublishDirectory).Path
+
+# Publishing above restores SDK BuildTools on clean runners before tool discovery.
+# The SDK tools can come from the Windows SDK or from the Microsoft.Windows.SDK.BuildTools package the app already restores.
+if (-not $SdkBinPath) {
+	$roots = @((Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'), (Join-Path $HOME '.nuget/packages/microsoft.windows.sdk.buildtools'))
+	$candidates = foreach ($r in $roots) {
+		Get-ChildItem -LiteralPath $r -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+			Get-ChildItem -Path "$($_.FullName)/x64", "$($_.FullName)/bin/*/x64" -Directory -ErrorAction SilentlyContinue
+		}
+	}
+	$SdkBinPath = $candidates | Where-Object { (Test-Path "$($_.FullName)/MakeAppx.exe") -and (Test-Path "$($_.FullName)/MakePri.exe") } |
+		Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $SdkBinPath) { throw 'Install the Windows SDK or supply -SdkBinPath containing MakeAppx.exe and MakePri.exe.' }
+$makeAppx = Join-Path $SdkBinPath 'MakeAppx.exe'
+$makePri = Join-Path $SdkBinPath 'MakePri.exe'
+
 foreach ($required in @('WinNewsReader.exe', 'WinNewsReader.dll', 'WinNewsReader.pri')) {
 	if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) {
 		throw "The publish folder is missing $required. Supply a self-contained win-x64 publish of src/App."
