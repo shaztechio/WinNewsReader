@@ -5,8 +5,15 @@
 	<link rel="self" type="application/atom+xml" href="https://winnewsreader.com/feed.xml"/>
 	<link rel="alternate" type="text/html" href="https://winnewsreader.com/"/>
 	<id>https://winnewsreader.com/feed.xml</id>
-	<updated>2026-10-30T18:00:00Z</updated>
+	<updated>2026-10-31T04:34:36Z</updated>
 	<author><name>WinNewsReader</name></author>
+	<entry>
+		<title>WinNewsReader 1.0.2</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.2"/>
+		<id>https://winnewsreader.com/news/2026-10-31-1-0-2</id>
+		<updated>2026-10-31T04:34:36Z</updated>
+		<summary type="html">&lt;p&gt;This update improves reading and strengthens security.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Reader View retries failed downloads in a hidden browser, shows loading progress, and reports failures in the article pane and Error Log.&lt;/li&gt;&lt;li&gt;The article pane fades in as pages load, and the full app icon is clearer at small sizes.&lt;/li&gt;&lt;li&gt;Security fixes escape article header metadata, restrict Feedbin pagination links before sending credentials, and limit single-instance communication to the current Windows user.&lt;/li&gt;&lt;li&gt;Release workflows validate version tags and use a pinned packaging tool.&lt;/li&gt;&lt;/ul&gt;</summary>
+	</entry>
 	<entry>
 		<title>WinNewsReader 1.0.1</title>
 		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.1"/>
