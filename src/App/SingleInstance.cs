@@ -41,7 +41,7 @@ public static class SingleInstance
 	{
 		try
 		{
-			using var client = new NamedPipeClientStream(".", name, PipeDirection.Out);
+			using var client = new NamedPipeClientStream(".", name, PipeDirection.Out, PipeOptions.CurrentUserOnly);
 			client.Connect(3000);
 			using var writer = new StreamWriter(client, Encoding.UTF8);
 			writer.Write(JsonSerializer.Serialize(targets));
@@ -58,7 +58,7 @@ public static class SingleInstance
 		{
 			try
 			{
-				await using var server = new NamedPipeServerStream(name, PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+				await using var server = new NamedPipeServerStream(name, PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 				await server.WaitForConnectionAsync();
 				using var reader = new StreamReader(server, Encoding.UTF8);
 				var targets = JsonSerializer.Deserialize<List<string>>(await reader.ReadToEndAsync()) ?? [];
