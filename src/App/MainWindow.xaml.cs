@@ -609,6 +609,19 @@ public sealed partial class MainWindow : Window
 			{
 				args.Response = core.Environment.CreateWebResourceResponse(null, 403, "Blocked", "");
 			}
+			else if (args.ResourceContext == CoreWebView2WebResourceContext.Document
+				&& Uri.TryCreate(args.Request.Uri, UriKind.Absolute, out var requestUrl)
+				&& requestUrl.Scheme == Uri.UriSchemeHttps
+				&& (requestUrl.Host.Equals("youtube.com", StringComparison.OrdinalIgnoreCase)
+					|| requestUrl.Host.EndsWith(".youtube.com", StringComparison.OrdinalIgnoreCase)
+					|| requestUrl.Host.Equals("youtube-nocookie.com", StringComparison.OrdinalIgnoreCase)
+					|| requestUrl.Host.EndsWith(".youtube-nocookie.com", StringComparison.OrdinalIgnoreCase))
+				&& requestUrl.AbsolutePath.StartsWith("/embed/", StringComparison.Ordinal))
+			{
+				// String/file article pages have no HTTP referrer. YouTube requires desktop
+				// embeds to identify the app; use the stable Name from AppxManifest.xml.
+				args.Request.Headers.SetHeader("Referer", "https://13743shazron.winnewsreader/");
+			}
 		};
 		// The status bar shows the address of a link while the pointer is over it, as NetNewsWire's does.
 		core.StatusBarTextChanged += (_, _) => ViewModel.HoverUrl = core.StatusBarText ?? "";

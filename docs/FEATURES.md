@@ -24,6 +24,7 @@ The first launch adds NetNewsWire's starter feeds and the WinNewsReader News fee
 - **Undo:** Ctrl+Z undoes marking read or starred and deleting feeds and folders; Ctrl+Y redoes.
 - **Themes:** View → Article Theme and View → Text Size. Add a theme with **Install Theme…** (a zipped theme, or the `Info.plist` inside a `.nnwtheme` folder), **Install Theme from URL…**, or by putting its `.nnwtheme` folder in the folder **Open Themes Folder** opens. Themes are written for the Mac and name Apple's fonts, so when one loads its fonts are swapped for Windows ones: `-apple-system` becomes Segoe UI Variable, Menlo becomes Cascadia Mono or Consolas, and `ui-serif` becomes Georgia. The theme's files aren't changed.
 - **View → Enable JavaScript** turns off scripts in articles (they stay off for a few sites that break with them, as in NetNewsWire).
+- Embedded YouTube videos identify WinNewsReader to the player so they can play inside articles. JavaScript must be enabled; videos whose owners prohibit embedding still need to be opened on YouTube.
 - Feeds show their own icon, or their site's largest touch icon, or its favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`.
 
 ## Feeds and folders

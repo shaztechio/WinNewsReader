@@ -58,7 +58,21 @@ jobs:
         shell: pwsh
         env:
           RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
-        run: vpk download http --url https://winnewsreader.com/releases/ --channel $env:RELEASE_CHANNEL --allowEmptyChannel -o artifacts/releases
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          vpk download http --url https://winnewsreader.com/releases/ --channel $env:RELEASE_CHANNEL --allowEmptyChannel -o artifacts/releases
+          if ($LASTEXITCODE -ne 0) { throw 'Downloading previous releases failed.' }
+          # Replacing an existing version must not use its old package as a delta base.
+          $feedPath = "artifacts/releases/releases.$env:RELEASE_CHANNEL.json"
+          if (Test-Path $feedPath) {
+            $feed = Get-Content $feedPath -Raw | ConvertFrom-Json
+            foreach ($asset in @($feed.Assets | Where-Object Version -eq $env:RELEASE_VERSION)) {
+              if ($asset.FileName -notmatch '^[A-Za-z0-9._-]+$') { throw 'Invalid release filename.' }
+              Remove-Item -LiteralPath (Join-Path artifacts/releases $asset.FileName) -ErrorAction SilentlyContinue
+            }
+            $feed.Assets = @($feed.Assets | Where-Object Version -ne $env:RELEASE_VERSION)
+            $feed | ConvertTo-Json -Depth 10 | Set-Content $feedPath
+          }
 
       # Signing is optional: with the three CERTUM_* secrets set, Velopack signs the app, Update.exe and the installer with the
       # Certum certificate through SimplySign; without them nothing is signed and Windows SmartScreen warns. A partial set fails,
@@ -156,7 +170,14 @@ jobs:
           }
           $flags = @()
           if ("$env:RELEASE_CHANNEL" -eq "test") { $flags += "--prerelease" }
-          gh release create "$env:RELEASE_TAG" @flags --title "WinNewsReader $env:RELEASE_VERSION" --notes-file artifacts/notes.md @files
+          gh release view "$env:RELEASE_TAG" --json tagName *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "$env:RELEASE_TAG" @files --clobber
+            if ($LASTEXITCODE -ne 0) { throw 'Replacing release assets failed.' }
+          } else {
+            gh release create "$env:RELEASE_TAG" @flags --title "WinNewsReader $env:RELEASE_VERSION" --notes-file artifacts/notes.md @files
+            if ($LASTEXITCODE -ne 0) { throw 'Creating release failed.' }
+          }
 
       - name: Assemble the site
         shell: pwsh
