@@ -33,7 +33,7 @@ jobs:
       - name: Keep the published releases
         continue-on-error: true
         run: |
-          dotnet tool install -g vpk
+          dotnet tool install -g vpk --version 1.2.161
           mkdir -p site/releases
           for channel in release test; do
             vpk download http --url https://winnewsreader.com/releases/ --channel "$channel" --allowEmptyChannel -o site/releases || true

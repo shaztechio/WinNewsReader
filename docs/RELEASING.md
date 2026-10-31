@@ -12,11 +12,15 @@ WinNewsReader is packaged with [Velopack](https://velopack.io). The installer an
    repository's Releases page), and deploys the site with the new files in `releases/`. The **Pages** workflow
    carries those files along whenever the rest of the site changes.
 
+The workflow accepts only complete `v<major>.<minor>.<patch>` tags with an optional prerelease suffix (such as `-test.1`). It validates the tag before building and passes tag/version values to commands through environment variables.
+
+Both release and Pages workflows pin the `vpk` CLI to **1.2.161**, matching the app's `Velopack` package reference. Update both workflow pins and the manual command below when upgrading that package.
+
 ## Build one by hand
 
 ```
 dotnet publish src/App -c Release -r win-x64 --self-contained -p:Platform=x64 -o artifacts/publish
-dotnet tool install -g vpk
+dotnet tool install -g vpk --version 1.2.161
 vpk pack -u WinNewsReaderApp -v 1.0.0 -c release -p artifacts/publish -e WinNewsReader.exe -o artifacts/releases --packTitle WinNewsReader --framework webview2 --icon src/App/Assets/AppIcon.ico
 ```
 
