@@ -1337,13 +1337,14 @@ public sealed partial class MainWindow : Window
 				await updates.InstallAsync(update);
 			}
 		}
-		catch (Exception ex) when (userAsked)
+		catch (Exception ex)
 		{
-			await ShowMessageAsync("Couldn’t Check for Updates", ex.Message);
-		}
-		catch (Exception)
-		{
-			// A failed check at launch isn't worth interrupting for; the next launch tries again.
+			ViewModel.Activity.Add(ActivityLevel.Error, "WinNewsReader", UpdateService.FeedUrl,
+				$"Update check or installation failed ({(ViewModel.Settings.UpdateTestBuilds ? "test" : "release")} channel): {ex}");
+			if (userAsked)
+			{
+				await ShowMessageAsync("Couldn’t Check for Updates", ex.Message);
+			}
 		}
 	}
 

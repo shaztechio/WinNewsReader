@@ -31,20 +31,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
-      # Pages replaces the whole site, so the releases that the Release workflow published have to come along with it. Until
-      # there has been a release there is nothing to keep, and this does nothing.
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
+      # Pages replaces the whole site, so the releases that the Release workflow published have to come along with it.
+      # Copy the feed directly: vpk on this Linux runner filters for Linux packages, but our releases are Windows packages.
       - name: Keep the published releases
-        continue-on-error: true
         run: |
-          dotnet tool install -g vpk --version 1.2.161
           mkdir -p site/releases
           for channel in release test; do
-            vpk download http --url https://winnewsreader.com/releases/ --channel "$channel" --allowEmptyChannel -o site/releases || true
+            feed="releases.$channel.json"
+            status=$(curl -sSL -o "site/releases/$feed" -w '%{http_code}' "https://winnewsreader.com/releases/$feed")
+            if [[ "$channel" == test && "$status" == 404 ]]; then
+              rm "site/releases/$feed"
+              continue
+            fi
+            [[ "$status" == 200 ]] || { echo "Cannot preserve $feed: HTTP $status"; exit 1; }
+            jq -e '.Assets | length > 0' "site/releases/$feed"
+            jq -r '.Assets[].FileName' "site/releases/$feed" > "${RUNNER_TEMP}/release-files.txt"
+            while IFS= read -r file; do
+              [[ "$file" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid release filename"; exit 1; }
+              curl --retry 3 -fsSL -o "site/releases/$file" "https://winnewsreader.com/releases/$file"
+            done < "${RUNNER_TEMP}/release-files.txt"
             for file in "WinNewsReaderApp-$channel-Setup.exe" "WinNewsReaderApp-$channel-Portable.zip"; do
-              curl -fsSL -o "site/releases/$file" "https://winnewsreader.com/releases/$file" || rm -f "site/releases/$file"
+              curl --retry 3 -fsSL -o "site/releases/$file" "https://winnewsreader.com/releases/$file"
             done
           done
       - uses: actions/upload-pages-artifact@v5

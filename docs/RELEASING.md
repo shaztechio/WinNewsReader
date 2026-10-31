@@ -14,7 +14,7 @@ WinNewsReader is packaged with [Velopack](https://velopack.io). The installer an
 
 The workflow accepts only complete `v<major>.<minor>.<patch>` tags with an optional prerelease suffix (such as `-test.1`). It validates the tag before building and passes tag/version values to commands through environment variables.
 
-Both release and Pages workflows pin the `vpk` CLI to **1.2.161**, matching the app's `Velopack` package reference. Update both workflow pins and the manual command below when upgrading that package.
+The release workflow pins the `vpk` CLI to **1.2.161**, matching the app's `Velopack` package reference. Update that workflow pin and the manual command below when upgrading that package. Pages copies the published feeds and every referenced package directly, because running `vpk download` on Linux filters out Windows packages. A missing stable feed or failed download stops deployment so a site update cannot erase the updater files; the test channel may be absent (HTTP 404).
 
 ## Republish a completed release site
 

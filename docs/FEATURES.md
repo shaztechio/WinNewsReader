@@ -33,6 +33,8 @@ The first launch adds NetNewsWire's starter feeds and the WinNewsReader News fee
 - **Get Info** (right-click, or Ctrl+I) opens the Inspector for a feed or folder: rename it, see its home page and feed URLs, and turn on Always Use Reader View or Show Notifications for New Articles. With notifications on, each new unread article shows a Windows notification while the app is running; click it to read the article, or use Mark as Read or Mark as Starred. A notification goes away once its article is read.
 - Dragging a feed onto another account subscribes to it there and removes it here, or keeps both with Ctrl, as in NetNewsWire.
 
+Update check and installation failures appear in both the Activity Log and Error Log, including automatic checks at startup. Entries include the update feed URL, channel and exception details.
+
 ## Accounts
 
 Choose **File → Add Account…**, pick a service and sign in. Passwords are kept in Windows Credential Manager, not in a file.
