@@ -1,7 +1,6 @@
-# Draws the app icon and writes src/App/Assets/AppIcon.ico (16-256 px) and AppIcon.png (256 px), and the Microsoft Store images in packaging/windows.
+# Draws the app icon and writes src/App/Assets/AppIcon.ico (16-256 px) and AppIcon.png (256 px), the website icons in site, and the Microsoft Store images in packaging/windows.
 # Run from the repository root with PowerShell 7 on Windows: ./tools/make-icon.ps1
-# Shapes are laid out on a 256 x 256 grid and scaled to each size. Sizes of 16 px and under drop
-# the page and draw a larger feed symbol, so they stay legible.
+# Shapes are laid out on a 256 x 256 grid and scaled to each size, preserving the full artwork.
 
 Add-Type -AssemblyName System.Drawing
 
@@ -88,6 +87,11 @@ foreach ($image in $images) { $writer.Write($image.Bytes) }
 $writer.Flush()
 [System.IO.File]::WriteAllBytes((Join-Path $assets "AppIcon.ico"), $out.ToArray())
 "Wrote AppIcon.ico ($($sizes -join ', ') px) and AppIcon.png"
+
+# Keep the website favicon and larger icon identical to the app assets.
+$site = Join-Path $PSScriptRoot "..\site"
+Copy-Item -LiteralPath (Join-Path $assets "AppIcon.ico") -Destination (Join-Path $site "favicon.ico")
+Copy-Item -LiteralPath (Join-Path $assets "AppIcon.png") -Destination (Join-Path $site "icon.png")
 
 # The Microsoft Store package's images (packaging/windows/Assets), each drawn at its own size rather than scaled up from 256 px.
 # The manifest names Square44x44Logo, Square150x150Logo and StoreLogo; MakePri picks the scale or target-size variant.
