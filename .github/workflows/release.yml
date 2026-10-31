@@ -27,28 +27,38 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Test
-        run: dotnet test --nologo
-
       - name: Work out the version and channel
         id: version
         shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          $version = "${{ github.ref_name }}".TrimStart("v")
+          # Anchor the entire tag, including rejecting newlines and MSBuild/shell metacharacters.
+          if ($env:RELEASE_TAG -cnotmatch '\Av(?<version>(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)\z') {
+            throw 'Expected a release tag like v1.2.3 or v1.2.3-test.1.'
+          }
+          $version = $Matches['version']
           $channel = if ($version -match "-") { "test" } else { "release" }
           "version=$version" >> $env:GITHUB_OUTPUT
           "channel=$channel" >> $env:GITHUB_OUTPUT
 
+      - name: Test
+        run: dotnet test --nologo
+
       - name: Publish
-        run: dotnet publish src/App -c Release -r win-x64 --self-contained -p:Platform=x64 -p:Version=${{ steps.version.outputs.version }} -o artifacts/publish --nologo
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: dotnet publish src/App -c Release -r win-x64 --self-contained -p:Platform=x64 "-p:Version=$env:RELEASE_VERSION" -o artifacts/publish --nologo
 
       - name: Install Velopack
-        run: dotnet tool install -g vpk
+        run: dotnet tool install -g vpk --version 1.2.161
 
       # The earlier releases in this channel, so Velopack can make delta updates from them. The first release has none.
       - name: Download the earlier releases
         shell: pwsh
-        run: vpk download http --url https://winnewsreader.com/releases/ --channel ${{ steps.version.outputs.channel }} --allowEmptyChannel -o artifacts/releases
+        env:
+          RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
+        run: vpk download http --url https://winnewsreader.com/releases/ --channel $env:RELEASE_CHANNEL --allowEmptyChannel -o artifacts/releases
 
       # Signing is optional: with the three CERTUM_* secrets set, Velopack signs the app, Update.exe and the installer with the
       # Certum certificate through SimplySign; without them nothing is signed and Windows SmartScreen warns. A partial set fails,
@@ -89,10 +99,12 @@ jobs:
         env:
           CERTUM_KEY_ID: ${{ secrets.CERTUM_KEY_ID }}
           SIGN: ${{ steps.signing.outputs.sign }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
         run: |
           $notes = "artifacts/notes.md"
-          "# WinNewsReader ${{ steps.version.outputs.version }}`n`nSee https://winnewsreader.com/news/#v${{ steps.version.outputs.version }} for what is new." | Set-Content $notes
-          $packArgs = @("pack", "-u", "WinNewsReaderApp", "-v", "${{ steps.version.outputs.version }}", "-c", "${{ steps.version.outputs.channel }}",
+          "# WinNewsReader $env:RELEASE_VERSION`n`nSee https://winnewsreader.com/news/#v$env:RELEASE_VERSION for what is new." | Set-Content $notes
+          $packArgs = @("pack", "-u", "WinNewsReaderApp", "-v", "$env:RELEASE_VERSION", "-c", "$env:RELEASE_CHANNEL",
             "-p", "artifacts/publish", "-e", "WinNewsReader.exe", "-o", "artifacts/releases",
             "--packTitle", "WinNewsReader", "--packAuthors", "WinNewsReader", "--framework", "webview2",
             "--icon", "src/App/Assets/AppIcon.ico", "--releaseNotes", $notes)
@@ -110,9 +122,11 @@ jobs:
       # manifest this builds the local-test package instead, which proves the packaging works but can't be submitted.
       - name: Build the Store MSIX
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           $extra = @{ LocalTest = ((Get-Content packaging/windows/AppxManifest.xml -Raw) -match 'REPLACE') }
-          ./packaging/windows/build-msix.ps1 -PublishDirectory artifacts/publish -Version "${{ steps.version.outputs.version }}" @extra
+          ./packaging/windows/build-msix.ps1 -PublishDirectory artifacts/publish -Version "$env:RELEASE_VERSION" @extra
 
       - uses: actions/upload-artifact@v4
         with:
@@ -128,19 +142,22 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
         run: |
           # Copies named WinNewsReader-<version>-Setup.exe and -Portable.zip, kept out of artifacts/releases, which the feed publishes.
           New-Item -ItemType Directory -Force artifacts/release-assets | Out-Null
           $files = foreach ($kind in "Setup.exe", "Portable.zip") {
             $source = Get-ChildItem artifacts/releases -Filter "*$kind" -Recurse | Select-Object -First 1
             if (-not $source) { throw "No $kind was packed." }
-            $named = Join-Path "artifacts/release-assets" "WinNewsReader-${{ steps.version.outputs.version }}-$kind"
+            $named = Join-Path "artifacts/release-assets" "WinNewsReader-$env:RELEASE_VERSION-$kind"
             Copy-Item -LiteralPath $source.FullName -Destination $named
             $named
           }
           $flags = @()
-          if ("${{ steps.version.outputs.channel }}" -eq "test") { $flags += "--prerelease" }
-          gh release create "${{ github.ref_name }}" @flags --title "WinNewsReader ${{ steps.version.outputs.version }}" --notes-file artifacts/notes.md @files
+          if ("$env:RELEASE_CHANNEL" -eq "test") { $flags += "--prerelease" }
+          gh release create "$env:RELEASE_TAG" @flags --title "WinNewsReader $env:RELEASE_VERSION" --notes-file artifacts/notes.md @files
 
       - name: Assemble the site
         shell: pwsh
