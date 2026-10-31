@@ -104,7 +104,7 @@ $suffix = if ($LocalTest) { '-local-test' } else { '-store' }
 $packagePath = Join-Path $OutputDirectory "WinNewsReader-$versionPrefix-win-x64$suffix.msix"
 & $makeAppx pack /d $stage /p $packagePath /o
 if ($LASTEXITCODE -ne 0) { throw 'MakeAppx packaging failed.' }
-& (Join-Path $PSScriptRoot 'test-msix.ps1') -PackagePath $packagePath -Version $packageVersion.ToString()
+& (Join-Path $PSScriptRoot 'test-msix.ps1') -PackagePath $packagePath -Version $packageVersion.ToString() -Store:(-not $LocalTest)
 $hash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
 "$hash  $([IO.Path]::GetFileName($packagePath))" | Set-Content -LiteralPath "$packagePath.sha256" -Encoding ascii
 Write-Host "Unsigned MSIX: $packagePath"
