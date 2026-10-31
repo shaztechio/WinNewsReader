@@ -5,8 +5,15 @@
 	<link rel="self" type="application/atom+xml" href="https://winnewsreader.com/feed.xml"/>
 	<link rel="alternate" type="text/html" href="https://winnewsreader.com/"/>
 	<id>https://winnewsreader.com/feed.xml</id>
-	<updated>2026-10-31T04:34:36Z</updated>
+	<updated>2026-10-31T09:18:03Z</updated>
 	<author><name>WinNewsReader</name></author>
+	<entry>
+		<title>WinNewsReader 1.0.3</title>
+		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.3"/>
+		<id>https://winnewsreader.com/news/2026-10-31-1-0-3</id>
+		<updated>2026-10-31T09:18:03Z</updated>
+		<summary type="html">&lt;p&gt;This update fixes checking for updates and makes installation progress visible.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Website updates preserve the release feed and packages, preventing 404 errors when checking for updates.&lt;/li&gt;&lt;li&gt;Update check and installation failures appear in both the Activity Log and Error Log, including automatic checks at startup.&lt;/li&gt;&lt;li&gt;Install and Restart shows download progress and a preparation message before restarting.&lt;/li&gt;&lt;/ul&gt;</summary>
+	</entry>
 	<entry>
 		<title>WinNewsReader 1.0.2</title>
 		<link rel="alternate" type="text/html" href="https://winnewsreader.com/news/#v1.0.2"/>
