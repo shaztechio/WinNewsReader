@@ -30,7 +30,7 @@ Everything in the Mac app ports 1:1 except features tied to Apple services. This
 | Area | Port 1:1 |
 | --- | --- |
 | Formats | RSS, Atom, JSON Feed, RSS-in-JSON; conditional GET; feed finder (HTML link discovery) |
-| Accounts | Local ("On This PC"), Feedbin, Inoreader, NewsBlur, The Old Reader, BazQux, FreshRSS; Feedly if API access is granted |
+| Accounts | Local ("On This PC"), Feedbin, NewsBlur, The Old Reader, BazQux, FreshRSS; Inoreader and Feedly on hold indefinitely |
 | Window | Three-pane layout; same toolbar actions, menus and context menus as the Mac |
 | Smart feeds | Today, All Unread, Starred |
 | Reading state | Mark read/unread, star, mark all read, mark older/above/below as read, hide read articles, hide read feeds, sort order, group by feed, search |
@@ -75,12 +75,12 @@ src/
   Core/              models, account abstraction, refresh scheduler
   Parser/            RSS, Atom, JSON Feed, RSS-in-JSON, OPML, FeedFinder
   Store/             SQLite articles + sync-status DBs
-  Sync.GoogleReader/ FreshRSS, The Old Reader, BazQux (Inoreader later)
+  Sync.GoogleReader/ FreshRSS, The Old Reader, BazQux (Inoreader on hold indefinitely)
   Sync.Feedbin/      Feedbin
   Sync.NewsBlur/     NewsBlur
   Sync.Feedbin/
   Sync.NewsBlur/
-  Sync.Feedly/       only if API access is granted
+  Sync.Feedly/       on hold indefinitely pending a response and usable API access
   Reader/            content extraction
   App/               WinUI 3 shell, views, viewmodels, themes, shortcuts
 tests/
@@ -130,13 +130,13 @@ Parity is proven by a release checklist run side by side with the Mac app, not b
 
 ## Next steps
 
-The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 168 done, 1 partial, 4 open (all of them other sync accounts), 39 unchecked (built, but the shortcuts, dragging, multiple selection, file pickers, double-click, right-click menu, link hover, theme files, updates, and failures showing in the logs have not been tried with real input or a published release), 2 waiting for service keys, and 23 dropped.
+The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (audited 2026-10-29): 168 done, 1 partial, 4 open (all of them other sync accounts), 39 unchecked (built, but the shortcuts, dragging, multiple selection, file pickers, double-click, right-click menu, link hover, theme files, updates, and failures showing in the logs have not been tried with real input or a published release), 2 on hold indefinitely pending service responses and usable API access, and 23 dropped.
 
 - [ ] Get a Certum code-signing certificate; the Release workflow signs once the `CERTUM_*` secrets are set (see docs/RELEASING.md)
 - [x] Reserve the name in Partner Center and paste its Product identity into `packaging/windows/AppxManifest.xml`
 - [x] Microsoft Store package: unsigned MSIX build, checks, artwork and listing text (`packaging/windows`), built by the Release workflow
 - [ ] Install the MSIX on a clean VM, run the Windows App Certification Kit, then submit
-- [ ] Apply for Feedly API access
+- [x] Request Inoreader and Feedly API access (2026-10-29); no replies as of 2026-11-08
 - [ ] Pick the app's name
 - [ ] Email Brent Simmons about the port
 - [x] Phase 0: extract menus, preferences, Inspector and shortcuts from `Mac/` into the [parity matrix](parity-matrix.md)
@@ -197,4 +197,4 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
   - [x] Feedbin account: API v2 client, tags as folders (a feed can have several), paged entries, unread and starred lists
   - [x] NewsBlur account: session login that renews itself, folders by name, story hashes, status sends
   - [x] Add Account: a service list grouped as web and self-hosted, then that service's sign-in sheet; Edit and Remove for any sync account
-  - [ ] Inoreader and Feedly, which need API keys or access
+  - [ ] Inoreader and Feedly: on hold indefinitely; no expected delivery date. Track [Inoreader #27](https://github.com/shaztechio/WinNewsReader/issues/27) and [Feedly #28](https://github.com/shaztechio/WinNewsReader/issues/28); resume only after a response and confirmation of usable API access

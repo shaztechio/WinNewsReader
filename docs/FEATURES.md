@@ -46,7 +46,7 @@ Choose **File → Add Account…**, pick a service and sign in. Passwords are ke
 | NewsBlur | Username and password |
 | FreshRSS | Your server's address, username, and the API password from FreshRSS's profile settings (`/api/greader.php` is added to the address for you) |
 
-Preferences → Accounts turns accounts on and off, and edits or removes them. Editing changes an account's name, server, username or password; a blank password keeps the saved one. Account names must differ (a second FreshRSS account is “FreshRSS 2”), and the same login can't be added twice, as in NetNewsWire. Inoreader and Feedly are not supported yet; see [FUTURE-SYNC-SERVICES.md](FUTURE-SYNC-SERVICES.md).
+Preferences → Accounts turns accounts on and off, and edits or removes them. Editing changes an account's name, server, username or password; a blank password keeps the saved one. Account names must differ (a second FreshRSS account is “FreshRSS 2”), and the same login can't be added twice, as in NetNewsWire. Inoreader and Feedly support is on hold indefinitely, with no expected delivery date; see [FUTURE-SYNC-SERVICES.md](FUTURE-SYNC-SERVICES.md).
 
 ## Preferences
 
