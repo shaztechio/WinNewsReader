@@ -20,7 +20,7 @@ Audited against the app on 2026-10-29. Each row has a status:
 - **Open**: not built yet.
 - **Unchecked**: built, but not tested.
 - **Installer**: waits for the signed installer (Phase 6).
-- **Keys**: waits for a service's developer keys or API access.
+- **On hold**: paused indefinitely pending a response and usable API access; no expected delivery date.
 - **Dropped**: not ported, for the reason given.
 
 | Status | Rows |
@@ -30,13 +30,13 @@ Audited against the app on 2026-10-29. Each row has a status:
 | Open | 4 |
 | Unchecked | 39 |
 | Installer | 0 |
-| Keys | 2 |
+| On hold | 2 |
 | Dropped | 23 |
 | **Total** | **237** |
 
 By section:
 
-| Section | Done | Partial | Open | Unchecked | Installer | Keys | Dropped |
+| Section | Done | Partial | Open | Unchecked | Installer | On hold | Dropped |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Feed formats and networking | 14 |  |  |  |  |  |  |
 | Accounts and sync | 6 |  | 4 |  |  | 2 | 1 |
@@ -89,11 +89,11 @@ By section:
 | AC-01 | Local account ("On This PC") | `Account/LocalAccount` | Port | Done | Unit: add, refresh, delete feed; state survives restart |
 | AC-02 | Feedbin | `Account/Feedbin` | Port | Done: Feedbin API v2, tags as folders | Unit: fake Feedbin server |
 | AC-03 | NewsBlur | `Account/NewsBlur`, `Modules/NewsBlur` | Port | Done: session login, story hashes | Unit: fake NewsBlur server |
-| AC-04 | Inoreader | `Account/ReaderAPI` | Port | Keys: needs Inoreader app keys | Needs Inoreader app key (finding 1). Unit + side-by-side |
+| AC-04 | Inoreader | `Account/ReaderAPI` | Port | On hold: [#27](https://github.com/shaztechio/WinNewsReader/issues/27), no API access response | Needs Inoreader app key (finding 1). Unit + side-by-side |
 | AC-05 | The Old Reader | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host; Old Reader ID rules | Unit: fake Reader API server |
 | AC-06 | BazQux | `Account/ReaderAPI` | Port | Done: Reader API variant, fixed host | Unit: fake Reader API server |
 | AC-07 | FreshRSS (self-hosted URL) | `Account/ReaderAPI` | Port | Done | Unit: recorded HTTP; side-by-side against a FreshRSS container |
-| AC-08 | Feedly (OAuth in browser) | `Account/Feedly` | Port | Keys: needs Feedly API access | Only if Feedly grants API access. Unit + side-by-side |
+| AC-08 | Feedly (OAuth in browser) | `Account/Feedly` | Port | On hold: [#28](https://github.com/shaztechio/WinNewsReader/issues/28), no API access response | Only if Feedly grants API access. Unit + side-by-side |
 | AC-09 | iCloud (CloudKit) account | `Account/CloudKit`, `Modules/CloudKitSync` | Drop | Dropped | Data lives in Ranchero's private CloudKit container |
 | AC-10 | Sync status database (pending changes queue) | `Modules/SyncDatabase` | Port | Done | Unit: offline mark-read is sent on next sync |
 | AC-11 | Multiple accounts, enable/disable each | `Preferences/Accounts` | Port | Done | UI: disabled account hides from sidebar and skips refresh |

@@ -13,7 +13,7 @@ A free feed reader for Windows, a native port of [NetNewsWire](https://github.co
 - Reads RSS, Atom, JSON Feed and RSS-in-JSON, with folders and OPML import and export
 - Three-pane window with NetNewsWire's keyboard shortcuts, smart feeds, search, and a mail-style column layout
 - NetNewsWire's article themes, Reader View, notifications, and dark mode
-- Sync with Feedbin, NewsBlur, The Old Reader, BazQux and FreshRSS (Inoreader and Feedly are [not built yet](docs/FUTURE-SYNC-SERVICES.md))
+- Sync with Feedbin, NewsBlur, The Old Reader, BazQux and FreshRSS (Inoreader and Feedly support is [on hold indefinitely](docs/FUTURE-SYNC-SERVICES.md))
 - Your feeds stay on your PC; nothing is sent anywhere except to the sites and services you use
 
 ## Install
