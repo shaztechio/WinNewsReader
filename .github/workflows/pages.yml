@@ -22,12 +22,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build-site:
     if: github.event_name != 'workflow_dispatch' || inputs.release-run-id == ''
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      artifact-name: github-pages-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
@@ -56,21 +55,19 @@ jobs:
           done
       - uses: actions/upload-pages-artifact@v5
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: site
-      - id: deployment
-        uses: actions/deploy-pages@v5
 
   republish-release:
     if: github.event_name == 'workflow_dispatch' && inputs.release-run-id != ''
     runs-on: ubuntu-latest
+    outputs:
+      artifact-name: github-pages-${{ github.run_attempt }}
     permissions:
       contents: read
       actions: read
       pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Validate release run
         env:
@@ -97,6 +94,21 @@ jobs:
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: site
+
+  # A separate job avoids deploy-pages listing an artifact immediately after its upload.
+  # Attempt-specific names also prevent duplicate matches after re-running all jobs.
+  deploy:
+    needs: [build-site, republish-release]
+    if: ${{ !cancelled() && (needs.build-site.result == 'success' || needs.republish-release.result == 'success') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # A failed-jobs-only retry reuses the successful producer's original attempt.
+          artifact_name: ${{ needs.build-site.outputs.artifact-name || needs.republish-release.outputs.artifact-name }}
