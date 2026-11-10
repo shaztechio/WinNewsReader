@@ -4,6 +4,22 @@ The rows in [parity-matrix.md](parity-matrix.md) marked **Unchecked** are built 
 
 Run the app from a build (`dotnet build src/App`, then the exe in `src/App/bin/Debug/net10.0-windows10.0.19041.0/win-x64/`), or install the latest test release. Use `--data <folder>` to point it at a throwaway data folder so your real feeds stay untouched.
 
+## Close to System Tray (Windows preference)
+
+- [x] Unread badges confirmed working by the reader after the tray badge and taskbar restore fixes (2026-11-10).
+
+- [ ] With unread articles, enable the preference: taskbar and tray both show the badge; check number (including 99+), dot, Hide and zero unread.
+- [ ] Hide and restore repeatedly without changing the unread count: the taskbar badge returns each time. Change the count while hidden: the tray badge updates and the restored taskbar shows the current value.
+
+- [ ] On a fresh profile and an existing settings file without the preference, it is off; closing the last window quits.
+- [ ] Enable it in General: one tray icon appears immediately and the preference persists after restarting.
+- [ ] X, Alt+F4 and File → Close Window hide the main window and remove its taskbar button; minimize still uses the taskbar.
+- [ ] While hidden, automatic refresh and article notifications continue; opening an article notification restores the window.
+- [ ] Click the tray icon and use its Open WinNewsReader menu item: restore hidden/minimized windows, preserving maximized placement.
+- [ ] File → Exit and tray Exit fully quit, including with several hidden windows; the icon disappears.
+- [ ] Disable the preference from another window’s Preferences: all hidden main windows return and the icon disappears.
+- [ ] Launch again while hidden: the existing window returns. Restart Explorer while hidden: the tray icon returns.
+
 ## YouTube embedding regression
 
 - [x] Article embed playback confirmed by hand with [Six Colors: Designing Mac apps for touch and multitouch](https://sixcolors.com/link/2026/10/designing-mac-apps-for-touch-and-multitouch/) (2026-10-31).

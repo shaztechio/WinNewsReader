@@ -19,6 +19,9 @@ public sealed class AppSettings
 
 	public bool HideReadFeeds { get; set; }
 
+	/// <summary>Hide closed main windows in the notification area while continuing background work. Off by default.</summary>
+	public bool CloseToSystemTray { get; set; }
+
 	/// <summary>Light, Dark or System, for the whole app, articles included.</summary>
 	[JsonConverter(typeof(JsonStringEnumConverter))]
 	public AppAppearance Appearance { get; set; }

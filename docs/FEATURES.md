@@ -52,6 +52,8 @@ Preferences → Accounts turns accounts on and off, and edits or removes them. E
 
 **File → Preferences…** (Ctrl+,) has Appearance (Same as Windows, Light or Dark, articles included), Unread Counts (number, dot or none, for the sidebar and for the taskbar badge, which shows the total of all unread articles, as 99+ past 99), article text size and theme, Enable JavaScript, the browser that opens links, how often to refresh (manually, or every 30 minutes to 8 hours), the Accounts tab, and an Advanced tab for updates and Reader View's hidden browser (start it when the app starts, on by default; off for readers who never use Reader View).
 
+**Close to System Tray** in General is off by default. When enabled, a tray icon stays available and closing a main window (X or Alt+F4) hides it while feeds keep refreshing and notifications continue. The tray icon follows Unread Counts: number (99+ above 99), dot or none, and updates while hidden. Minimize still uses the taskbar. Click the tray icon or choose **Open WinNewsReader** from its right-click menu to restore the window. **File → Exit** and the tray menu’s **Exit** quit the app. Turning the preference off restores hidden windows and removes the tray icon.
+
 ## Keyboard
 
 Works from any pane, including while reading an article.
