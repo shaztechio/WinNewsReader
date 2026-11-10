@@ -73,7 +73,7 @@ By section:
 | FM-04 | JSON Feed | `JSON/JSONFeedParser.swift` | Port | Done | Golden: every `.json` fixture except RSS-in-JSON |
 | FM-05 | RSS-in-JSON | `JSON/RSSInJSONParser.swift` | Port | Done | Golden: `ScriptingNews.json` |
 | FM-06 | Media RSS (thumbnails, enclosures) | `MediaRSS.swift` | Port | Done | Golden: `media-group.rss`, `youtube.atom` |
-| FM-07 | Podcast enclosures shown in article | `ArticleRenderer+Enclosures.swift` | Port | Done | Golden: `atp.rss`; UI: enclosure link renders |
+| FM-07 | Podcast enclosures shown in article; NetNewsWire 7.3 primary media and enclosure theme tags | `ArticleRenderer+Enclosures.swift`, `ArticleRenderer+PrimaryMedia.swift` | Port | Done | Golden: `atp.rss`; unit: primary video/audio/image selection, no repeated media, short untitled posts and legacy theme fallback; 7.3 visual checks in MANUAL-TEST-CHECKLIST.md |
 | FM-08 | Format sniffing from bytes | `Data+ProbablyFormat.swift` | Port | Done | Unit: each fixture detected as its own type |
 | FM-09 | Feed finder (HTML `<link>` discovery) | `Modules/FeedFinder` | Port | Done | Golden: `DaringFireball.html`, `sixcolors.html`, `furbo.html` |
 | FM-10 | HTML metadata (favicons, apple-touch-icon, og:image) | `Modules/HTMLMetadata` | Port | Done | Golden: `inessential.html`, `coco.html` |

@@ -27,6 +27,8 @@ The first launch adds NetNewsWire's starter feeds and the WinNewsReader News fee
 - Embedded YouTube videos identify WinNewsReader to the player so they can play inside articles. JavaScript must be enabled; videos whose owners prohibit embedding still need to be opened on YouTube.
 - Feeds show their own icon, or their site's largest touch icon, or its favicon, cached in `%LOCALAPPDATA%\WinNewsReader\Favicons`.
 
+Article themes support NetNewsWire 7.3’s `[[primary_media]]` and `[[enclosures]]` tags. Primary media shows a video, audio with artwork, or a lead image before the body in the default theme, without repeating it in the enclosures. Short untitled posts keep images after the text. Older themes still show media after the body; theme authors can place the two tags themselves.
+
 ## Feeds and folders
 
 - Drag a feed onto a folder to move it, or use **Move to** on its right-click menu. Ctrl-drag copies a local feed into a second folder.

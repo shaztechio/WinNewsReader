@@ -27,7 +27,7 @@ public enum ArticleTextSize
 /// <summary>
 /// NetNewsWire's <c>ArticleRenderer</c>: fills a theme's template with an article, then wraps it in <c>page.html</c>.
 /// </summary>
-public static class ArticleRenderer
+public static partial class ArticleRenderer
 {
 	private const int SecondsPerMinute = 60;
 	private const int SecondsPerHour = 3600;
@@ -223,7 +223,7 @@ public static class ArticleRenderer
 
 		// Templates without [[enclosures]] get them after the body. The wrapper closes anything the body leaves open,
 		// such as an unclosed <audio>, so the enclosures can't end up inside it.
-		var enclosures = EnclosuresHtml(article.Attachments, body, article.ImageUrl ?? article.ThumbnailUrl);
+		var (primaryMedia, enclosures) = MediaHtml(article, theme.Template, body);
 		var templateHasEnclosures = theme.Template.Contains("[[enclosures]]", StringComparison.Ordinal);
 
 		return new Dictionary<string, string>
@@ -235,6 +235,7 @@ public static class ArticleRenderer
 			["external_link"] = externalLink is null ? "" : ArticleText.EscapingSpecialXmlCharacters(externalLink),
 			["body"] = templateHasEnclosures || enclosures.Length == 0 ? body : "<div>" + body + "</div>" + enclosures,
 			["enclosures"] = templateHasEnclosures ? enclosures : "",
+			["primary_media"] = primaryMedia,
 			["text_size_class"] = context.TextSizeClass,
 			["avatar_src"] = ArticleText.EscapingSpecialXmlCharacters(context.AvatarSource),
 			["dateline_style"] = title.Length == 0 ? "articleDatelineTitle" : "articleDateline",

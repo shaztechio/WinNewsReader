@@ -4,6 +4,8 @@ Oct 27, 2026 · Shazron
 
 ## Windows additions
 
+- [x] Support NetNewsWire 7.3’s `[[primary_media]]` and `[[enclosures]]` theme contract, primary media selection and legacy template fallback (#32).
+
 - [x] Add the opt-in Close to System Tray preference, tray restore/exit controls and background refresh while hidden. Manual verification is tracked in MANUAL-TEST-CHECKLIST.md.
 
 ## Summary
