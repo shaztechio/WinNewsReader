@@ -63,6 +63,25 @@ img.twemoji, img.emoji {
 	width: auto;
 }
 
+/* Primary media: the article’s main video, audio, or image, from the feed */
+
+.nnw-primary-media {
+	margin: 1em 0;
+}
+
+.nnw-primary-image {
+	margin: 1em 0;
+}
+
+.nnw-primary-image img {
+	height: auto;
+}
+
+.nnw-primary-image-caption {
+	margin: 0.5em 0 0;
+	font-size: 0.9em;
+}
+
 /* Enclosures: audio and video players and images after the article body */
 
 .nnw-enclosures {

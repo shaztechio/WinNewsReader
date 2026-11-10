@@ -4,6 +4,14 @@ The rows in [parity-matrix.md](parity-matrix.md) marked **Unchecked** are built 
 
 Run the app from a build (`dotnet build src/App`, then the exe in `src/App/bin/Debug/net10.0-windows10.0.19041.0/win-x64/`), or install the latest test release. Use `--data <folder>` to point it at a throwaway data folder so your real feeds stay untouched.
 
+## NetNewsWire 7.3 theme media (#32)
+
+Verified on 2026-11-10 using the PR #33 Debug build in WebView2, a disposable profile, and a localhost JSON Feed with generated PNG artwork, WAV audio and MP4 video. All three rows passed in Light and Dark appearance. The both-tags theme was installed through the app; the two fallback themes were added through the profile’s Themes folder. No visual defects found. These checks cover rendering and placement, not playback or remote media availability.
+
+- [x] In the default theme, check a video with a poster, a podcast with artwork, and an image-only article: main media precedes the text and is not repeated after it.
+- [x] Check a short untitled post: its images follow the text. Media already embedded in the body is not repeated.
+- [x] Install a theme with both media tags, one with only `[[enclosures]]`, and one with neither: media renders once in the requested positions, or after the body for older themes. Check light and dark appearance.
+
 ## Close to System Tray (Windows preference)
 
 - [x] Unread badges confirmed working by the reader after the tray badge and taskbar restore fixes (2026-11-10).
