@@ -48,6 +48,47 @@ public partial class App : Application
 	private ArticleExtractor _extractor = null!;
 	private readonly ActivityLog _activity = new();
 	private readonly List<MainWindow> _windows = [];
+	private SystemTray? _tray;
+	private bool _exiting;
+
+	public void UpdateSystemTray()
+	{
+		_tray?.Dispose();
+		_tray = null;
+		if (_settings.CloseToSystemTray && !_exiting && _windows.FirstOrDefault() is { } owner)
+		{
+			try { _tray = new SystemTray(owner, RestoreTrayWindows, ExitAllWindows); }
+			catch (System.ComponentModel.Win32Exception)
+			{
+				// Never hide windows without a working way to restore them.
+				foreach (var window in _windows) window.BringToFront();
+			}
+		}
+		else if (!_exiting)
+		{
+			foreach (var window in _windows.Where(w => !w.AppWindow.IsVisible)) window.BringToFront();
+		}
+	}
+
+	private void RestoreTrayWindows()
+	{
+		foreach (var window in _windows) window.BringToFront();
+	}
+
+	internal bool HideWindowToTray(MainWindow window)
+	{
+		if (_exiting || !_settings.CloseToSystemTray || _tray is not { IsAvailable: true }) return false;
+		window.AppWindow.Hide();
+		return true;
+	}
+
+	private void ExitAllWindows()
+	{
+		_exiting = true;
+		_tray?.Dispose();
+		_tray = null;
+		foreach (var window in _windows.ToList()) window.Close();
+	}
 
 	private static void LogCrash(Exception? exception)
 	{
@@ -117,6 +158,7 @@ public partial class App : Application
 		_themeInstaller = new ArticleThemeInstaller(_themes, _downloader);
 		_extractor = new ArticleExtractor(_downloader);
 		var window = OpenWindow(isPrimary: true);
+		UpdateSystemTray();
 		StartNotifications(window.ViewModel, window);
 		window.Activate();
 		SingleInstance.Launched += targets => window.DispatcherQueue.TryEnqueue(() => HandleLaunch(targets));
@@ -140,12 +182,10 @@ public partial class App : Application
 		}
 		_windows.Add(window);
 		window.NewWindowRequested += (_, _) => OpenWindow(isPrimary: false).Activate();
-		window.ExitRequested += (_, _) =>
+		window.ExitRequested += (_, _) => ExitAllWindows();
+		window.AppWindow.Closing += (_, args) =>
 		{
-			foreach (var open in _windows.ToList())
-			{
-				open.Close();
-			}
+			args.Cancel = HideWindowToTray(window);
 		};
 		window.Closed += (_, _) => OnWindowClosed(window);
 		return window;
@@ -153,7 +193,10 @@ public partial class App : Application
 
 	private void OnWindowClosed(MainWindow window)
 	{
+		_tray?.Dispose();
+		_tray = null;
 		_windows.Remove(window);
+		UpdateSystemTray();
 		if (_windows.Count == 0)
 		{
 			_accounts.Dispose();

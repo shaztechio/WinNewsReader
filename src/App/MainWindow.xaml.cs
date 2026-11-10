@@ -39,12 +39,18 @@ public sealed partial class MainWindow : Window
 	/// <summary>For a notification click: the window comes forward, unminimized.</summary>
 	public void BringToFront()
 	{
+		AppWindow.Show();
 		if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
 		{
 			presenter.Restore();
 		}
 		Activate();
+		DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+			() => _badge.Reapply(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts));
 	}
+
+	internal void RefreshTaskbarBadge() =>
+		_badge.Reapply(ViewModel.TotalUnread, ViewModel.Settings.UnreadCounts);
 
 	private double _sidebarWidthBeforeHiding = 250;
 
@@ -903,7 +909,10 @@ public sealed partial class MainWindow : Window
 		FillTextSizeMenu(TextSizeMenu);
 	}
 
-	private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+	private void OnCloseWindow(object sender, RoutedEventArgs e)
+	{
+		if (!((App)Application.Current).HideWindowToTray(this)) Close();
+	}
 
 	/// <summary>Raised by Exit (Ctrl+Q): the app closes every window.</summary>
 	public event EventHandler? ExitRequested;

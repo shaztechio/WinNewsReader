@@ -30,6 +30,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Text="Appearance:" HorizontalAlignment="Right" VerticalAlignment="Center" />
@@ -69,6 +70,10 @@
                         <TextBlock Grid.Row="6" Text="Refresh Feeds:" HorizontalAlignment="Right" VerticalAlignment="Center" />
                         <ComboBox x:Name="RefreshBox" Grid.Row="6" Grid.Column="1" MinWidth="220" AutomationProperties.Name="Refresh Feeds"
                                   SelectionChanged="OnRefreshChanged" />
+                        <StackPanel Grid.Row="7" Grid.Column="1" Spacing="4">
+                            <CheckBox x:Name="CloseToTrayBox" Content="Close to System Tray" Click="OnCloseToTrayChanged" />
+                            <TextBlock Text="Keep refreshing feeds and showing notifications when the window is closed. Use File → Exit or the tray menu to quit." TextWrapping="Wrap" Style="{ThemeResource CaptionTextBlockStyle}" />
+                        </StackPanel>
                     </Grid>
                 </ScrollViewer>
 

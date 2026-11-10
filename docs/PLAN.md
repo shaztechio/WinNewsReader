@@ -2,6 +2,10 @@
 
 Oct 27, 2026 · Shazron
 
+## Windows additions
+
+- [x] Add the opt-in Close to System Tray preference, tray restore/exit controls and background refresh while hidden. Manual verification is tracked in MANUAL-TEST-CHECKLIST.md.
+
 ## Summary
 
 Build a native Windows feed reader with feature parity to the NetNewsWire Mac app, in roughly 4–6.5 months of solo full-time work.

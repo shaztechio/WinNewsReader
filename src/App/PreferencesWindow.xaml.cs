@@ -179,9 +179,18 @@ public sealed partial class PreferencesWindow : Window
 		}
 	}
 
+	private void OnCloseToTrayChanged(object sender, RoutedEventArgs e)
+	{
+		if (_loading) return;
+		_viewModel.Settings.CloseToSystemTray = CloseToTrayBox.IsChecked == true;
+		_viewModel.SaveSettings();
+		((App)Application.Current).UpdateSystemTray();
+	}
+
 	private void Load()
 	{
 		_loading = true;
+		CloseToTrayBox.IsChecked = _viewModel.Settings.CloseToSystemTray;
 		Select(AppearanceBox, _viewModel.Settings.Appearance);
 		CountsButtons.SelectedIndex = (int)_viewModel.Settings.UnreadCounts;
 		Select(TextSizeBox, _viewModel.Settings.ArticleTextSize);

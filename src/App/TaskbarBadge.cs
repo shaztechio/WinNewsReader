@@ -33,13 +33,11 @@ public sealed class TaskbarBadge(Window window)
 		_shownText = text;
 	}
 
-	/// <summary>Tries again if the last attempt didn't take, such as one made before the taskbar button existed.</summary>
+	/// <summary>Windows discards overlays when a hidden window gets a new taskbar button, even after a successful call.</summary>
 	public void Reapply(int unread, UnreadCountDisplay display)
 	{
-		if (!_applied)
-		{
-			Update(unread, display);
-		}
+		_applied = false;
+		Update(unread, display);
 	}
 
 	private bool Apply(string? text, string description)
