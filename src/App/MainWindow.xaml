@@ -138,6 +138,9 @@
                 <MenuFlyoutItem Text="Mark as Starred/Unstarred" Click="OnToggleStarred" KeyboardAcceleratorTextOverride="Ctrl+Shift+L" />
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem Text="Show Reader View" Click="OnToggleReaderView" KeyboardAcceleratorTextOverride="Ctrl+Shift+R" />
+                <MenuFlyoutItem Text="Open Original in App" Click="OnOpenOriginalInApp"
+                                Visibility="{x:Bind ViewModel.IsOpenOriginalInAppEnabled, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanOpenOriginalInApp, Mode=OneWay}" />
                 <MenuFlyoutItem Text="Open in Browser" Click="OnOpenInBrowser" KeyboardAcceleratorTextOverride="Ctrl+Right" />
                 <MenuFlyoutItem Text="Share…" Click="OnShare" />
             </MenuBarItem>
@@ -275,6 +278,12 @@
                     <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnShare" IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
                             ToolTipService.ToolTip="Share" AutomationProperties.Name="Share">
                         <FontIcon Glyph="&#xE72D;" FontSize="16" />
+                    </Button>
+                    <Button x:Name="OpenOriginalButton" Style="{StaticResource ToolbarButtonStyle}" Click="OnOpenOriginalInApp"
+                            Visibility="{x:Bind ViewModel.IsOpenOriginalInAppEnabled, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.CanOpenOriginalInApp, Mode=OneWay}"
+                            ToolTipService.ToolTip="Open Original in App" AutomationProperties.Name="Open Original in App">
+                        <FontIcon Glyph="&#xE128;" FontSize="16" />
                     </Button>
                     <Button Style="{StaticResource ToolbarButtonStyle}" Click="OnOpenInBrowser" IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
                             ToolTipService.ToolTip="Open in Browser" AutomationProperties.Name="Open in Browser">
@@ -468,6 +477,16 @@
                         </Button>
                     </StackPanel>
                 </Border>
+                <Grid x:Name="OriginalArticlePane" Visibility="Collapsed" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Button x:Name="BackToFeedArticleButton" Margin="8" Content="Back to Feed Article" Click="OnBackToFeedArticle" />
+                    <Grid x:Name="OriginalArticleHost" Grid.Row="1" />
+                    <TextBlock x:Name="OriginalArticleError" Grid.Row="1" Margin="12" TextWrapping="Wrap"
+                               Text="Couldn’t open the original article. Try Open in Browser." Visibility="Collapsed" />
+                </Grid>
             </Grid>
         </Grid>
 

@@ -10,6 +10,7 @@ public enum AppChangeKind
 
 	/// <summary>The reader changed the app's Light or Dark appearance.</summary>
 	Appearance,
+	ExperimentalPreferences,
 }
 
 /// <summary>

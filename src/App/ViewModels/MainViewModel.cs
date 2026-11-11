@@ -158,6 +158,24 @@ public sealed partial class MainViewModel : ObservableObject
 	public bool IsShowingReaderView => ReaderView == ReaderViewState.On;
 
 	public bool CanUseReaderView => SelectedArticle?.LinkUrl is not null;
+	public bool IsOpenOriginalInAppEnabled => Settings.EnableOpenOriginalInApp;
+	public bool CanOpenOriginalInApp => IsOpenOriginalInAppEnabled
+		&& Uri.TryCreate(SelectedArticle?.LinkUrl, UriKind.Absolute, out var uri)
+		&& (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+
+	public void SetOpenOriginalInAppEnabled(bool enabled)
+	{
+		Settings.EnableOpenOriginalInApp = enabled;
+		SaveSettings();
+		NotifyOpenOriginalInAppChanged();
+		AppChanges.Raise(this, AppChangeKind.ExperimentalPreferences);
+	}
+
+	private void NotifyOpenOriginalInAppChanged()
+	{
+		OnPropertyChanged(nameof(IsOpenOriginalInAppEnabled));
+		OnPropertyChanged(nameof(CanOpenOriginalInApp));
+	}
 
 	public string ReaderViewLabel => ReaderView switch
 	{
@@ -323,6 +341,7 @@ public sealed partial class MainViewModel : ObservableObject
 	partial void OnSelectedArticleChanged(ArticleItem? oldValue, ArticleItem? newValue)
 	{
 		OnPropertyChanged(nameof(CanUseReaderView));
+		OnPropertyChanged(nameof(CanOpenOriginalInApp));
 		// Choosing one article elsewhere, as Next Unread does, makes it the whole selection.
 		if (!_settingSelection)
 		{
@@ -880,6 +899,9 @@ public sealed partial class MainViewModel : ObservableObject
 					break;
 				case AppChangeKind.Appearance:
 					AppearanceChanged?.Invoke(this, EventArgs.Empty);
+					break;
+				case AppChangeKind.ExperimentalPreferences:
+					NotifyOpenOriginalInAppChanged();
 					break;
 				default:
 					UpdateUnreadCounts();

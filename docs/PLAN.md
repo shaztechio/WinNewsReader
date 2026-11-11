@@ -191,6 +191,7 @@ The [parity matrix](parity-matrix.md) has a status for each of its 237 rows (aud
 - [x] Phase 3: article view
   - [x] NetNewsWire's template, core and stylesheet CSS, page scripts and special cases (AV-01), its eight bundled themes (AV-02), Open Themes Folder (AV-05), article text size; feed icons in the article header
   - [x] Reader View (AV-08, TB-09): SmartReader extracts the article from its page, on demand (Ctrl+Shift+R) or always for a feed set to Always Use Reader View
+  - [x] Open Original in App loads the publisher’s page in the article pane and provides a Back to Feed Article button ([#35](https://github.com/shaztechio/WinNewsReader/issues/35))
   - [x] Theme import (AV-03) and download from a URL (AV-04): **Install Theme…** takes a zip or a theme's `Info.plist`, since a `.nnwtheme` is a folder on Windows and can't be double-clicked; **Install Theme from URL…** downloads a zip. Same checks and prompts as NetNewsWire. The `netnewswire://theme/add?url=` link waits for a URL scheme registration
   - [x] Enable JavaScript (AV-07) in the menu bar, on by default, applied per article as NetNewsWire does; always off for sites that break with it (slashdot.org). The app's own page scripts run either way
 - [ ] Phase 4, started early: FreshRSS
