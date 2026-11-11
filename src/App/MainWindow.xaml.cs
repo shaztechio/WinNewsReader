@@ -281,7 +281,14 @@ public sealed partial class MainWindow : Window
 					ShowArticle(null);
 				}
 				break;
+			case nameof(MainViewModel.IsOpenOriginalInAppEnabled):
+				if (!ViewModel.IsOpenOriginalInAppEnabled)
+				{
+					CloseOriginalArticle();
+				}
+				break;
 			case nameof(MainViewModel.SelectedArticle):
+				CloseOriginalArticle();
 				if (ViewModel.SelectedArticle is not null && !(Timeline.SelectedItems.Count == 1 && Timeline.SelectedItem == ViewModel.SelectedArticle))
 				{
 					SyncSelection(() => Timeline.SelectedItem = ViewModel.SelectedArticle);
@@ -1104,14 +1111,17 @@ public sealed partial class MainWindow : Window
 		}
 	}
 
-	private void HideFindBar()
+	private void HideFindBar(bool focusTimeline = true)
 	{
 		FindBar.Visibility = Visibility.Collapsed;
 		if (_articleViewReady)
 		{
 			ArticleView.CoreWebView2.Find.Stop();
 		}
-		FocusPane(Pane.Timeline);
+		if (focusTimeline)
+		{
+			FocusPane(Pane.Timeline);
+		}
 	}
 
 	private async Task StartFindAsync()
@@ -1656,6 +1666,80 @@ public sealed partial class MainWindow : Window
 	private void OnNextUnread(object sender, RoutedEventArgs e) => ViewModel.SelectNextUnread();
 
 	private void OnToggleReaderView(object sender, RoutedEventArgs e) => ViewModel.ToggleReaderView();
+
+	private async void OnOpenOriginalInApp(object sender, RoutedEventArgs e)
+	{
+		if (!ViewModel.CanOpenOriginalInApp || OriginalArticlePane.Visibility == Visibility.Visible)
+		{
+			return;
+		}
+
+		var url = ViewModel.SelectedArticle!.LinkUrl!;
+		var webView = new WebView2();
+		AutomationProperties.SetName(webView, "Original article");
+		HideFindBar(focusTimeline: false);
+		ArticleView.Visibility = Visibility.Collapsed;
+		OriginalArticleHost.Children.Add(webView);
+		OriginalArticlePane.Visibility = Visibility.Visible;
+		BackToFeedArticleButton.Focus(FocusState.Programmatic);
+		try
+		{
+			await webView.EnsureCoreWebView2Async();
+			if (!OriginalArticleHost.Children.Contains(webView))
+			{
+				return;
+			}
+
+			// Publisher pages run as top-level documents in a view with no article-pane bridge.
+			var core = webView.CoreWebView2;
+			core.Settings.IsWebMessageEnabled = false;
+			core.Settings.AreHostObjectsAllowed = false;
+			core.NavigationStarting += (_, args) => args.Cancel = !IsWebUrl(args.Uri);
+			core.LaunchingExternalUriScheme += (_, args) => args.Cancel = true;
+			core.DownloadStarting += (_, args) => args.Cancel = true;
+			core.PermissionRequested += (_, args) => args.State = CoreWebView2PermissionState.Deny;
+			core.NewWindowRequested += (_, args) =>
+			{
+				args.Handled = true;
+				if (args.IsUserInitiated && IsWebUrl(args.Uri))
+				{
+					core.Navigate(args.Uri);
+				}
+			};
+			core.Navigate(url);
+		}
+		catch (Exception)
+		{
+			if (OriginalArticleHost.Children.Remove(webView))
+			{
+				webView.Close();
+				OriginalArticleError.Visibility = Visibility.Visible;
+			}
+		}
+	}
+
+	private void OnBackToFeedArticle(object sender, RoutedEventArgs e)
+	{
+		CloseOriginalArticle();
+		OpenOriginalButton.Focus(FocusState.Programmatic);
+	}
+
+	private void CloseOriginalArticle()
+	{
+		if (OriginalArticlePane.Visibility != Visibility.Visible)
+		{
+			return;
+		}
+
+		if (OriginalArticleHost.Children.FirstOrDefault() is WebView2 webView)
+		{
+			OriginalArticleHost.Children.Clear();
+			webView.Close();
+		}
+		OriginalArticleError.Visibility = Visibility.Collapsed;
+		OriginalArticlePane.Visibility = Visibility.Collapsed;
+		ArticleView.Visibility = Visibility.Visible;
+	}
 
 	/// <summary>NetNewsWire opens every selected article, each in its own browser tab.</summary>
 	private void OnOpenInBrowser(object sender, RoutedEventArgs e)

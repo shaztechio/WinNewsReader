@@ -135,6 +135,11 @@ public sealed partial class PreferencesWindow : Window
 			Style = (Style)Application.Current.Resources["SecondaryTextStyle"],
 		});
 
+		panel.Children.Add(new TextBlock { Text = "Experimental", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 0) });
+		var openOriginal = new CheckBox { Content = "Open Original in App", IsChecked = _viewModel.IsOpenOriginalInAppEnabled };
+		openOriginal.Click += (_, _) => _viewModel.SetOpenOriginalInAppEnabled(openOriginal.IsChecked == true);
+		panel.Children.Add(openOriginal);
+
 		panel.Children.Add(new TextBlock { Text = "Privacy", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 0) });
 		panel.Children.Add(new TextBlock
 		{
