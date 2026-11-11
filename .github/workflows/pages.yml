@@ -24,11 +24,11 @@ concurrency:
 jobs:
   build-site:
     if: github.event_name != 'workflow_dispatch' || inputs.release-run-id == ''
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       artifact-name: github-pages-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: useblacksmith/checkout@v1
       - uses: actions/configure-pages@v6
       # Pages replaces the whole site, so the releases that the Release workflow published have to come along with it.
       # Copy the feed directly: vpk on this Linux runner filters for Linux packages, but our releases are Windows packages.
@@ -60,7 +60,7 @@ jobs:
 
   republish-release:
     if: github.event_name == 'workflow_dispatch' && inputs.release-run-id != ''
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       artifact-name: github-pages-${{ github.run_attempt }}
     permissions:
@@ -77,7 +77,7 @@ jobs:
           [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Invalid release run ID"; exit 1; }
           eligible=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID" --jq '.path == ".github/workflows/release.yml" and .event == "push" and .conclusion == "success"')
           [[ "$eligible" == true ]] || { echo "Expected a successful Release workflow run"; exit 1; }
-      - uses: actions/checkout@v7
+      - uses: useblacksmith/checkout@v1
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: github-pages
@@ -102,7 +102,7 @@ jobs:
   deploy:
     needs: [build-site, republish-release]
     if: ${{ !cancelled() && (needs.build-site.result == 'success' || needs.republish-release.result == 'success') }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
